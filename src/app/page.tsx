@@ -17,7 +17,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';
 import { id as localeID } from 'date-fns/locale';
-import { Progress } from "@/components/ui/progress";
+// Progress component is not used directly in this file for story progress, manual divs are used.
 
 interface UserWithStoryCount extends User {
   storyCount: number;
@@ -36,6 +36,8 @@ export default function FeedPage() {
   const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
   const [storyModalContent, setStoryModalContent] = useState<{ user: User; post: Post; storyCount: number } | null>(null);
   const [storyProgress, setStoryProgress] = useState(0);
+  const [currentUserStories, setCurrentUserStories] = useState<Post[]>([]);
+  const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
 
   useEffect(() => {
     const id = getCurrentUserId();
@@ -104,9 +106,44 @@ export default function FeedPage() {
   }, [posts, users]);
 
 
+  const navigateStory = (direction: 'next' | 'prev') => {
+    if (!storyModalContent || currentUserStories.length === 0) {
+      setIsStoryModalOpen(false);
+      return;
+    }
+
+    let newIndex = currentStoryIndex;
+    if (direction === 'next') {
+      newIndex = currentStoryIndex + 1;
+    } else {
+      newIndex = currentStoryIndex - 1;
+    }
+
+    if (newIndex >= 0 && newIndex < currentUserStories.length) {
+      setCurrentStoryIndex(newIndex);
+      setStoryModalContent(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          post: currentUserStories[newIndex],
+        };
+      });
+      setStoryProgress(0); 
+    } else if (direction === 'next' && newIndex >= currentUserStories.length) {
+      setIsStoryModalOpen(false);
+      setCurrentUserStories([]);
+      setCurrentStoryIndex(0);
+    } else if (direction === 'prev' && newIndex < 0) {
+      // At the beginning, do nothing or optionally close
+       // setIsStoryModalOpen(false); 
+       // setCurrentUserStories([]);
+       // setCurrentStoryIndex(0);
+    }
+  };
+
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    if (isStoryModalOpen && storyModalContent && storyModalContent.post.mediaMimeType?.startsWith('image/')) {
+    if (isStoryModalOpen && storyModalContent && currentUserStories.length > 0 && currentStoryIndex < currentUserStories.length && currentUserStories[currentStoryIndex]?.mediaMimeType?.startsWith('image/')) {
       setStoryProgress(0); 
       const duration = 7000; 
       const interval = 50; 
@@ -118,12 +155,12 @@ export default function FeedPage() {
         setStoryProgress((currentStep / steps) * 100);
         if (currentStep >= steps) {
           clearInterval(timer);
-          
+          navigateStory('next'); // Auto-advance
         }
       }, interval);
     }
     return () => clearInterval(timer);
-  }, [isStoryModalOpen, storyModalContent]);
+  }, [isStoryModalOpen, storyModalContent, currentStoryIndex, currentUserStories]);
 
 
   const handleLikePost = (postId: string) => {
@@ -208,16 +245,19 @@ export default function FeedPage() {
   }, [users, currentUserId]);
 
   const handleStoryAvatarClick = (userId: string) => {
-    const userWithStoryCount = usersWithStories.find(u => u.id === userId);
-    if (!userWithStoryCount) return;
+    const userWithStoryData = usersWithStories.find(u => u.id === userId);
+    if (!userWithStoryData) return;
   
-    const userStories = posts
+    const userAllStories = posts
       .filter(p => p.userId === userId && p.type === 'story')
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()); // Sort oldest to newest for sequential playback
     
-    if (userStories.length > 0) {
-      setStoryModalContent({ user: userWithStoryCount, post: userStories[0], storyCount: userWithStoryCount.storyCount });
+    if (userAllStories.length > 0) {
+      setCurrentUserStories(userAllStories);
+      setCurrentStoryIndex(0);
+      setStoryModalContent({ user: userWithStoryData, post: userAllStories[0], storyCount: userAllStories.length });
       setIsStoryModalOpen(true);
+      setStoryProgress(0);
     } else {
       toast({ title: "Tidak ada cerita", description: "Tidak ada cerita aktif dari pengguna ini untuk ditampilkan.", variant: "default" });
     }
@@ -288,29 +328,35 @@ export default function FeedPage() {
         </Button>
       )}
 
-      <Dialog open={isStoryModalOpen} onOpenChange={setIsStoryModalOpen}>
+      <Dialog open={isStoryModalOpen} onOpenChange={(isOpen) => {
+        setIsStoryModalOpen(isOpen);
+        if (!isOpen) {
+          setCurrentUserStories([]);
+          setCurrentStoryIndex(0);
+        }
+      }}>
         <DialogContent className="p-0 bg-black text-white w-full h-full sm:max-w-sm sm:h-auto sm:aspect-[9/16] sm:rounded-lg flex flex-col items-center justify-center overflow-hidden">
-          {storyModalContent && (
+          {storyModalContent && currentUserStories.length > 0 && (
             <div className="relative w-full h-full">
-              <DialogHeader className="absolute top-0 left-0 right-0 px-3 pt-4 pb-3 z-10 bg-gradient-to-b from-black/60 to-transparent">
+              <DialogHeader className="absolute top-0 left-0 right-0 px-3 pt-4 pb-3 z-20 bg-gradient-to-b from-black/60 to-transparent">
                  <DialogTitle className="sr-only">
                   Cerita oleh {storyModalContent.user.username}
                 </DialogTitle>
                 
-                {storyModalContent.storyCount > 0 && (
-                  <div className="flex space-x-1 mb-2 h-1">
-                    {Array.from({ length: storyModalContent.storyCount }).map((_, index) => (
+                {currentUserStories.length > 0 && (
+                  <div className="flex space-x-1 mb-2 h-1 w-full">
+                    {currentUserStories.map((_, index) => (
                       <div key={index} className="flex-1 bg-white/30 rounded-full overflow-hidden">
-                        {index === 0 && storyModalContent.post.mediaMimeType?.startsWith('image/') && ( 
+                        {index === currentStoryIndex && storyModalContent.post.mediaMimeType?.startsWith('image/') && ( 
                            <div className="h-full bg-white rounded-full" style={{ width: `${storyProgress}%`, transition: 'width 0.05s linear' }}></div>
                         )}
-                        {index === 0 && storyModalContent.post.mediaMimeType?.startsWith('video/') && (
+                        {index === currentStoryIndex && storyModalContent.post.mediaMimeType?.startsWith('video/') && (
                            <div className="h-full bg-white rounded-full w-full"></div> 
                         )}
-                        
-                         {index !== 0 && (
-                           <div className="h-full bg-transparent rounded-full w-full"></div>
+                        {index < currentStoryIndex && ( // Viewed stories
+                           <div className="h-full bg-white rounded-full w-full opacity-80"></div>
                         )}
+                        {/* Upcoming stories (index > currentStoryIndex) will be just bg-white/30 from parent */}
                       </div>
                     ))}
                   </div>
@@ -327,9 +373,25 @@ export default function FeedPage() {
                 </div>
               </DialogHeader>
               
-              <div className="w-full h-full flex items-center justify-center">
+              <div className="w-full h-full flex items-center justify-center relative">
+                {/* Navigation Overlays */}
+                <div
+                  className="absolute left-0 top-0 h-full w-1/3 z-10 cursor-pointer"
+                  onClick={() => navigateStory('prev')}
+                  role="button"
+                  aria-label="Cerita Sebelumnya"
+                />
+                <div
+                  className="absolute right-0 top-0 h-full w-1/3 z-10 cursor-pointer"
+                  onClick={() => navigateStory('next')}
+                  role="button"
+                  aria-label="Cerita Berikutnya"
+                />
+
+                {/* Media content */}
                 {storyModalContent.post.mediaMimeType?.startsWith('image/') ? (
                   <Image 
+                    key={storyModalContent.post.id}
                     src={storyModalContent.post.mediaUrl} 
                     alt={storyModalContent.post.caption || 'Story image'} 
                     layout="fill" 
@@ -339,12 +401,14 @@ export default function FeedPage() {
                   />
                 ) : storyModalContent.post.mediaMimeType?.startsWith('video/') ? (
                   <video 
+                    key={storyModalContent.post.id}
                     src={storyModalContent.post.mediaUrl} 
                     controls 
                     autoPlay 
                     playsInline
                     className="w-full h-full object-contain"
                     data-ai-hint="story content video"
+                    onEnded={() => navigateStory('next')} // Auto-advance video
                   />
                 ) : (
                   <p className="text-center">Format media tidak didukung.</p>
@@ -352,7 +416,7 @@ export default function FeedPage() {
               </div>
               
               {storyModalContent.post.caption && (
-                <div className="absolute bottom-0 left-0 right-0 p-3 z-10 bg-gradient-to-t from-black/60 to-transparent">
+                <div className="absolute bottom-0 left-0 right-0 p-3 z-20 bg-gradient-to-t from-black/60 to-transparent">
                   <p className="text-xs text-white text-center">{storyModalContent.post.caption}</p>
                 </div>
               )}
