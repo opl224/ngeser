@@ -110,10 +110,11 @@ export default function FeedPage() {
     setUsers(prevUsers => {
       return prevUsers.map(user => {
         if (user.id === currentUserId) {
-          const isSaved = user.savedPosts.includes(postId);
+          const currentSavedPosts = user.savedPosts || [];
+          const isSaved = currentSavedPosts.includes(postId);
           const newSavedPosts = isSaved
-            ? user.savedPosts.filter(id => id !== postId)
-            : [...user.savedPosts, postId];
+            ? currentSavedPosts.filter(id => id !== postId)
+            : [...currentSavedPosts, postId];
           if (isSaved) {
             toast({ title: "Postingan Dihapus", description: "Postingan telah dihapus dari daftar simpanan Anda." });
           } else {
@@ -161,7 +162,7 @@ export default function FeedPage() {
       {sortedPosts.length > 0 ? (
         <div className="space-y-8">
           {sortedPosts.map(post => {
-            const isSavedByCurrentUser = currentUser?.savedPosts.includes(post.id) || false;
+            const isSavedByCurrentUser = (currentUser?.savedPosts || []).includes(post.id);
             return (
               <PostCard 
                 key={post.id} 

@@ -86,7 +86,8 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   
   const savedPostsForCurrentUser = useMemo(() => {
     if (!currentSessionUser) return [];
-    return allPosts.filter(post => currentSessionUser.savedPosts.includes(post.id))
+    // Ensure savedPosts is an array before calling .includes
+    return allPosts.filter(post => (currentSessionUser.savedPosts || []).includes(post.id))
                    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }, [allPosts, currentSessionUser]);
 
@@ -184,10 +185,11 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     setAllUsers(prevUsers => {
       return prevUsers.map(user => {
         if (user.id === currentSessionUserId) {
-          const isSaved = user.savedPosts.includes(postId);
+          const currentSavedPosts = user.savedPosts || [];
+          const isSaved = currentSavedPosts.includes(postId);
           const newSavedPosts = isSaved
-            ? user.savedPosts.filter(id => id !== postId)
-            : [...user.savedPosts, postId];
+            ? currentSavedPosts.filter(id => id !== postId)
+            : [...currentSavedPosts, postId];
           if (isSaved) {
             toast({ title: "Postingan Dihapus dari Simpanan", description: "Postingan telah dihapus dari daftar simpanan Anda." });
           } else {
@@ -214,12 +216,13 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
   const handleLogoutAndDeleteAllData = () => {
     setAllPosts([]); 
-    setAllUsers([]); 
+    setAllUsers(initialUsers.map(u => ({...u, followers:[], following:[], savedPosts:[]}))); // Reset to initial users with empty dynamic fields
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('authChange'));
       localStorage.removeItem('currentUserId');
+      // Ensure localStorage is also cleared or reset for posts and users
       localStorage.setItem('posts', '[]'); 
-      localStorage.setItem('users', '[]'); 
+      localStorage.setItem('users', JSON.stringify(initialUsers.map(u => ({...u, followers:[], following:[], savedPosts:[]})))); 
     }
     toast({
       title: "Data Dihapus & Berhasil Keluar",
@@ -336,7 +339,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-            ) : currentSessionUserId && ( // Show follow/unfollow only if logged in and not own profile
+            ) : currentSessionUserId && ( 
                 <div className="md:absolute md:top-6 md:right-6 mt-4 md:mt-0">
                     <Button onClick={handleFollowToggle} variant={isFollowing ? "secondary" : "default"} size="sm">
                     {isFollowing ? <UserCheck className="mr-2 h-4 w-4" /> : <UserPlus className="mr-2 h-4 w-4" />}
@@ -416,7 +419,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
 
       <Tabs defaultValue="posts" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6 bg-muted/50 rounded-lg">
+        <TabsList className={`grid w-full mb-6 bg-muted/50 rounded-lg ${isCurrentUserProfile ? 'grid-cols-4' : 'grid-cols-3'}`}>
           <TabsTrigger value="posts" className="font-headline">Postingan</TabsTrigger>
           <TabsTrigger value="followers" className="font-headline">Pengikut</TabsTrigger>
           <TabsTrigger value="following" className="font-headline">Mengikuti</TabsTrigger>
@@ -426,7 +429,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           {userPosts.length > 0 ? (
             <div className="grid grid-cols-1 gap-6">
               {userPosts.map(post => {
-                const isSavedByCurrentUser = currentSessionUser?.savedPosts.includes(post.id) || false;
+                const isSavedByCurrentSessUser = (currentSessionUser?.savedPosts || []).includes(post.id);
                 return(
                 <PostCard 
                   key={post.id} 
@@ -436,7 +439,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                   onUpdatePostCaption={handleUpdatePostCaptionOnProfile}
                   onDeletePost={handleDeletePostOnProfile}
                   onToggleSavePost={handleToggleSavePost}
-                  isSavedByCurrentUser={isSavedByCurrentUser}
+                  isSavedByCurrentUser={isSavedByCurrentSessUser}
                 />
               );
             })}
@@ -456,7 +459,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             {savedPostsForCurrentUser.length > 0 ? (
               <div className="grid grid-cols-1 gap-6">
                 {savedPostsForCurrentUser.map(post => {
-                   const isSavedByCurrentUser = currentSessionUser?.savedPosts.includes(post.id) || false; // Should always be true here
+                   const isSavedByCurrentSessUser = (currentSessionUser?.savedPosts || []).includes(post.id);
                   return(
                   <PostCard
                     key={post.id}
@@ -466,7 +469,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                     onUpdatePostCaption={handleUpdatePostCaptionOnProfile}
                     onDeletePost={handleDeletePostOnProfile}
                     onToggleSavePost={handleToggleSavePost}
-                    isSavedByCurrentUser={isSavedByCurrentUser}
+                    isSavedByCurrentUser={isSavedByCurrentSessUser}
                   />
                 );
               })}

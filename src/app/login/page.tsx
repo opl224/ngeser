@@ -60,6 +60,7 @@ export default function LoginPage() {
         bio: '',
         followers: [],
         following: [],
+        savedPosts: [], // Initialize savedPosts for new user
       };
       setUsers(prevUsers => [...prevUsers, newUser]);
       if (typeof window !== 'undefined') {
@@ -71,6 +72,11 @@ export default function LoginPage() {
       });
     }
     
+    // Dispatch a custom event to notify AppNavbar or other components about auth change
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('authChange'));
+    }
+
     setIsLoading(false);
     router.push('/'); 
   };
