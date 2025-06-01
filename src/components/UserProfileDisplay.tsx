@@ -15,6 +15,13 @@ import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -32,7 +39,6 @@ interface UserProfileDisplayProps {
 
 export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const [profileUser, setProfileUser] = useState<User | null>(null);
-  // userPosts will be derived from allPosts, so we only need to manage allPosts
   
   const [allUsers, setAllUsers] = useLocalStorageState<User[]>('users', initialUsers);
   const [allPosts, setAllPosts] = useLocalStorageState<Post[]>('posts', initialPosts);
@@ -171,61 +177,80 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <Card className="mb-8 shadow-lg rounded-xl overflow-hidden">
-        <CardHeader className="p-6 bg-card flex flex-col md:flex-row items-center gap-6">
-          <Avatar className="h-28 w-28 md:h-36 md:w-36 border-4 border-primary shadow-md">
-            <AvatarImage src={profileUser.avatarUrl} alt={profileUser.username} data-ai-hint="portrait person large" />
-            <AvatarFallback className="text-4xl font-headline">{profileUser.username.substring(0, 2).toUpperCase()}</AvatarFallback>
-          </Avatar>
-          <div className="flex-1 text-center md:text-left">
-            <CardTitle className="font-headline text-3xl md:text-4xl text-foreground">{profileUser.username}</CardTitle>
-            {profileUser.bio && <p className="text-muted-foreground mt-2 font-body text-sm md:text-base">{profileUser.bio}</p>}
-            <div className="flex justify-center md:justify-start gap-4 mt-4 text-sm">
-              <div><span className="font-semibold">{userPosts.length}</span> Postingan</div>
-              <div><span className="font-semibold">{profileUser.followers.length}</span> Pengikut</div>
-              <div><span className="font-semibold">{profileUser.following.length}</span> Mengikuti</div>
+      <AlertDialog> {/* Moved AlertDialog to wrap the part that needs it */}
+        <Card className="mb-8 shadow-lg rounded-xl overflow-hidden">
+          <CardHeader className="p-6 bg-card flex flex-col md:flex-row items-center gap-6 relative"> {/* Added relative for positioning context */}
+            <Avatar className="h-28 w-28 md:h-36 md:w-36 border-4 border-primary shadow-md">
+              <AvatarImage src={profileUser.avatarUrl} alt={profileUser.username} data-ai-hint="portrait person large" />
+              <AvatarFallback className="text-4xl font-headline">{profileUser.username.substring(0, 2).toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <div className="flex-1 text-center md:text-left">
+              <CardTitle className="font-headline text-3xl md:text-4xl text-foreground">{profileUser.username}</CardTitle>
+              {profileUser.bio && <p className="text-muted-foreground mt-2 font-body text-sm md:text-base">{profileUser.bio}</p>}
+              <div className="flex justify-center md:justify-start gap-4 mt-4 text-sm">
+                <div><span className="font-semibold">{userPosts.length}</span> Postingan</div>
+                <div><span className="font-semibold">{profileUser.followers.length}</span> Pengikut</div>
+                <div><span className="font-semibold">{profileUser.following.length}</span> Mengikuti</div>
+              </div>
             </div>
-            <div className="mt-5 flex flex-wrap justify-center md:justify-start gap-2">
-              {isCurrentUserProfile ? (
-                <>
-                  <Button variant="outline" size="sm"><Edit3 className="mr-2 h-4 w-4" /> Edit Profil</Button>
-                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-accent"><Settings className="h-5 w-5" /></Button>
-                  <Button variant="outline" size="sm" onClick={handleLogoutAndSaveData}>
-                    <LogOut className="mr-2 h-4 w-4" /> Keluar &amp; Simpan Data
-                  </Button>
-                  <AlertDialog>
+             {/* Actions for current user: Edit Profile and Settings Dropdown */}
+            {isCurrentUserProfile && (
+              <div className="md:absolute md:top-6 md:right-6 flex gap-2 mt-4 md:mt-0 flex-wrap justify-center md:justify-end">
+                <Button variant="outline" size="sm"><Edit3 className="mr-2 h-4 w-4" /> Edit Profil</Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-accent">
+                      <Settings className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleLogoutAndSaveData}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Keluar & Simpan Data
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     <AlertDialogTrigger asChild>
-                      <Button variant="destructive" size="sm">
-                        <Trash2 className="mr-2 h-4 w-4" /> Keluar &amp; Hapus Semua Data
-                      </Button>
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                        onSelect={(e) => e.preventDefault()} // Prevent dropdown closing before dialog opens
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Keluar & Hapus Semua Data
+                      </DropdownMenuItem>
                     </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle className="font-headline">Anda yakin?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Tindakan ini akan menghapus semua data postingan dan pengguna secara permanen dari aplikasi ini di browser Anda. 
-                          Data tidak dapat dipulihkan.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Batal</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleLogoutAndDeleteAllData} className={buttonVariants({ variant: "destructive" })}>
-                          Ya, Hapus Semua &amp; Keluar
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </>
-              ) : (
-                <Button onClick={handleFollowToggle} variant={isFollowing ? "secondary" : "default"} size="sm" disabled={!currentSessionUserId}>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
+            {/* Follow/Unfollow button for other users */}
+            {!isCurrentUserProfile && currentSessionUserId && (
+              <div className="md:absolute md:top-6 md:right-6 mt-4 md:mt-0">
+                <Button onClick={handleFollowToggle} variant={isFollowing ? "secondary" : "default"} size="sm">
                   {isFollowing ? <UserCheck className="mr-2 h-4 w-4" /> : <UserPlus className="mr-2 h-4 w-4" />}
                   {isFollowing ? 'Mengikuti' : 'Ikuti'}
                 </Button>
-              )}
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
+              </div>
+            )}
+          </CardHeader>
+        </Card>
+
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-headline">Anda yakin?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tindakan ini akan menghapus semua data postingan dan pengguna secara permanen dari aplikasi ini di browser Anda. 
+              Data tidak dapat dipulihkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLogoutAndDeleteAllData} className={buttonVariants({ variant: "destructive" })}>
+              Ya, Hapus Semua &amp; Keluar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       <Tabs defaultValue="posts" className="w-full">
         <TabsList className="grid w-full grid-cols-3 mb-6 bg-muted/50 rounded-lg">
@@ -295,3 +320,6 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
+
+
+    
