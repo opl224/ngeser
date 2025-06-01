@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import type { User } from '@/lib/types';
-import { initialUsers, getCurrentUserId } from '@/lib/data';
+import { initialUsers, getCurrentUserId } from '@/lib/data'; // initialUsers will be empty
 import { useToast } from "@/hooks/use-toast";
 import { Film, LogIn } from 'lucide-react';
 
@@ -60,9 +60,17 @@ export default function LoginPage() {
         bio: '',
         followers: [],
         following: [],
-        savedPosts: [], // Initialize savedPosts for new user
+        savedPosts: [], 
       };
-      setUsers(prevUsers => [...prevUsers, newUser]);
+      
+      // For a new user, ensure they start with a clean slate.
+      // Set users to only the new user.
+      setUsers([newUser]); 
+      // Explicitly clear posts from localStorage.
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('posts', JSON.stringify([])); 
+      }
+
       if (typeof window !== 'undefined') {
         localStorage.setItem('currentUserId', newUser.id);
       }
