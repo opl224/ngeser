@@ -451,6 +451,9 @@ export default function LatestPostPage() {
     {post && (
       <Dialog open={isMediaModalOpen} onOpenChange={setIsMediaModalOpen}>
         <DialogContent className="sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-7xl w-auto max-h-[95vh] p-2 bg-background flex items-center justify-center">
+          <DialogHead className="sr-only">
+            <DialogTitl>Full Media View</DialogTitl>
+          </DialogHead>
           {post.type === 'photo' ? (
             <Image
               src={post.mediaUrl}

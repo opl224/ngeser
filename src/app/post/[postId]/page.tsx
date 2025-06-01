@@ -433,6 +433,9 @@ export default function PostPage() {
     {post && (
       <Dialog open={isMediaModalOpen} onOpenChange={setIsMediaModalOpen}>
         <DialogContent className="sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-7xl w-auto max-h-[95vh] p-2 bg-background flex items-center justify-center">
+          <DialogHead className="sr-only">
+            <DialogTitl>Full Media View</DialogTitl>
+          </DialogHead>
           {post.type === 'photo' ? (
             <Image
               src={post.mediaUrl}
@@ -443,7 +446,7 @@ export default function PostPage() {
               className="rounded-md max-w-full max-h-[calc(95vh-2rem)]" 
               data-ai-hint="social media image full"
             />
-          ) : ( // Video or Reel
+          ) : ( 
             <video
               src={post.mediaUrl}
               controls
