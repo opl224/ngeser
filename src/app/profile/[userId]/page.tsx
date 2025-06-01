@@ -1,20 +1,23 @@
-"use client";
+
+// No "use client" directive here
 
 import { UserProfileDisplay } from '@/components/UserProfileDisplay';
-import { useParams } from 'next/navigation';
-import React from 'react'; // Import React
+import React from 'react';
+
+// Tells Next.js not to pre-render any specific paths at build time.
+// Combined with default dynamicParams = true, paths will be generated on-demand.
+export async function generateStaticParams() {
+  return [];
+}
 
 interface ProfilePageProps {
-  params: Promise<{ userId: string }>; // params is a Promise
+  params: { userId: string }; 
 }
 
 export default function ProfilePage({ params }: ProfilePageProps) {
-  // Unwrap the params Promise using React.use()
-  const actualParams = React.use(params);
-
   return (
     <div className="container mx-auto py-8">
-      <UserProfileDisplay userId={actualParams.userId} />
+      <UserProfileDisplay userId={params.userId} />
     </div>
   );
 }
