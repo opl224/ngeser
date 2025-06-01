@@ -1,0 +1,190 @@
+"use client";
+
+import { useState, ChangeEvent, FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { SuggestedHashtagsClient } from './SuggestedHashtagsClient';
+import type { Post, User } from '@/lib/types';
+import useLocalStorageState from '@/hooks/useLocalStorageState';
+import { initialPosts, initialUsers, getCurrentUserId } from '@/lib/data';
+import { UploadCloud, Image as ImageIcon, Video as VideoIcon, Film } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
+import Image from 'next/image';
+
+export function UploadForm() {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [posts, setPosts] = useLocalStorageState<Post[]>('posts', initialPosts);
+  const [users, setUsers] = useLocalStorageState<User[]>('users', initialUsers); // eslint-disable-line @typescript-eslint/no-unused-vars
+
+  const [caption, setCaption] = useState('');
+  const [hashtags, setHashtags] = useState('');
+  const [mentions, setMentions] = useState('');
+  const [mediaType, setMediaType] = useState<'photo' | 'video' | 'reel'>('photo');
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const currentUserId = typeof window !== 'undefined' ? getCurrentUserId() : null;
+
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setMediaFile(file);
+      setMediaPreview(URL.createObjectURL(file));
+    } else {
+      setMediaFile(null);
+      setMediaPreview(null);
+    }
+  };
+
+  const handleHashtagsSuggested = (suggested: string[]) => {
+    // This function could append to existing hashtags or allow user to pick
+    // For simplicity, let's just log them or update the input field if user wants
+    const newHashtags = [...new Set([...hashtags.split(',').map(h => h.trim()).filter(Boolean), ...suggested])];
+    setHashtags(newHashtags.join(', '));
+  };
+
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!currentUserId) {
+        toast({ title: "Error", description: "User not identified. Cannot create post.", variant: "destructive"});
+        return;
+    }
+    if (!mediaFile) {
+        toast({ title: "Error", description: "Please select a media file to upload.", variant: "destructive"});
+        return;
+    }
+    setIsSubmitting(true);
+
+    // Simulate upload and get a URL (use placeholder for now)
+    // In a real app, this would involve uploading to a storage service
+    const mediaUrl = mediaPreview || `https://placehold.co/${mediaType === 'reel' ? '400x600' : '600x400'}.png`;
+
+    const newPost: Post = {
+      id: `post-${Date.now()}`,
+      userId: currentUserId,
+      type: mediaType,
+      mediaUrl,
+      caption,
+      hashtags: hashtags.split(',').map(h => h.trim()).filter(Boolean),
+      mentions: mentions.split(',').map(m => m.trim().replace('@', '')).filter(Boolean),
+      likes: [],
+      comments: [],
+      timestamp: new Date().toISOString(),
+      shareCount: 0,
+    };
+
+    setPosts(prevPosts => [newPost, ...prevPosts]);
+    
+    toast({ title: "Success!", description: "Your post has been uploaded.", className: "bg-primary text-primary-foreground" });
+    setIsSubmitting(false);
+    router.push('/'); // Redirect to feed
+  };
+
+  return (
+    <Card className="w-full max-w-2xl mx-auto shadow-xl">
+      <CardHeader>
+        <CardTitle className="font-headline text-2xl flex items-center gap-2">
+            <UploadCloud className="h-7 w-7 text-primary" /> Create New Post
+        </CardTitle>
+        <CardDescription>Share your moments with the world. Upload a photo, video, or reel.</CardDescription>
+      </CardHeader>
+      <form onSubmit={handleSubmit}>
+        <CardContent className="space-y-6">
+          <div>
+            <Label htmlFor="mediaType" className="font-medium block mb-2">Media Type</Label>
+            <RadioGroup
+              id="mediaType"
+              defaultValue="photo"
+              onValueChange={(value: 'photo' | 'video' | 'reel') => setMediaType(value)}
+              className="flex space-x-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="photo" id="r-photo" />
+                <Label htmlFor="r-photo" className="flex items-center gap-1.5"><ImageIcon className="h-4 w-4"/> Photo</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="video" id="r-video" />
+                <Label htmlFor="r-video" className="flex items-center gap-1.5"><VideoIcon className="h-4 w-4"/> Video</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="reel" id="r-reel" />
+                <Label htmlFor="r-reel" className="flex items-center gap-1.5"><Film className="h-4 w-4"/> Reel</Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          <div>
+            <Label htmlFor="mediaFile" className="font-medium">Media File</Label>
+            <Input
+              id="mediaFile"
+              type="file"
+              accept="image/*,video/*"
+              onChange={handleFileChange}
+              className="mt-1 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+              required
+            />
+            {mediaPreview && (
+              <div className="mt-4 border rounded-lg overflow-hidden max-h-96 flex justify-center items-center bg-muted/20">
+                {mediaType === 'photo' || mediaType === 'reel' ? (
+                  <Image src={mediaPreview} alt="Media preview" width={mediaType === 'reel' ? 300 : 500} height={mediaType === 'reel' ? 500 : 300} style={{objectFit: "contain"}} className="max-h-96 w-auto"/>
+                ) : (
+                  <video src={mediaPreview} controls className="max-h-96 w-full" />
+                )}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <Label htmlFor="caption" className="font-medium">Caption</Label>
+            <Textarea
+              id="caption"
+              placeholder="Write a caption..."
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              className="mt-1 min-h-[100px]"
+              rows={4}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="hashtags" className="font-medium">Hashtags</Label>
+            <Input
+              id="hashtags"
+              placeholder="e.g., travel, foodie, sunset (comma separated)"
+              value={hashtags}
+              onChange={(e) => setHashtags(e.target.value)}
+              className="mt-1"
+            />
+          </div>
+          
+          <SuggestedHashtagsClient onHashtagsSuggested={handleHashtagsSuggested} initialDescription={caption} />
+
+          <div>
+            <Label htmlFor="mentions" className="font-medium">Mentions</Label>
+            <Input
+              id="mentions"
+              placeholder="e.g., @username1, @username2 (comma separated)"
+              value={mentions}
+              onChange={(e) => setMentions(e.target.value)}
+              className="mt-1"
+            />
+          </div>
+        </CardContent>
+        <CardFooter>
+          <Button type="submit" className="w-full" disabled={isSubmitting || !mediaFile}>
+            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Upload Post
+          </Button>
+        </CardFooter>
+      </form>
+    </Card>
+  );
+}
