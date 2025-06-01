@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from './PostCard';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialUsers, initialPosts, getCurrentUserId } from '@/lib/data';
-import { Settings, UserPlus, UserCheck, Edit3, LogOut, Trash2, Save } from 'lucide-react';
+import { Settings, UserPlus, UserCheck, Edit3, LogOut, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
@@ -37,12 +37,12 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const [users, setUsers] = useLocalStorageState<User[]>('users', initialUsers);
   const [posts, setPosts] = useLocalStorageState<Post[]>('posts', initialPosts);
   
-  const [currentUserId, setCurrentUserIdState] = useState<string | null>(null);
+  const [currentSessionUserId, setCurrentSessionUserId] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
 
   useEffect(() => {
-    setCurrentUserIdState(getCurrentUserId());
+    setCurrentSessionUserId(getCurrentUserId());
     const foundUser = users.find(u => u.id === userId);
     setProfileUser(foundUser || null);
     if (foundUser) {
@@ -54,11 +54,11 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   }, [userId, users, posts]);
 
   const handleFollowToggle = () => {
-    if (!currentUserId || !profileUser || currentUserId === profileUser.id) return;
+    if (!currentSessionUserId || !profileUser || currentSessionUserId === profileUser.id) return;
 
     setUsers(prevUsers => {
       return prevUsers.map(u => {
-        if (u.id === currentUserId) { // Current user's following list
+        if (u.id === currentSessionUserId) { 
           const isFollowing = u.following.includes(profileUser.id);
           return {
             ...u,
@@ -67,19 +67,19 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               : [...u.following, profileUser.id]
           };
         }
-        if (u.id === profileUser.id) { // Profile user's followers list
-          const isFollowedByCurrentUser = u.followers.includes(currentUserId);
+        if (u.id === profileUser.id) { 
+          const isFollowedByCurrentUser = u.followers.includes(currentSessionUserId);
           return {
             ...u,
             followers: isFollowedByCurrentUser 
-              ? u.followers.filter(id => id !== currentUserId)
-              : [...u.followers, currentUserId]
+              ? u.followers.filter(id => id !== currentSessionUserId)
+              : [...u.followers, currentSessionUserId]
           };
         }
         return u;
       });
     });
-    const isCurrentlyFollowing = profileUser.followers.includes(currentUserId);
+    const isCurrentlyFollowing = profileUser.followers.includes(currentSessionUserId);
     toast({
         title: isCurrentlyFollowing ? "Unfollowed" : "Followed",
         description: `You are now ${isCurrentlyFollowing ? "no longer following" : "following"} ${profileUser.username}.`
@@ -87,13 +87,13 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   };
 
   const handleLikePost = (postId: string) => {
-    if (!currentUserId) return;
+    if (!currentSessionUserId) return;
     setPosts(prevPosts =>
       prevPosts.map(post => {
         if (post.id === postId) {
-          const likes = post.likes.includes(currentUserId)
-            ? post.likes.filter(uid => uid !== currentUserId)
-            : [...post.likes, currentUserId];
+          const likes = post.likes.includes(currentSessionUserId)
+            ? post.likes.filter(uid => uid !== currentSessionUserId)
+            : [...post.likes, currentSessionUserId];
           return { ...post, likes };
         }
         return post;
@@ -102,11 +102,11 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   };
 
   const handleAddComment = (postId: string, text: string) => {
-    if (!currentUserId) return;
+    if (!currentSessionUserId) return;
     const newComment: CommentType = {
       id: `comment-${Date.now()}`,
       postId,
-      userId: currentUserId,
+      userId: currentSessionUserId,
       text,
       timestamp: new Date().toISOString(),
       parentId: null,
@@ -121,24 +121,30 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     );
   };
 
-  const handleSaveAndExit = () => {
+  const handleLogoutAndSaveData = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('currentUserId');
+    }
     toast({
-      title: "Data Disimpan",
-      description: "Anda telah keluar dan data Anda tetap tersimpan.",
+      title: "Logged Out",
+      description: "Your data is saved. You have been logged out.",
     });
-    router.push('/');
+    router.push('/login');
   };
 
-  const handleDeleteAndExit = () => {
-    setPosts(initialPosts);
-    setUsers(initialUsers);
-    // Clearing from localStorage is handled by useLocalStorageState when setPosts/setUsers are called.
+  const handleLogoutAndDeleteAllData = () => {
+    setPosts([]); // Clear all posts
+    setUsers([]); // Clear all users
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('currentUserId');
+      // useLocalStorageState will update localStorage for 'posts' and 'users' to []
+    }
     toast({
-      title: "Data Dihapus",
-      description: "Semua data telah dihapus dan Anda telah keluar.",
+      title: "Data Deleted & Logged Out",
+      description: "All app data has been deleted. You have been logged out.",
       variant: "destructive",
     });
-    router.push('/');
+    router.push('/login');
   };
 
 
@@ -146,8 +152,8 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     return <div className="text-center py-10"><p className="text-xl text-muted-foreground font-headline">User not found.</p></div>;
   }
 
-  const isCurrentUserProfile = currentUserId === profileUser.id;
-  const isFollowing = currentUserId ? users.find(u=> u.id === currentUserId)?.following.includes(profileUser.id) : false;
+  const isCurrentUserProfile = currentSessionUserId === profileUser.id;
+  const isFollowing = currentSessionUserId ? users.find(u=> u.id === currentSessionUserId)?.following.includes(profileUser.id) : false;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -169,27 +175,27 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               {isCurrentUserProfile ? (
                 <>
                   <Button variant="outline" size="sm"><Edit3 className="mr-2 h-4 w-4" /> Edit Profile</Button>
-                  <Button variant="ghost" size="icon"><Settings className="h-5 w-5 text-muted-foreground" /></Button>
-                  <Button variant="outline" size="sm" onClick={handleSaveAndExit}>
+                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-accent"><Settings className="h-5 w-5" /></Button>
+                  <Button variant="outline" size="sm" onClick={handleLogoutAndSaveData}>
                     <LogOut className="mr-2 h-4 w-4" /> Keluar &amp; Simpan Data
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="destructive" size="sm">
-                        <Trash2 className="mr-2 h-4 w-4" /> Keluar &amp; Hapus Data
+                        <Trash2 className="mr-2 h-4 w-4" /> Keluar &amp; Hapus Semua Data
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>Anda yakin?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Tindakan ini akan menghapus semua data postingan dan pengguna secara permanen. 
+                          Tindakan ini akan menghapus semua data postingan dan pengguna secara permanen dari aplikasi ini di browser Anda. 
                           Data tidak dapat dipulihkan.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Batal</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDeleteAndExit}>
+                        <AlertDialogAction onClick={handleLogoutAndDeleteAllData} className={buttonVariants({ variant: "destructive" })}>
                           Ya, Hapus Semua &amp; Keluar
                         </AlertDialogAction>
                       </AlertDialogFooter>
@@ -197,7 +203,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                   </AlertDialog>
                 </>
               ) : (
-                <Button onClick={handleFollowToggle} variant={isFollowing ? "secondary" : "default"} size="sm">
+                <Button onClick={handleFollowToggle} variant={isFollowing ? "secondary" : "default"} size="sm" disabled={!currentSessionUserId}>
                   {isFollowing ? <UserCheck className="mr-2 h-4 w-4" /> : <UserPlus className="mr-2 h-4 w-4" />}
                   {isFollowing ? 'Following' : 'Follow'}
                 </Button>
@@ -268,5 +274,3 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
-
-    

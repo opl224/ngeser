@@ -74,5 +74,10 @@ export const initialPosts: Post[] = [
   },
 ];
 
-// Current "logged in" user - for demo purposes
-export const getCurrentUserId = (): string => 'user1';
+// Updated to return string | null, and read from localStorage
+export const getCurrentUserId = (): string | null => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('currentUserId');
+  }
+  return null; 
+};

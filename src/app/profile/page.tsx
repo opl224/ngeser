@@ -4,31 +4,39 @@
 import { UserProfileDisplay } from '@/components/UserProfileDisplay';
 import { getCurrentUserId } from '@/lib/data';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 
 export default function CurrentUserProfilePage() {
+  const router = useRouter();
   const [currentUserId, setCurrentUserIdState] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [authStatus, setAuthStatus] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const id = getCurrentUserId();
+    const id = getCurrentUserId();
+    if (!id) {
+      setAuthStatus('unauthenticated');
+      router.push('/login');
+    } else {
       setCurrentUserIdState(id);
-      setIsLoading(false);
+      setAuthStatus('authenticated');
     }
-  }, []);
+  }, [router]);
 
-  if (isLoading) {
+  if (authStatus === 'loading') {
     return (
-      <div className="container mx-auto py-8 text-center">
-        <p className="font-headline text-xl">Loading profile...</p>
+      <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-xl font-headline text-muted-foreground">Loading Profile...</p>
       </div>
     );
   }
 
-  if (!currentUserId) {
-    return (
-      <div className="container mx-auto py-8 text-center">
-        <p className="font-headline text-xl text-muted-foreground">Could not determine current user.</p>
+  if (authStatus === 'unauthenticated' || !currentUserId) {
+     return (
+      <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-xl font-headline text-muted-foreground">Redirecting to login...</p>
       </div>
     );
   }

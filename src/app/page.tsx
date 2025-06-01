@@ -1,3 +1,4 @@
+
 "use client";
 
 import { PostCard } from '@/components/PostCard';
@@ -7,27 +8,45 @@ import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowUp } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 
 export default function FeedPage() {
+  const router = useRouter();
   const [posts, setPosts] = useLocalStorageState<Post[]>('posts', initialPosts);
-  const [users, setUsers] = useLocalStorageState<User[]>('users', initialUsers); // eslint-disable-line @typescript-eslint/no-unused-vars
+  const [users, setUsers] = useLocalStorageState<User[]>('users', initialUsers); 
   const [currentUserId, setCurrentUserIdState] = useState<string | null>(null);
+  const [authStatus, setAuthStatus] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   useEffect(() => {
-    // Ensure localStorage is only accessed on the client
+    const id = getCurrentUserId();
+    if (!id) {
+      setAuthStatus('unauthenticated');
+      router.push('/login');
+    } else {
+      setCurrentUserIdState(id);
+      setAuthStatus('authenticated');
+    }
+  }, [router]);
+  
+  useEffect(() => {
+    // Initialize posts and users from localStorage if they don't exist
+    // This ensures that after a "delete all data", they remain empty until new data is created
     if (typeof window !== 'undefined') {
       const storedPosts = localStorage.getItem('posts');
-      if (!storedPosts) {
+      if (storedPosts === null) { // Only set if key truly doesn't exist
         localStorage.setItem('posts', JSON.stringify(initialPosts));
+        // Optionally reload state if `useLocalStorageState` doesn't pick it up immediately
+        // setPosts(initialPosts); 
       }
       const storedUsers = localStorage.getItem('users');
-      if(!storedUsers) {
+      if (storedUsers === null) { // Only set if key truly doesn't exist
         localStorage.setItem('users', JSON.stringify(initialUsers));
+        // setUsers(initialUsers);
       }
-      setCurrentUserIdState(getCurrentUserId());
     }
-  }, []);
+  }, []); // Runs once on mount
   
   useEffect(() => {
     const handleScroll = () => {
@@ -65,6 +84,7 @@ export default function FeedPage() {
       userId: currentUserId,
       text,
       timestamp: new Date().toISOString(),
+      replies: [],
     };
     setPosts(prevPosts =>
       prevPosts.map(post =>
@@ -74,6 +94,24 @@ export default function FeedPage() {
       )
     );
   };
+
+  if (authStatus === 'loading') {
+    return (
+      <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-xl font-headline text-muted-foreground">Loading Feed...</p>
+      </div>
+    );
+  }
+
+  if (authStatus === 'unauthenticated') {
+    return (
+      <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-xl font-headline text-muted-foreground">Redirecting to login...</p>
+      </div>
+    );
+  }
 
   const sortedPosts = [...posts].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
@@ -98,13 +136,14 @@ export default function FeedPage() {
       ) : (
         <div className="text-center py-10">
           <p className="text-muted-foreground text-lg">No posts yet. Follow some users or upload your own content!</p>
+          <Button onClick={() => router.push('/upload')} className="mt-4">Upload Post</Button>
         </div>
       )}
       {showScrollTop && (
         <Button
           onClick={scrollToTop}
           className="fixed bottom-6 right-6 rounded-full p-3 h-auto shadow-lg"
-          variant="primary"
+          variant="default" 
           size="icon"
         >
           <ArrowUp className="h-6 w-6" />
