@@ -102,8 +102,7 @@ export function PostCard({ post, onLikePost, onAddComment, onUpdatePostCaption, 
   };
 
   const handleShareToSocial = () => {
-    // Placeholder for actual social media sharing
-    toast({ title: "Share to Social", description: "This feature is coming soon!" });
+    toast({ title: "Coming Soon!", description: "This feature will be available in a future update." });
   };
 
   const isLiked = currentUserId ? post.likes.includes(currentUserId) : false;
@@ -210,7 +209,6 @@ export function PostCard({ post, onLikePost, onAddComment, onUpdatePostCaption, 
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="flex items-center gap-1.5 px-2 text-muted-foreground hover:text-accent">
                     <Share2 className="h-5 w-5" />
-                    {/* Removed share count display from button text, can be added to tooltip or menu if needed */}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">

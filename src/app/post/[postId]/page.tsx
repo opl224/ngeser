@@ -108,7 +108,7 @@ function CommentItem({ comment, allUsers, currentUserId, onReply, level = 0 }: C
 
 
 export default function PostPage() {
-  const params = useParams();
+  const params = React.use(useParams()); // Use React.use with useParams
   const postId = params?.postId as string;
   const { toast } = useToast();
   const router = useRouter();
@@ -224,7 +224,7 @@ export default function PostPage() {
 
   const handleCopyLink = () => {
     if (!post) return;
-    const postUrl = window.location.href; // Already on the post page
+    const postUrl = window.location.href; 
     navigator.clipboard.writeText(postUrl)
       .then(() => {
         toast({ title: "Link Copied!", description: "Post link copied to clipboard." });
@@ -236,7 +236,7 @@ export default function PostPage() {
   };
 
   const handleShareToSocial = () => {
-    toast({ title: "Share to Social", description: "This feature is coming soon!" });
+    toast({ title: "Coming Soon!", description: "This feature will be available in a future update." });
   };
 
 

@@ -246,7 +246,7 @@ export default function LatestPostPage() {
   };
 
   const handleShareToSocial = () => {
-    toast({ title: "Share to Social", description: "This feature is coming soon!" });
+    toast({ title: "Coming Soon!", description: "This feature will be available in a future update." });
   };
 
 
