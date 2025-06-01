@@ -1,4 +1,3 @@
-
 // No "use client" directive here
 
 import { PostDetailClientPage } from '@/components/PostDetailClientPage';
