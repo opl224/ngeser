@@ -131,6 +131,7 @@ export default function LatestPostPage() {
   const [isEditingCaption, setIsEditingCaption] = useState(false);
   const [editedCaption, setEditedCaption] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
 
   useEffect(() => {
     setCurrentUserIdState(getCurrentUserId());
@@ -313,7 +314,10 @@ export default function LatestPostPage() {
           )}
         </CardHeader>
 
-        <div className="relative aspect-square sm:aspect-video bg-muted/30">
+        <div 
+          className="relative aspect-square sm:aspect-video bg-muted/30 cursor-pointer"
+          onClick={() => setIsMediaModalOpen(true)}
+        >
           {post.type === 'photo' ? (
             <Image src={post.mediaUrl} alt={post.caption || 'Post image'} layout="fill" objectFit="cover" data-ai-hint="social media image"/>
           ) : (
@@ -443,8 +447,34 @@ export default function LatestPostPage() {
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+    
+    {post && (
+      <Dialog open={isMediaModalOpen} onOpenChange={setIsMediaModalOpen}>
+        <DialogContent className="sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-7xl w-auto max-h-[95vh] p-2 bg-background flex items-center justify-center">
+          {post.type === 'photo' ? (
+            <Image
+              src={post.mediaUrl}
+              alt={post.caption || 'Post image'}
+              width={1920} 
+              height={1080}
+              objectFit="contain"
+              className="rounded-md max-w-full max-h-[calc(95vh-2rem)]" 
+              data-ai-hint="social media image full"
+            />
+          ) : ( 
+            <video
+              src={post.mediaUrl}
+              controls
+              autoPlay
+              className="rounded-md max-w-full max-h-[calc(95vh-2rem)]"
+              data-ai-hint="social media video full"
+            >
+              Your browser does not support the video tag.
+            </video>
+          )}
+        </DialogContent>
+      </Dialog>
+    )}
     </>
   );
 }
-
-    
