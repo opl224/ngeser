@@ -42,7 +42,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-// import NextImage from 'next/image'; // Already imported by PostCard, not needed here directly if not used for other NextImages
 
 
 interface UserProfileDisplayProps {
@@ -86,7 +85,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   
   const savedPostsForCurrentUser = useMemo(() => {
     if (!currentSessionUser) return [];
-    // Ensure savedPosts is an array before calling .includes
     return allPosts.filter(post => (currentSessionUser.savedPosts || []).includes(post.id))
                    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }, [allPosts, currentSessionUser]);
@@ -94,6 +92,8 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
   const handleFollowToggle = () => {
     if (!currentSessionUserId || !profileUser || currentSessionUserId === profileUser.id) return;
+
+    const isCurrentlyFollowing = allUsers.find(u => u.id === currentSessionUserId)?.following.includes(profileUser.id);
 
     setAllUsers(prevUsers => {
       return prevUsers.map(u => {
@@ -118,18 +118,18 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         return u;
       });
     });
-    // Re-fetch profileUser to update follower count immediately for UI
-    setProfileUser(prev => prev ? {...prev, followers: allUsers.find(u => u.id === profileUser.id)?.followers || []} : null )
-
-    const isCurrentlyFollowing = profileUser.followers.includes(currentSessionUserId); // This might be stale after update, check against new state
-    const updatedProfileUser = allUsers.find(u => u.id === profileUser.id);
-    const nowFollowing = updatedProfileUser?.followers.includes(currentSessionUserId);
-
-
-    toast({
-        title: nowFollowing ? "Mulai Mengikuti" : "Berhenti Mengikuti",
-        description: `Anda sekarang ${nowFollowing ? "mengikuti" : "tidak lagi mengikuti"} ${profileUser.username}.`
-    });
+    
+    if (isCurrentlyFollowing) {
+        toast({
+            title: "Berhenti Mengikuti",
+            description: `Anda sekarang tidak lagi mengikuti ${profileUser.username}.`
+        });
+    } else {
+        toast({
+            title: "Mulai Mengikuti",
+            description: `Anda sekarang mengikuti ${profileUser.username}.`
+        });
+    }
   };
 
   const handleLikePost = (postId: string) => {
@@ -182,6 +182,8 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
   const handleToggleSavePost = (postId: string) => {
     if (!currentSessionUserId) return;
+    let toastInfo: { title: string; description: string } | null = null;
+
     setAllUsers(prevUsers => {
       return prevUsers.map(user => {
         if (user.id === currentSessionUserId) {
@@ -190,16 +192,20 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           const newSavedPosts = isSaved
             ? currentSavedPosts.filter(id => id !== postId)
             : [...currentSavedPosts, postId];
+          
           if (isSaved) {
-            toast({ title: "Postingan Dihapus dari Simpanan", description: "Postingan telah dihapus dari daftar simpanan Anda." });
+            toastInfo = { title: "Postingan Dihapus dari Simpanan", description: "Postingan telah dihapus dari daftar simpanan Anda." };
           } else {
-            toast({ title: "Postingan Disimpan", description: "Postingan telah ditambahkan ke daftar simpanan Anda." });
+            toastInfo = { title: "Postingan Disimpan", description: "Postingan telah ditambahkan ke daftar simpanan Anda." };
           }
           return { ...user, savedPosts: newSavedPosts };
         }
         return user;
       });
     });
+    if (toastInfo) {
+      toast(toastInfo);
+    }
   };
 
   const handleLogoutAndSaveData = () => {
@@ -216,11 +222,10 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
   const handleLogoutAndDeleteAllData = () => {
     setAllPosts([]); 
-    setAllUsers(initialUsers.map(u => ({...u, followers:[], following:[], savedPosts:[]}))); // Reset to initial users with empty dynamic fields
+    setAllUsers(initialUsers.map(u => ({...u, followers:[], following:[], savedPosts:[]}))); 
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('authChange'));
       localStorage.removeItem('currentUserId');
-      // Ensure localStorage is also cleared or reset for posts and users
       localStorage.setItem('posts', '[]'); 
       localStorage.setItem('users', JSON.stringify(initialUsers.map(u => ({...u, followers:[], following:[], savedPosts:[]})))); 
     }
@@ -313,7 +318,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               </div>
             </div>
             {isCurrentUserProfile ? (
-              <div className="md:absolute md:top-4 md:right-4 flex items-center gap-2 mt-4 md:mt-0">
+              <div className="absolute top-4 right-4 flex items-center gap-2 mt-4 md:mt-0">
                 <Button variant="outline" size="sm" onClick={handleOpenEditModal}><Edit3 className="mr-2 h-4 w-4" /> Edit Profil</Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -340,7 +345,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                 </DropdownMenu>
               </div>
             ) : currentSessionUserId && ( 
-                <div className="md:absolute md:top-6 md:right-6 mt-4 md:mt-0">
+                <div className="absolute top-6 right-6 mt-4 md:mt-0">
                     <Button onClick={handleFollowToggle} variant={isFollowing ? "secondary" : "default"} size="sm">
                     {isFollowing ? <UserCheck className="mr-2 h-4 w-4" /> : <UserPlus className="mr-2 h-4 w-4" />}
                     {isFollowing ? 'Mengikuti' : 'Ikuti'}

@@ -145,9 +145,8 @@ export default function LatestPostPage() {
       if (latestPost) {
          setPost(prevPost => {
           if(prevPost && prevPost.id === latestPost.id && prevPost.viewCount === latestPost.viewCount +1) {
-            return prevPost; // Already incremented
+            return prevPost; 
           }
-          // Increment view count
           const updatedViewCountPost = { ...latestPost, viewCount: (latestPost.viewCount || 0) + 1 };
           setAllPosts(prevAllPosts => prevAllPosts.map(p => p.id === latestPost.id ? updatedViewCountPost : p));
           return updatedViewCountPost;
@@ -264,25 +263,33 @@ export default function LatestPostPage() {
     toast({ title: "Segera Hadir!", description: "Fitur ini akan tersedia di pembaruan mendatang." });
   };
 
-  const handleToggleSavePost = () => {
+ const handleToggleSavePost = () => {
     if (!post || !currentUserId) return;
+    let toastInfo: { title: string; description: string } | null = null;
+
     setUsers(prevUsers => {
       return prevUsers.map(user => {
         if (user.id === currentUserId) {
-          const isSaved = user.savedPosts.includes(post.id);
+          const currentSavedPosts = user.savedPosts || [];
+          const isSaved = currentSavedPosts.includes(post.id);
           const newSavedPosts = isSaved
-            ? user.savedPosts.filter(id => id !== post.id)
-            : [...user.savedPosts, post.id];
-           if (isSaved) {
-            toast({ title: "Postingan Dihapus dari Simpanan", description: "Postingan telah dihapus dari daftar simpanan Anda." });
+            ? currentSavedPosts.filter(id => id !== post.id)
+            : [...currentSavedPosts, post.id];
+           
+          if (isSaved) {
+            toastInfo = { title: "Postingan Dihapus dari Simpanan", description: "Postingan telah dihapus dari daftar simpanan Anda." };
           } else {
-            toast({ title: "Postingan Disimpan", description: "Postingan telah ditambahkan ke daftar simpanan Anda." });
+            toastInfo = { title: "Postingan Disimpan", description: "Postingan telah ditambahkan ke daftar simpanan Anda." };
           }
           return { ...user, savedPosts: newSavedPosts };
         }
         return user;
       });
     });
+
+    if (toastInfo) {
+      toast(toastInfo);
+    }
   };
 
 
@@ -304,7 +311,7 @@ export default function LatestPostPage() {
 
   const isOwner = currentUserId === post.userId;
   const isLiked = currentUserId ? post.likes.includes(currentUserId) : false;
-  const isSavedByCurrentUser = currentUser?.savedPosts.includes(post.id) || false;
+  const isSavedByCurrentUser = (currentUser?.savedPosts || []).includes(post.id);
   const sortedRootComments = [...post.comments.filter(c => !c.parentId)].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return (

@@ -107,6 +107,8 @@ export default function FeedPage() {
 
   const handleToggleSavePost = (postId: string) => {
     if (!currentUserId) return;
+    let toastInfo: { title: string; description: string } | null = null;
+
     setUsers(prevUsers => {
       return prevUsers.map(user => {
         if (user.id === currentUserId) {
@@ -115,16 +117,21 @@ export default function FeedPage() {
           const newSavedPosts = isSaved
             ? currentSavedPosts.filter(id => id !== postId)
             : [...currentSavedPosts, postId];
+          
           if (isSaved) {
-            toast({ title: "Postingan Dihapus", description: "Postingan telah dihapus dari daftar simpanan Anda." });
+            toastInfo = { title: "Postingan Dihapus", description: "Postingan telah dihapus dari daftar simpanan Anda." };
           } else {
-            toast({ title: "Postingan Disimpan", description: "Postingan telah ditambahkan ke daftar simpanan Anda." });
+            toastInfo = { title: "Postingan Disimpan", description: "Postingan telah ditambahkan ke daftar simpanan Anda." };
           }
           return { ...user, savedPosts: newSavedPosts };
         }
         return user;
       });
     });
+
+    if (toastInfo) {
+      toast(toastInfo);
+    }
   };
 
   const currentUser = useMemo(() => {

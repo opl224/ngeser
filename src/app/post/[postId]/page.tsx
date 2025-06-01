@@ -136,9 +136,8 @@ export default function PostPage() {
       if (foundPost) {
         setPost(prevPost => {
           if(prevPost && prevPost.id === foundPost.id && prevPost.viewCount === foundPost.viewCount + 1) {
-            return prevPost; // Already incremented in this session
+            return prevPost; 
           }
-          // Increment view count
           const updatedViewCountPost = { ...foundPost, viewCount: (foundPost.viewCount || 0) + 1 };
           setAllPosts(prevAllPosts => prevAllPosts.map(p => p.id === postId ? updatedViewCountPost : p));
           return updatedViewCountPost;
@@ -147,7 +146,7 @@ export default function PostPage() {
         const foundAuthor = users.find(u => u.id === foundPost.userId);
         setAuthor(foundAuthor || null);
       } else {
-         router.push('/'); // Post not found, redirect
+         router.push('/'); 
       }
     }
   }, [postId, allPosts, users, router, setAllPosts]);
@@ -164,12 +163,12 @@ export default function PostPage() {
           ? p.likes.filter(uid => uid !== currentUserId)
           : [...p.likes, currentUserId];
         const updatedPost = { ...p, likes };
-        setPost(updatedPost); // Update local state for immediate UI feedback
+        setPost(updatedPost); 
         return updatedPost;
       }
       return p;
     });
-    setAllPosts(updatedPosts); // Update localStorage
+    setAllPosts(updatedPosts); 
   };
 
   const addCommentToThread = (comments: CommentType[], parentId: string, newReply: CommentType): CommentType[] => {
@@ -258,23 +257,31 @@ export default function PostPage() {
 
   const handleToggleSavePost = () => {
     if (!post || !currentUserId) return;
+    let toastInfo: { title: string; description: string } | null = null;
+
     setUsers(prevUsers => {
       return prevUsers.map(user => {
         if (user.id === currentUserId) {
-          const isSaved = user.savedPosts.includes(post.id);
+          const currentSavedPosts = user.savedPosts || [];
+          const isSaved = currentSavedPosts.includes(post.id);
           const newSavedPosts = isSaved
-            ? user.savedPosts.filter(id => id !== post.id)
-            : [...user.savedPosts, post.id];
-           if (isSaved) {
-            toast({ title: "Postingan Dihapus dari Simpanan", description: "Postingan telah dihapus dari daftar simpanan Anda." });
+            ? currentSavedPosts.filter(id => id !== post.id)
+            : [...currentSavedPosts, post.id];
+           
+          if (isSaved) {
+            toastInfo = { title: "Postingan Dihapus dari Simpanan", description: "Postingan telah dihapus dari daftar simpanan Anda." };
           } else {
-            toast({ title: "Postingan Disimpan", description: "Postingan telah ditambahkan ke daftar simpanan Anda." });
+            toastInfo = { title: "Postingan Disimpan", description: "Postingan telah ditambahkan ke daftar simpanan Anda." };
           }
           return { ...user, savedPosts: newSavedPosts };
         }
         return user;
       });
     });
+
+    if (toastInfo) {
+      toast(toastInfo);
+    }
   };
 
 
@@ -288,7 +295,7 @@ export default function PostPage() {
 
   const isOwner = currentUserId === post.userId;
   const isLiked = currentUserId ? post.likes.includes(currentUserId) : false;
-  const isSavedByCurrentUser = currentUser?.savedPosts.includes(post.id) || false;
+  const isSavedByCurrentUser = (currentUser?.savedPosts || []).includes(post.id);
   const sortedRootComments = [...post.comments.filter(c => !c.parentId)].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
 
