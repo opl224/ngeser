@@ -31,7 +31,7 @@ export function AppNavbar() {
       window.removeEventListener('storage', updateAuthStatus);
       window.removeEventListener('authChange', updateAuthStatus);
     };
-  }, []); // Removed pathname dependency as auth state is global
+  }, []); 
 
   const baseNavItems = [
     { href: '/', label: 'Beranda', icon: Home },
@@ -44,7 +44,6 @@ export function AppNavbar() {
   
   const loginNavItem = { href: '/login', label: 'Masuk', icon: LogIn };
 
-  // This list is now primarily for desktop/tablet top navigation
   const allNavItems = currentUserId 
     ? [...baseNavItems, ...authNavItems] 
     : [...baseNavItems, loginNavItem];
@@ -73,11 +72,10 @@ export function AppNavbar() {
     );
   }
   
-  // Hide top nav on login page (except logo)
   if (pathname === '/login') {
      return (
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-center"> {/* Center logo on login */}
+        <div className="container flex h-16 items-center justify-center"> 
           <Link href="/" className="flex items-center gap-2">
             <Film className="h-7 w-7 text-primary" />
             <span className="font-headline text-2xl font-semibold text-foreground">Elegance</span>
@@ -109,52 +107,27 @@ export function AppNavbar() {
           </form>
         </div>
         
-        {/* This nav is for desktop/tablet. Mobile nav is handled by BottomNavbar */}
         <nav className="items-center gap-1 sm:gap-0 flex-shrink-0 hidden sm:flex">
-          {/* Mobile Search Icon - still useful at the top for quick access if user prefers */}
-          <Button
-            variant="ghost"
-            size="icon" 
-            asChild
-            className="sm:hidden text-muted-foreground hover:text-foreground" // Shows on xs, hidden on sm+
-            aria-label="Cari"
-          >
-            <Link href="/search">
-              <SearchIconLucide className="h-5 w-5" />
-            </Link>
-          </Button>
-
           {allNavItems.map((item) => (
             <Button
               key={item.label}
               variant="ghost"
               asChild
               className={cn(
-                "text-sm font-medium px-2 sm:px-3", // sm:px-3 for slightly more padding on desktop
+                "text-sm font-medium px-2 sm:px-3", 
                 pathname === item.href ? "text-primary hover:text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Link href={item.href} className="flex items-center gap-2"> {/* sm:gap-2 for desktop */}
+              <Link href={item.href} className="flex items-center gap-2"> 
                 <item.icon className="h-5 w-5" />
-                <span className="inline">{item.label}</span> {/* Label always shown on sm+ */}
+                <span className="inline">{item.label}</span> 
               </Link>
             </Button>
           ))}
         </nav>
-         {/* Placeholder for mobile to maintain layout balance if top search icon is not used, or just for spacing */}
+         
          <div className="sm:hidden w-10 h-10"> 
-           {/* Mobile search icon that was part of the nav mapping moved here */}
-            <Button
-              variant="ghost"
-              size="icon" 
-              asChild
-              className="text-muted-foreground hover:text-foreground h-full w-full"
-              aria-label="Cari"
-            >
-              <Link href="/search" className="flex items-center justify-center h-full w-full">
-                <SearchIconLucide className="h-5 w-5" />
-              </Link>
-            </Button>
+           {/* Placeholder div to maintain layout balance on mobile if needed, now empty as search icon is removed */}
          </div>
 
       </div>
