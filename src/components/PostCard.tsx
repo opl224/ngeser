@@ -189,20 +189,18 @@ export function PostCard({
         >
           {post.type === 'photo' ? (
            <Image src={post.mediaUrl} alt={post.caption || 'Gambar postingan'} layout="fill" objectFit="cover" data-ai-hint="social media image" />
-          ) : ( // video or reel
+          ) : ( 
             <div className="w-full h-full flex items-center justify-center">
-              <Image 
-                src={
-                  post.mediaUrl.startsWith('blob:')
-                    ? (post.type === 'reel' ? 'https://placehold.co/400x600.png' : 'https://placehold.co/600x400.png')
-                    : post.mediaUrl
-                } 
-                alt={post.caption || (post.type === 'video' ? 'Pratinjau video' : 'Pratinjau reel')} 
-                layout="fill" 
-                objectFit="cover" 
-                data-ai-hint={post.type === 'reel' ? 'placeholder reel' : 'placeholder video'}
+               <video 
+                src={post.mediaUrl} 
+                className="w-full h-full object-cover" 
+                autoPlay 
+                loop 
+                muted 
+                playsInline
+                data-ai-hint={post.type === 'reel' ? 'reel video' : 'video content'}
               />
-              <PlayCircle className="absolute h-16 w-16 text-background/70" />
+              <PlayCircle className="absolute h-16 w-16 text-background/70 pointer-events-none" />
             </div>
           )}
         </div>
@@ -233,7 +231,7 @@ export function PostCard({
               </Button>
                <div className="flex items-center gap-1.5 px-1.5 sm:px-2 text-muted-foreground text-sm">
                 <Eye className="h-5 w-5" />
-                <span>{post.viewCount}</span>
+                <span>{post.viewCount || 0}</span>
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -345,8 +343,8 @@ export function PostCard({
     {post && (
       <Dialog open={isMediaModalOpen} onOpenChange={setIsMediaModalOpen}>
         <DialogContent className="sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-7xl w-auto max-h-[95vh] p-2 bg-background flex items-center justify-center">
-          <DialogHead className="sr-only">
-            <DialogTitl>Tampilan Media Penuh</DialogTitl>
+          <DialogHead>
+            <DialogTitl className="sr-only">Tampilan Media Penuh</DialogTitl>
           </DialogHead>
           {post.type === 'photo' ? (
             <Image

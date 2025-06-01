@@ -141,23 +141,44 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
     if (postId) {
       const foundPost = allPosts.find(p => p.id === postId);
       if (foundPost) {
-        const postToUpdate = { ...foundPost };
-        if (typeof postToUpdate.viewCount !== 'number' || isNaN(postToUpdate.viewCount)) {
-          postToUpdate.viewCount = 0;
+        // Only increment viewCount if it's the first time this specific post state is set, or if the count hasn't been incremented in this session yet for this post.
+        // This very basic check helps avoid incrementing on every re-render after a state change to this post.
+        // A more robust solution might involve a session-based flag or only incrementing when `post` was previously null.
+        if (!post || post.id !== foundPost.id || (post && post.viewCount === foundPost.viewCount) ) {
+            const postToUpdate = { ...foundPost };
+            if (typeof postToUpdate.viewCount !== 'number' || isNaN(postToUpdate.viewCount)) {
+              postToUpdate.viewCount = 0;
+            }
+            postToUpdate.viewCount += 1;
+            
+            setPost(postToUpdate);
+            setAllPosts(prevAllPosts => prevAllPosts.map(p => p.id === postId ? postToUpdate : p));
+            setEditedCaption(postToUpdate.caption);
+        } else if (post && post.id === foundPost.id) { // If post is already set and matches foundPost, just update caption if it changed
+            setEditedCaption(foundPost.caption);
         }
-        postToUpdate.viewCount += 1;
-        
-        setPost(postToUpdate);
-        setAllPosts(prevAllPosts => prevAllPosts.map(p => p.id === postId ? postToUpdate : p));
-        setEditedCaption(postToUpdate.caption);
 
-        const foundAuthor = users.find(u => u.id === postToUpdate.userId);
+
+        const foundAuthor = users.find(u => u.id === (post || foundPost).userId);
         setAuthor(foundAuthor || null);
       } else {
          router.push('/'); 
       }
     }
-  }, [postId, users, router, setAllPosts]); 
+  }, [postId, users, router, setAllPosts, allPosts]); // allPosts is needed to react to external changes
+
+  // This effect ensures that if allPosts is updated (e.g. by another component interaction like liking from a feed),
+  // the local `post` state reflects the latest version from `allPosts`.
+  useEffect(() => {
+    if (postId) {
+        const currentVersionOfPostInAllPosts = allPosts.find(p => p.id === postId);
+        if (currentVersionOfPostInAllPosts && JSON.stringify(currentVersionOfPostInAllPosts) !== JSON.stringify(post)) {
+            setPost(currentVersionOfPostInAllPosts);
+            setEditedCaption(currentVersionOfPostInAllPosts.caption);
+        }
+    }
+  }, [allPosts, postId, post]);
+
 
   const currentUser = useMemo(() => {
     return users.find(u => u.id === currentUserId);
@@ -171,7 +192,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
           ? p.likes.filter(uid => uid !== currentUserId)
           : [...p.likes, currentUserId];
         const updatedPostResult = { ...p, likes };
-        setPost(updatedPostResult); 
+        // setPost(updatedPostResult); // Let the useEffect linked to allPosts handle this
         return updatedPostResult;
       }
       return p;
@@ -213,7 +234,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
           updatedComments = [...p.comments, newComment];
         }
         const updatedPostResult = { ...p, comments: updatedComments };
-        setPost(updatedPostResult);
+        // setPost(updatedPostResult); // Let useEffect handle this
         return updatedPostResult;
       }
       return p;
@@ -232,7 +253,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
       p.id === post.id ? { ...p, caption: editedCaption.trim() } : p
     );
     setAllPosts(updatedPosts);
-    setPost(prev => prev ? { ...prev, caption: editedCaption.trim() } : null);
+    // setPost(prev => prev ? { ...prev, caption: editedCaption.trim() } : null); // Let useEffect handle this
     setIsEditingCaption(false);
     toast({ title: "Keterangan Diperbarui", description: "Keterangan postingan telah diperbarui." });
   };
@@ -356,20 +377,18 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
         >
           {post.type === 'photo' ? (
             <Image src={post.mediaUrl} alt={post.caption || 'Gambar postingan'} layout="fill" objectFit="cover" data-ai-hint="social media image"/>
-          ) : ( // video or reel
+          ) : ( 
             <div className="w-full h-full flex items-center justify-center">
-               <Image 
-                src={
-                  post.mediaUrl.startsWith('blob:')
-                    ? (post.type === 'reel' ? 'https://placehold.co/400x600.png' : 'https://placehold.co/600x400.png')
-                    : post.mediaUrl
-                } 
-                alt={post.caption || (post.type === 'video' ? 'Pratinjau video' : 'Pratinjau reel')} 
-                layout="fill" 
-                objectFit="cover" 
-                data-ai-hint={post.type === 'reel' ? 'placeholder reel' : 'placeholder video'}
+              <video 
+                src={post.mediaUrl} 
+                className="w-full h-full object-cover" 
+                autoPlay 
+                loop 
+                muted 
+                playsInline
+                data-ai-hint={post.type === 'reel' ? 'reel video' : 'video content'}
               />
-              <PlayCircle className="absolute h-16 w-16 text-background/70" />
+              <PlayCircle className="absolute h-16 w-16 text-background/70 pointer-events-none" />
             </div>
           )}
         </div>
@@ -508,8 +527,8 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
     {post && (
       <Dialog open={isMediaModalOpen} onOpenChange={setIsMediaModalOpen}>
         <DialogContent className="sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-7xl w-auto max-h-[95vh] p-2 bg-background flex items-center justify-center">
-          <DialogHead className="sr-only">
-            <DialogTitl>Tampilan Media Penuh</DialogTitl>
+          <DialogHead>
+            <DialogTitl className="sr-only">Tampilan Media Penuh</DialogTitl>
           </DialogHead>
           {post.type === 'photo' ? (
             <Image

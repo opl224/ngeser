@@ -143,21 +143,37 @@ export default function LatestPostPage() {
       const latestPost = sortedPosts[0];
 
       if (latestPost) {
-         setPost(prevPost => {
-          if(prevPost && prevPost.id === latestPost.id && prevPost.viewCount === latestPost.viewCount +1) { // Check if already incremented
-            return prevPost; 
-          }
+        // Increment view count if this specific post instance hasn't been "viewed" in this state yet
+        if (!post || post.id !== latestPost.id || (post && post.viewCount === latestPost.viewCount)) {
           const updatedViewCountPost = { ...latestPost, viewCount: (latestPost.viewCount || 0) + 1 };
           setAllPosts(prevAllPosts => prevAllPosts.map(p => p.id === latestPost.id ? updatedViewCountPost : p));
-          return updatedViewCountPost;
-        });
-        setEditedCaption(latestPost.caption);
-        const foundAuthor = users.find(u => u.id === latestPost.userId);
+          setPost(updatedViewCountPost);
+          setEditedCaption(updatedViewCountPost.caption);
+        } else if (post && post.id === latestPost.id) { // If post already set and matches, just update caption if it changed
+            setEditedCaption(latestPost.caption);
+        }
+        
+        const foundAuthor = users.find(u => u.id === (post || latestPost).userId);
         setAuthor(foundAuthor || null);
       }
     }
     setIsLoading(false);
-  }, [allPosts, users, setAllPosts]); // Removed post from dep array to avoid re-triggering view count
+  }, [users, router, setAllPosts, allPosts]); // Removed post from dep array to avoid re-triggering view count logic incorrectly
+
+   // This effect ensures that if allPosts is updated (e.g. by another component interaction like liking from a feed),
+  // the local `post` state reflects the latest version from `allPosts`.
+  useEffect(() => {
+    if (allPosts.length > 0) {
+        const sortedPosts = [...allPosts].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        const latestPostFromAllPosts = sortedPosts[0];
+        
+        if (latestPostFromAllPosts && JSON.stringify(latestPostFromAllPosts) !== JSON.stringify(post)) {
+            setPost(latestPostFromAllPosts);
+            setEditedCaption(latestPostFromAllPosts.caption);
+        }
+    }
+  }, [allPosts, post]);
+
 
   const currentUser = useMemo(() => {
     return users.find(u => u.id === currentUserId);
@@ -171,7 +187,7 @@ export default function LatestPostPage() {
           ? p.likes.filter(uid => uid !== currentUserId)
           : [...p.likes, currentUserId];
         const updatedPostResult = { ...p, likes };
-        setPost(updatedPostResult);
+        // setPost(updatedPostResult); // Let useEffect handle this
         return updatedPostResult;
       }
       return p;
@@ -213,7 +229,7 @@ export default function LatestPostPage() {
           updatedComments = [...p.comments, newComment];
         }
         const updatedPostResult = { ...p, comments: updatedComments };
-        setPost(updatedPostResult);
+        // setPost(updatedPostResult); // Let useEffect handle
         return updatedPostResult;
       }
       return p;
@@ -232,7 +248,7 @@ export default function LatestPostPage() {
       p.id === post.id ? { ...p, caption: editedCaption.trim() } : p
     );
     setAllPosts(updatedPosts);
-    setPost(prev => prev ? { ...prev, caption: editedCaption.trim() } : null);
+    // setPost(prev => prev ? { ...prev, caption: editedCaption.trim() } : null); // Let useEffect handle
     setIsEditingCaption(false);
     toast({ title: "Keterangan Diperbarui", description: "Keterangan postingan telah diperbarui." });
   };
@@ -294,7 +310,7 @@ export default function LatestPostPage() {
   };
 
 
-  if (isLoading) {
+  if (isLoading || !post || !author) { // Combined loading and !post/!author check
      return (
       <div className="container mx-auto max-w-2xl py-8 text-center">
         <p className="font-headline text-xl">Memuat postingan terbaru...</p>
@@ -302,13 +318,6 @@ export default function LatestPostPage() {
     );
   }
 
-  if (!post || !author) {
-    return (
-      <div className="container mx-auto max-w-2xl py-8 text-center">
-        <p className="font-headline text-xl">Tidak ada postingan yang ditemukan atau penulis tidak dapat ditentukan.</p>
-      </div>
-    );
-  }
 
   const isOwner = currentUserId === post.userId;
   const isLiked = currentUserId ? post.likes.includes(currentUserId) : false;
@@ -364,20 +373,18 @@ export default function LatestPostPage() {
         >
           {post.type === 'photo' ? (
             <Image src={post.mediaUrl} alt={post.caption || 'Gambar postingan'} layout="fill" objectFit="cover" data-ai-hint="social media image"/>
-          ) : ( // video or reel
+          ) : ( 
             <div className="w-full h-full flex items-center justify-center">
-               <Image 
-                src={
-                  post.mediaUrl.startsWith('blob:')
-                    ? (post.type === 'reel' ? 'https://placehold.co/400x600.png' : 'https://placehold.co/600x400.png')
-                    : post.mediaUrl
-                } 
-                alt={post.caption || (post.type === 'video' ? 'Pratinjau video' : 'Pratinjau reel')} 
-                layout="fill" 
-                objectFit="cover" 
-                data-ai-hint={post.type === 'reel' ? 'placeholder reel' : 'placeholder video'}
+               <video 
+                src={post.mediaUrl} 
+                className="w-full h-full object-cover" 
+                autoPlay 
+                loop 
+                muted 
+                playsInline
+                data-ai-hint={post.type === 'reel' ? 'reel video' : 'video content'}
               />
-              <PlayCircle className="absolute h-16 w-16 text-background/70" />
+              <PlayCircle className="absolute h-16 w-16 text-background/70 pointer-events-none" />
             </div>
           )}
         </div>
@@ -406,7 +413,7 @@ export default function LatestPostPage() {
               </Button>
               <div className="flex items-center gap-1.5 px-1.5 sm:px-2 text-muted-foreground text-sm">
                 <Eye className="h-5 w-5" />
-                <span>{post.viewCount}</span>
+                <span>{post.viewCount || 0}</span>
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
