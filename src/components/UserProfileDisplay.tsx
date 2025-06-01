@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
-import type { User, Post } from '@/lib/types';
+import type { User, Post, Comment as CommentType } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,9 +10,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from './PostCard';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialUsers, initialPosts, getCurrentUserId } from '@/lib/data';
-import { Settings, UserPlus, UserCheck, Edit3 } from 'lucide-react';
+import { Settings, UserPlus, UserCheck, Edit3, LogOut, Trash2, Save } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
+import { useRouter } from 'next/navigation';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 interface UserProfileDisplayProps {
   userId: string;
@@ -26,6 +39,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   
   const [currentUserId, setCurrentUserIdState] = useState<string | null>(null);
   const { toast } = useToast();
+  const router = useRouter();
 
   useEffect(() => {
     setCurrentUserIdState(getCurrentUserId());
@@ -89,12 +103,14 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
   const handleAddComment = (postId: string, text: string) => {
     if (!currentUserId) return;
-    const newComment = {
+    const newComment: CommentType = {
       id: `comment-${Date.now()}`,
       postId,
       userId: currentUserId,
       text,
       timestamp: new Date().toISOString(),
+      parentId: null,
+      replies: [],
     };
     setPosts(prevPosts =>
       prevPosts.map(post =>
@@ -104,6 +120,27 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       )
     );
   };
+
+  const handleSaveAndExit = () => {
+    toast({
+      title: "Data Disimpan",
+      description: "Anda telah keluar dan data Anda tetap tersimpan.",
+    });
+    router.push('/');
+  };
+
+  const handleDeleteAndExit = () => {
+    setPosts(initialPosts);
+    setUsers(initialUsers);
+    // Clearing from localStorage is handled by useLocalStorageState when setPosts/setUsers are called.
+    toast({
+      title: "Data Dihapus",
+      description: "Semua data telah dihapus dan Anda telah keluar.",
+      variant: "destructive",
+    });
+    router.push('/');
+  };
+
 
   if (!profileUser) {
     return <div className="text-center py-10"><p className="text-xl text-muted-foreground font-headline">User not found.</p></div>;
@@ -128,11 +165,36 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               <div><span className="font-semibold">{profileUser.followers.length}</span> Followers</div>
               <div><span className="font-semibold">{profileUser.following.length}</span> Following</div>
             </div>
-            <div className="mt-5 flex justify-center md:justify-start gap-2">
+            <div className="mt-5 flex flex-wrap justify-center md:justify-start gap-2">
               {isCurrentUserProfile ? (
                 <>
                   <Button variant="outline" size="sm"><Edit3 className="mr-2 h-4 w-4" /> Edit Profile</Button>
                   <Button variant="ghost" size="icon"><Settings className="h-5 w-5 text-muted-foreground" /></Button>
+                  <Button variant="outline" size="sm" onClick={handleSaveAndExit}>
+                    <LogOut className="mr-2 h-4 w-4" /> Keluar &amp; Simpan Data
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="sm">
+                        <Trash2 className="mr-2 h-4 w-4" /> Keluar &amp; Hapus Data
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Anda yakin?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Tindakan ini akan menghapus semua data postingan dan pengguna secara permanen. 
+                          Data tidak dapat dipulihkan.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Batal</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteAndExit}>
+                          Ya, Hapus Semua &amp; Keluar
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </>
               ) : (
                 <Button onClick={handleFollowToggle} variant={isFollowing ? "secondary" : "default"} size="sm">
@@ -206,3 +268,5 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
+
+    
