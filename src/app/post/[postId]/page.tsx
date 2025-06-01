@@ -1,3 +1,4 @@
+
 // No "use client" directive here
 
 import { PostDetailClientPage } from '@/components/PostDetailClientPage';
@@ -10,7 +11,7 @@ export async function generateStaticParams() {
 }
 
 // Optional: Add metadata generation if needed
-export async function generateMetadata({ params }: { params: { postId: string } }): Promise<Metadata> {
+export async function generateMetadata({ params: { postId } }: { params: { postId: string } }): Promise<Metadata> {
   // In a real app with server-side data fetching, you might fetch post title here.
   // Since data is client-side, we'll use a generic title.
   return {
@@ -23,6 +24,6 @@ interface PostPageProps {
   params: { postId: string };
 }
 
-export default function PostPage({ params }: PostPageProps) {
-  return <PostDetailClientPage postId={params.postId} />;
+export default function PostPage({ params: { postId } }: PostPageProps) {
+  return <PostDetailClientPage postId={postId} />;
 }

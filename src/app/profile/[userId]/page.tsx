@@ -1,6 +1,5 @@
 
 // No "use client" directive here
-
 import { UserProfileDisplay } from '@/components/UserProfileDisplay';
 import React from 'react';
 
@@ -11,13 +10,13 @@ export async function generateStaticParams() {
 }
 
 interface ProfilePageProps {
-  params: { userId: string }; 
+  params: { userId: string };
 }
 
-export default function ProfilePage({ params }: ProfilePageProps) {
+export default function ProfilePage({ params: { userId } }: ProfilePageProps) {
   return (
     <div className="container mx-auto py-8">
-      <UserProfileDisplay userId={params.userId} />
+      <UserProfileDisplay userId={userId} />
     </div>
   );
 }
