@@ -42,7 +42,7 @@ function CommentItem({ comment, allUsers, currentUserId, onReply, level = 0 }: C
   const replyFormPadding = paddingClasses[level + 1] ?? `pl-${(level + 1) * 4}`;
 
   return (
-    <div className={\`\${currentPadding} py-2\`}>
+    <div className={` ${currentPadding} py-2`}>
       <div className="flex items-start gap-3">
         <Avatar className="h-9 w-9 mt-1">
           <AvatarImage src={author?.avatarUrl} alt={author?.username} data-ai-hint="portrait person small" />
@@ -66,7 +66,7 @@ function CommentItem({ comment, allUsers, currentUserId, onReply, level = 0 }: C
         </div>
       </div>
       {showReplyForm && currentUserId && (
-        <div className={\`\${replyFormPadding} mt-2 flex gap-2 items-center\`}>
+        <div className={` ${replyFormPadding} mt-2 flex gap-2 items-center`}>
           <Textarea
             placeholder={`Replying to ${author?.username}...`}
             value={replyText}
@@ -225,7 +225,7 @@ export default function LatestPostPage() {
             <Image src={post.mediaUrl} alt={post.caption || 'Post image'} layout="fill" objectFit="cover" data-ai-hint="social media image"/>
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-               <Image src={post.mediaUrl} alt={post.caption || 'Post media'} layout="fill" objectFit="contain" data-ai-hint="social media video"/>
+               <Image src={post.mediaUrl} alt={post.caption || 'Post media'} layout="fill" objectFit="cover" data-ai-hint="social media video"/>
               <PlayCircle className="absolute h-16 w-16 text-background/70" />
             </div>
           )}
@@ -298,4 +298,3 @@ export default function LatestPostPage() {
     </div>
   );
 }
-

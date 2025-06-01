@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from 'next/image';
@@ -88,7 +89,7 @@ export function PostCard({ post, onLikePost, onAddComment }: PostCardProps) {
            <Image src={post.mediaUrl} alt={post.caption || 'Post image'} layout="fill" objectFit="cover" data-ai-hint="social media image" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-             <Image src={post.mediaUrl} alt={post.caption || 'Post media'} layout="fill" objectFit="contain" data-ai-hint="social media video" />
+             <Image src={post.mediaUrl} alt={post.caption || 'Post media'} layout="fill" objectFit="cover" data-ai-hint="social media video" />
             <PlayCircle className="absolute h-16 w-16 text-background/70" />
           </div>
         )}

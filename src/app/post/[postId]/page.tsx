@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -15,6 +16,7 @@ import { Heart, MessageCircle, Share2, MoreHorizontal, Send, PlayCircle, CornerU
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import React from 'react'; // Import React
 
 interface CommentItemProps {
   comment: CommentType;
@@ -207,7 +209,7 @@ export default function PostPage() {
             <Image src={post.mediaUrl} alt={post.caption || 'Post image'} layout="fill" objectFit="cover" data-ai-hint="social media image"/>
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-               <Image src={post.mediaUrl} alt={post.caption || 'Post media'} layout="fill" objectFit="contain" data-ai-hint="social media video"/>
+               <Image src={post.mediaUrl} alt={post.caption || 'Post media'} layout="fill" objectFit="cover" data-ai-hint="social media video"/>
               <PlayCircle className="absolute h-16 w-16 text-background/70" />
             </div>
           )}
