@@ -12,6 +12,11 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { StoryAvatarReel } from '@/components/StoryAvatarReel';
+import { Dialog, DialogContent, DialogHeader } from '@/components/ui/dialog';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import Image from 'next/image';
+import { formatDistanceToNow } from 'date-fns';
+import { id as localeID } from 'date-fns/locale';
 
 export default function FeedPage() {
   const router = useRouter();
@@ -21,6 +26,9 @@ export default function FeedPage() {
   const [currentUserId, setCurrentUserIdState] = useState<string | null>(null);
   const [authStatus, setAuthStatus] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
   const [showScrollTop, setShowScrollTop] = useState(false);
+
+  const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
+  const [storyModalContent, setStoryModalContent] = useState<{ user: User; post: Post } | null>(null);
 
   useEffect(() => {
     const id = getCurrentUserId();
@@ -66,7 +74,6 @@ export default function FeedPage() {
         userIdsWithStories.add(post.userId);
       }
     });
-    // Map to user objects and ensure correct type, also sort by latest story from that user
     const usersFound = Array.from(userIdsWithStories)
         .map(userId => {
             const user = users.find(u => u.id === userId);
@@ -162,6 +169,24 @@ export default function FeedPage() {
     return users.find(u => u.id === currentUserId);
   }, [users, currentUserId]);
 
+  const handleStoryAvatarClick = (userId: string) => {
+    const user = users.find(u => u.id === userId);
+    if (!user) return;
+
+    const latestStory = posts
+      .filter(p => p.userId === userId && p.type === 'story')
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+
+    if (latestStory) {
+      setStoryModalContent({ user, post: latestStory });
+      setIsStoryModalOpen(true);
+    } else {
+      // Fallback or notify if no story is found (should be rare due to usersWithStories logic)
+      toast({ title: "Tidak ada cerita", description: "Tidak ada cerita aktif dari pengguna ini untuk ditampilkan.", variant: "default" });
+      // router.push(`/profile/${userId}`); 
+    }
+  };
+
 
   if (authStatus === 'loading') {
     return (
@@ -189,7 +214,7 @@ export default function FeedPage() {
 
   return (
     <div className="w-full max-w-2xl mx-auto">
-      {usersWithStories.length > 0 && <StoryAvatarReel usersWithStories={usersWithStories} />}
+      {usersWithStories.length > 0 && <StoryAvatarReel usersWithStories={usersWithStories} onAvatarClick={handleStoryAvatarClick} />}
       
       <h1 className="font-headline text-3xl text-foreground mb-8 text-center mt-6">Beranda Anda</h1>
       {sortedPosts.length > 0 ? (
@@ -226,6 +251,57 @@ export default function FeedPage() {
           <ArrowUp className="h-6 w-6" />
         </Button>
       )}
+
+      <Dialog open={isStoryModalOpen} onOpenChange={setIsStoryModalOpen}>
+        <DialogContent className="p-0 bg-black text-white w-full h-full sm:max-w-sm sm:h-auto sm:aspect-[9/16] sm:rounded-lg flex flex-col items-center justify-center overflow-hidden">
+          {storyModalContent && (
+            <div className="relative w-full h-full">
+              <DialogHeader className="absolute top-0 left-0 right-0 p-3 z-10 bg-gradient-to-b from-black/60 to-transparent">
+                <div className="flex items-center gap-2">
+                  <Avatar className="h-8 w-8 border-2 border-white">
+                    <AvatarImage src={storyModalContent.user.avatarUrl} alt={storyModalContent.user.username} />
+                    <AvatarFallback className="bg-black/50 text-white">{storyModalContent.user.username.substring(0,1).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <span className="font-semibold text-sm">{storyModalContent.user.username}</span>
+                  <span className="text-xs text-gray-300 ml-1">
+                    {formatDistanceToNow(new Date(storyModalContent.post.timestamp), { addSuffix: true, locale: localeID })}
+                  </span>
+                </div>
+              </DialogHeader>
+              
+              <div className="w-full h-full flex items-center justify-center">
+                {storyModalContent.post.mediaMimeType?.startsWith('image/') ? (
+                  <Image 
+                    src={storyModalContent.post.mediaUrl} 
+                    alt={storyModalContent.post.caption || 'Story image'} 
+                    layout="fill" 
+                    objectFit="contain"
+                    className="rounded-md"
+                    data-ai-hint="story content image"
+                  />
+                ) : storyModalContent.post.mediaMimeType?.startsWith('video/') ? (
+                  <video 
+                    src={storyModalContent.post.mediaUrl} 
+                    controls 
+                    autoPlay 
+                    playsInline
+                    className="w-full h-full object-contain"
+                    data-ai-hint="story content video"
+                  />
+                ) : (
+                  <p className="text-center">Format media tidak didukung.</p>
+                )}
+              </div>
+              
+              {storyModalContent.post.caption && (
+                <div className="absolute bottom-0 left-0 right-0 p-3 z-10 bg-gradient-to-t from-black/60 to-transparent">
+                  <p className="text-xs text-white text-center">{storyModalContent.post.caption}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
