@@ -17,6 +17,12 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';
 import { id as localeID } from 'date-fns/locale';
+import { Progress } from "@/components/ui/progress";
+
+interface UserWithStoryCount extends User {
+  storyCount: number;
+  latestStoryTimestamp: string;
+}
 
 export default function FeedPage() {
   const router = useRouter();
@@ -28,7 +34,8 @@ export default function FeedPage() {
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
-  const [storyModalContent, setStoryModalContent] = useState<{ user: User; post: Post } | null>(null);
+  const [storyModalContent, setStoryModalContent] = useState<{ user: User; post: Post; storyCount: number } | null>(null);
+  const [storyProgress, setStoryProgress] = useState(0);
 
   useEffect(() => {
     const id = getCurrentUserId();
@@ -68,24 +75,55 @@ export default function FeedPage() {
 
   const usersWithStories = useMemo(() => {
     if (!posts || !users) return [];
-    const userIdsWithStories = new Set<string>();
+    const userStoryData: Record<string, { count: number; latestTimestamp: string }> = {};
+
     posts.forEach(post => {
       if (post.type === 'story') {
-        userIdsWithStories.add(post.userId);
+        if (!userStoryData[post.userId]) {
+          userStoryData[post.userId] = { count: 0, latestTimestamp: "1970-01-01T00:00:00.000Z" };
+        }
+        userStoryData[post.userId].count++;
+        if (new Date(post.timestamp) > new Date(userStoryData[post.userId].latestTimestamp)) {
+          userStoryData[post.userId].latestTimestamp = post.timestamp;
+        }
       }
     });
-    const usersFound = Array.from(userIdsWithStories)
+
+    const usersFound = Object.keys(userStoryData)
         .map(userId => {
             const user = users.find(u => u.id === userId);
-            const latestStoryTimestamp = posts
-                .filter(p => p.userId === userId && p.type === 'story')
-                .reduce((latest, current) => new Date(current.timestamp) > new Date(latest) ? current.timestamp : latest, "1970-01-01T00:00:00.000Z");
-            return user ? { ...user, latestStoryTimestamp } : null;
+            return user ? { 
+                ...user, 
+                storyCount: userStoryData[userId].count,
+                latestStoryTimestamp: userStoryData[userId].latestTimestamp 
+            } : null;
         })
-        .filter(Boolean) as (User & { latestStoryTimestamp: string })[];
+        .filter(Boolean) as UserWithStoryCount[];
     
     return usersFound.sort((a, b) => new Date(b.latestStoryTimestamp).getTime() - new Date(a.latestStoryTimestamp).getTime());
   }, [posts, users]);
+
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isStoryModalOpen && storyModalContent && storyModalContent.post.mediaMimeType?.startsWith('image/')) {
+      setStoryProgress(0); // Reset progress
+      const duration = 7000; // 7 seconds for image story
+      const interval = 50; // update every 50ms
+      const steps = duration / interval;
+      let currentStep = 0;
+      
+      timer = setInterval(() => {
+        currentStep++;
+        setStoryProgress((currentStep / steps) * 100);
+        if (currentStep >= steps) {
+          clearInterval(timer);
+          // setIsStoryModalOpen(false); // Optionally close modal or advance to next story
+        }
+      }, interval);
+    }
+    return () => clearInterval(timer);
+  }, [isStoryModalOpen, storyModalContent]);
 
 
   const handleLikePost = (postId: string) => {
@@ -173,12 +211,14 @@ export default function FeedPage() {
     const user = users.find(u => u.id === userId);
     if (!user) return;
 
-    const latestStory = posts
+    const userStories = posts
       .filter(p => p.userId === userId && p.type === 'story')
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    
+    const storyCount = userStories.length;
 
-    if (latestStory) {
-      setStoryModalContent({ user, post: latestStory });
+    if (storyCount > 0) {
+      setStoryModalContent({ user, post: userStories[0], storyCount }); // Show the latest story
       setIsStoryModalOpen(true);
     } else {
       toast({ title: "Tidak ada cerita", description: "Tidak ada cerita aktif dari pengguna ini untuk ditampilkan.", variant: "default" });
@@ -255,9 +295,28 @@ export default function FeedPage() {
           {storyModalContent && (
             <div className="relative w-full h-full">
               <DialogHeader className="absolute top-0 left-0 right-0 p-3 z-10 bg-gradient-to-b from-black/60 to-transparent">
-                <DialogTitle className="sr-only">
+                 <DialogTitle className="sr-only">
                   Cerita oleh {storyModalContent.user.username}
                 </DialogTitle>
+                {/* Progress bars container */}
+                {storyModalContent.storyCount > 0 && (
+                  <div className="flex space-x-1 mb-2 h-1">
+                    {Array.from({ length: storyModalContent.storyCount }).map((_, index) => (
+                      <div key={index} className="flex-1 bg-white/30 rounded-full overflow-hidden">
+                        {index === 0 && storyModalContent.post.mediaMimeType?.startsWith('image/') && ( // Assuming we only show the 1st story for now
+                           <div className="h-full bg-white rounded-full" style={{ width: `${storyProgress}%`, transition: 'width 0.05s linear' }}></div>
+                        )}
+                        {index === 0 && storyModalContent.post.mediaMimeType?.startsWith('video/') && (
+                           <div className="h-full bg-white rounded-full w-full"></div> // Full for video as it has its own progress
+                        )}
+                        {/* For subsequent stories if navigation is implemented, logic would change here */}
+                         {index !== 0 && (
+                           <div className="h-full bg-transparent rounded-full w-full"></div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <Avatar className="h-8 w-8 border-2 border-white">
                     <AvatarImage src={storyModalContent.user.avatarUrl} alt={storyModalContent.user.username} />

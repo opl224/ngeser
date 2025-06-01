@@ -5,8 +5,11 @@ import type { User } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
+interface UserWithStoryCount extends User {
+  storyCount: number;
+}
 interface StoryAvatarReelProps {
-  usersWithStories: User[];
+  usersWithStories: UserWithStoryCount[];
   onAvatarClick: (userId: string) => void;
 }
 
@@ -30,11 +33,16 @@ export function StoryAvatarReel({ usersWithStories, onAvatarClick }: StoryAvatar
               onKeyDown={(e) => e.key === 'Enter' && onAvatarClick(user.id)}
               aria-label={`Lihat cerita ${user.username}`}
             >
-              <div className="p-0.5 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-pink-500 group-hover:from-yellow-300 group-hover:via-red-400 group-hover:to-pink-400 transition-all">
+              <div className="relative p-0.5 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-pink-500 group-hover:from-yellow-300 group-hover:via-red-400 group-hover:to-pink-400 transition-all">
                 <Avatar className="h-16 w-16 border-2 border-background">
                   <AvatarImage src={user.avatarUrl} alt={user.username} data-ai-hint="story avatar person"/>
                   <AvatarFallback>{user.username.substring(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
+                {user.storyCount > 1 && (
+                  <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-background">
+                    {user.storyCount}
+                  </div>
+                )}
               </div>
               <p className="text-xs text-foreground truncate w-full text-center group-hover:text-primary">{user.username}</p>
             </div>
