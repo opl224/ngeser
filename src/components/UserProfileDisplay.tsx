@@ -76,8 +76,13 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   }, [userId, allUsers]);
 
   const userPosts = useMemo(() => allPosts
-    .filter(p => p.userId === userId)
+    .filter(p => p.userId === userId && p.type !== 'story') // Exclude stories from main post list
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()), [allPosts, userId]);
+  
+  const userStories = useMemo(() => allPosts
+    .filter(p => p.userId === userId && p.type === 'story')
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()), [allPosts, userId]);
+
 
   const currentSessionUser = useMemo(() => {
     return allUsers.find(u => u.id === currentSessionUserId);
@@ -271,6 +276,23 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       return;
     }
 
+    // Check if username already exists (excluding the current user's username if it hasn't changed)
+    const trimmedNewUsername = editedUsername.trim();
+    if (trimmedNewUsername.toLowerCase() !== profileUser.username.toLowerCase()) {
+        const usernameExists = allUsers.some(
+        (user) => user.id !== currentSessionUserId && user.username.toLowerCase() === trimmedNewUsername.toLowerCase()
+        );
+        if (usernameExists) {
+        toast({
+            title: "Nama Pengguna Sudah Ada",
+            description: "Nama pengguna ini sudah digunakan. Silakan pilih yang lain.",
+            variant: "destructive",
+        });
+        return;
+        }
+    }
+
+
     setAllUsers(prevUsers => 
       prevUsers.map(user => {
         if (user.id === currentSessionUserId) {
@@ -299,6 +321,9 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const isCurrentUserProfile = currentSessionUserId === profileUser.id;
   const isFollowing = currentSessionUserId ? allUsers.find(u=> u.id === currentSessionUserId)?.following.includes(profileUser.id) : false;
 
+  const allProfilePosts = [...userStories, ...userPosts].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+
   return (
     <div className="max-w-4xl mx-auto">
       <AlertDialog>
@@ -312,17 +337,28 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               <CardTitle className="font-headline text-3xl md:text-4xl text-foreground">{profileUser.username}</CardTitle>
               {profileUser.bio && <p className="text-muted-foreground mt-2 font-body text-sm md:text-base">{profileUser.bio}</p>}
               <div className="flex justify-center md:justify-start gap-4 mt-4 text-sm">
-                <div><span className="font-semibold">{userPosts.length}</span> Postingan</div>
+                <div><span className="font-semibold">{allProfilePosts.length}</span> Postingan</div>
                 <div><span className="font-semibold">{profileUser.followers.length}</span> Pengikut</div>
                 <div><span className="font-semibold">{profileUser.following.length}</span> Mengikuti</div>
               </div>
             </div>
             {isCurrentUserProfile ? (
-              <div className="absolute top-4 right-4 flex items-center gap-2 mt-4 md:mt-0">
-                <Button variant="outline" size="sm" onClick={handleOpenEditModal}><Edit3 className="mr-2 h-4 w-4" /> Edit Profil</Button>
+              <div className="flex w-full justify-center items-center gap-2 mt-4 md:w-auto md:absolute md:top-4 md:right-4 md:mt-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleOpenEditModal}
+                >
+                  <Edit3 className="h-4 w-4 md:mr-2" />
+                  <span className="hidden md:inline">Edit Profil</span>
+                </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-accent">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="px-2 w-9" 
+                    >
                       <Settings className="h-5 w-5" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -345,7 +381,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                 </DropdownMenu>
               </div>
             ) : currentSessionUserId && ( 
-                <div className="absolute top-6 right-6 mt-4 md:mt-0">
+                <div className="flex w-full justify-center items-center mt-4 md:w-auto md:absolute md:top-6 md:right-6 md:mt-0">
                     <Button onClick={handleFollowToggle} variant={isFollowing ? "secondary" : "default"} size="sm">
                     {isFollowing ? <UserCheck className="mr-2 h-4 w-4" /> : <UserPlus className="mr-2 h-4 w-4" />}
                     {isFollowing ? 'Mengikuti' : 'Ikuti'}
@@ -431,9 +467,9 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           {isCurrentUserProfile && <TabsTrigger value="saved" className="font-headline">Disimpan</TabsTrigger>}
         </TabsList>
         <TabsContent value="posts">
-          {userPosts.length > 0 ? (
+          {allProfilePosts.length > 0 ? (
             <div className="grid grid-cols-1 gap-6">
-              {userPosts.map(post => {
+              {allProfilePosts.map(post => {
                 const isSavedByCurrentSessUser = (currentSessionUser?.savedPosts || []).includes(post.id);
                 return(
                 <PostCard 
@@ -522,3 +558,4 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
+
