@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -8,13 +9,16 @@ import { cn } from '@/lib/utils';
 
 export function AppNavbar() {
   const pathname = usePathname();
-  const currentUserId = typeof window !== 'undefined' ? (localStorage.getItem('currentUserId') || 'user1') : 'user1';
+  // currentUserId is still needed if other parts of navbar might use it,
+  // or for consistency if profile link logic becomes more complex later.
+  // For now, the profile link is static.
+  // const currentUserId = typeof window !== 'undefined' ? (localStorage.getItem('currentUserId') || 'user1') : 'user1';
 
 
   const navItems = [
     { href: '/', label: 'Feed', icon: Home },
     { href: '/upload', label: 'Upload', icon: PlusSquare },
-    { href: `/profile/${currentUserId}`, label: 'Profile', icon: User },
+    { href: '/profile', label: 'Profile', icon: User }, // Changed to static /profile
   ];
 
   return (
