@@ -27,7 +27,8 @@ export const initialPosts: Post[] = [
     id: 'post2',
     userId: 'user2',
     type: 'video',
-    mediaUrl: 'https://placehold.co/600x400.png',
+    mediaUrl: 'https://placehold.co/600x400.png', // Seharusnya URL video sungguhan untuk demo yang lebih baik
+    mediaMimeType: 'video/mp4', // Contoh
     caption: 'Demo singkat proyek coding terbaruku. Sangat bersemangat untuk membagikan ini! #coding #tech #development',
     hashtags: ['coding', 'tech', 'development'],
     mentions: [],
@@ -43,7 +44,8 @@ export const initialPosts: Post[] = [
     id: 'post3',
     userId: 'user3',
     type: 'reel',
-    mediaUrl: 'https://placehold.co/400x600.png',
+    mediaUrl: 'https://placehold.co/400x600.png', // Seharusnya URL video sungguhan
+    mediaMimeType: 'video/mp4', // Contoh
     caption: 'Percobaanku membuat kue lezat. Berhasil! 🍰 #baking #foodie #homemade',
     hashtags: ['baking', 'foodie', 'homemade'],
     mentions: [],
@@ -53,6 +55,21 @@ export const initialPosts: Post[] = [
     shareCount: 8,
     viewCount: Math.floor(Math.random() * 300) + 70,
   },
+  {
+    id: 'post4-story-example',
+    userId: 'user2',
+    type: 'story',
+    mediaUrl: 'https://placehold.co/400x600.png', 
+    mediaMimeType: 'image/png', 
+    caption: 'Pemandangan pagi ini dari jendela kamarku! #sunrise #beautifulview',
+    hashtags: ['sunrise', 'beautifulview'],
+    mentions: [],
+    likes: ['user3'],
+    comments: [],
+    timestamp: new Date(Date.now() - 1000 * 60 * 240).toISOString(),
+    shareCount: 1,
+    viewCount: Math.floor(Math.random() * 100) + 20,
+  }
 ];
 
 // Updated to return string | null, and read from localStorage

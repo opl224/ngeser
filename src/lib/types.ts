@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   username: string;
@@ -23,9 +24,10 @@ export interface Post {
   id: string;
   userId: string;
   user?: User;
-  type: 'photo' | 'video' | 'reel';
+  type: 'photo' | 'video' | 'reel' | 'story';
   mediaUrl: string; 
-  caption: string; // Changed from description to caption
+  mediaMimeType?: string; // Untuk menyimpan tipe MIME asli dari media yang diunggah
+  caption: string; // Diubah dari description ke caption
   hashtags: string[];
   mentions: string[]; 
   likes: string[]; 
@@ -35,7 +37,7 @@ export interface Post {
   viewCount: number;
 }
 
-// For suggested hashtags AI
+// Untuk suggested hashtags AI
 export type SuggestHashtagsInput = {
   description: string;
 };

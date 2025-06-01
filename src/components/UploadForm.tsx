@@ -13,7 +13,7 @@ import { SuggestedHashtagsClient } from './SuggestedHashtagsClient';
 import type { Post, User } from '@/lib/types';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialPosts, initialUsers, getCurrentUserId } from '@/lib/data';
-import { UploadCloud, Image as ImageIcon, Video as VideoIcon, Film } from 'lucide-react';
+import { UploadCloud, Image as ImageIcon, Video as VideoIcon, Film, GalleryVerticalEnd } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
 
@@ -26,7 +26,7 @@ export function UploadForm() {
   const [caption, setCaption] = useState('');
   const [hashtags, setHashtags] = useState('');
   const [mentions, setMentions] = useState('');
-  const [mediaType, setMediaType] = useState<'photo' | 'video' | 'reel'>('photo');
+  const [mediaType, setMediaType] = useState<'photo' | 'video' | 'reel' | 'story'>('photo');
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,8 +46,6 @@ export function UploadForm() {
   };
 
   const handleHashtagsSuggested = (suggested: string[]) => {
-    // This function could append to existing hashtags or allow user to pick
-    // For simplicity, let's just log them or update the input field if user wants
     const newHashtags = [...new Set([...hashtags.split(',').map(h => h.trim()).filter(Boolean), ...suggested])];
     setHashtags(newHashtags.join(', '));
   };
@@ -64,15 +62,14 @@ export function UploadForm() {
     }
     setIsSubmitting(true);
 
-    // Simulate upload and get a URL (use placeholder for now)
-    // In a real app, this would involve uploading to a storage service
-    const mediaUrl = mediaPreview || `https://placehold.co/${mediaType === 'reel' ? '400x600' : '600x400'}.png`;
+    const mediaUrl = mediaPreview || `https://placehold.co/${mediaType === 'reel' || mediaType === 'story' ? '400x600' : '600x400'}.png`;
 
     const newPost: Post = {
       id: `post-${Date.now()}`,
       userId: currentUserId,
       type: mediaType,
       mediaUrl,
+      mediaMimeType: mediaFile.type,
       caption,
       hashtags: hashtags.split(',').map(h => h.trim()).filter(Boolean),
       mentions: mentions.split(',').map(m => m.trim().replace('@', '')).filter(Boolean),
@@ -80,13 +77,14 @@ export function UploadForm() {
       comments: [],
       timestamp: new Date().toISOString(),
       shareCount: 0,
+      viewCount: 0,
     };
 
     setPosts(prevPosts => [newPost, ...prevPosts]);
     
     toast({ title: "Berhasil!", description: "Postingan Anda telah diunggah.", className: "bg-primary text-primary-foreground" });
     setIsSubmitting(false);
-    router.push('/'); // Redirect to feed
+    router.push('/'); 
   };
 
   return (
@@ -95,7 +93,7 @@ export function UploadForm() {
         <CardTitle className="font-headline text-2xl flex items-center gap-2">
             <UploadCloud className="h-7 w-7 text-primary" /> Buat Postingan Baru
         </CardTitle>
-        <CardDescription>Bagikan momen Anda dengan dunia. Unggah foto, video, atau reel.</CardDescription>
+        <CardDescription>Bagikan momen Anda dengan dunia. Unggah foto, video, reel atau cerita.</CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-6">
@@ -104,8 +102,8 @@ export function UploadForm() {
             <RadioGroup
               id="mediaType"
               defaultValue="photo"
-              onValueChange={(value: 'photo' | 'video' | 'reel') => setMediaType(value)}
-              className="flex space-x-4"
+              onValueChange={(value: 'photo' | 'video' | 'reel' | 'story') => setMediaType(value)}
+              className="flex flex-wrap gap-x-4 gap-y-2"
             >
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="photo" id="r-photo" />
@@ -119,11 +117,15 @@ export function UploadForm() {
                 <RadioGroupItem value="reel" id="r-reel" />
                 <Label htmlFor="r-reel" className="flex items-center gap-1.5"><Film className="h-4 w-4"/> Reel</Label>
               </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="story" id="r-story" />
+                <Label htmlFor="r-story" className="flex items-center gap-1.5"><GalleryVerticalEnd className="h-4 w-4"/> Cerita</Label>
+              </div>
             </RadioGroup>
           </div>
 
           <div>
-            <Label htmlFor="mediaFile" className="font-medium">File Media</Label>
+            <Label htmlFor="mediaFile" className="font-medium">Berkas Media</Label>
             <Input
               id="mediaFile"
               type="file"
@@ -133,12 +135,12 @@ export function UploadForm() {
               required
             />
             {mediaPreview && (
-              <div className="mt-4 border rounded-lg overflow-hidden max-h-96 flex justify-center items-center bg-muted/20">
-                {mediaType === 'photo' || mediaType === 'reel' ? (
-                  <Image src={mediaPreview} alt="Media preview" width={mediaType === 'reel' ? 300 : 500} height={mediaType === 'reel' ? 500 : 300} style={{objectFit: "contain"}} className="max-h-96 w-auto"/>
-                ) : (
+              <div className={`mt-4 border rounded-lg overflow-hidden max-h-96 flex justify-center items-center bg-muted/20 ${mediaType === 'story' || mediaType === 'reel' ? 'aspect-[9/16]' : 'aspect-video'}`}>
+                {mediaFile?.type.startsWith('image/') ? (
+                  <Image src={mediaPreview} alt="Pratinjau Media" width={mediaType === 'reel' || mediaType === 'story' ? 300 : 500} height={mediaType === 'reel' || mediaType === 'story' ? 500 : 300} style={{objectFit: "contain"}} className="max-h-96 w-auto"/>
+                ) : mediaFile?.type.startsWith('video/') ? (
                   <video src={mediaPreview} controls className="max-h-96 w-full" />
-                )}
+                ) : null }
               </div>
             )}
           </div>

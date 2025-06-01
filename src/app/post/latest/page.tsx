@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Heart, MessageCircle, Share2, MoreHorizontal, Send, PlayCircle, CornerUpLeft, Edit, Trash2, Link2, Eye, Bookmark } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, Send, PlayCircle, CornerUpLeft, Edit, Trash2, Link2, Eye, Bookmark, GalleryVerticalEnd } from 'lucide-react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { id as localeID } from 'date-fns/locale';
@@ -42,6 +42,8 @@ import {
   DialogHeader as DialogHead,
   DialogTitle as DialogTitl,
 } from "@/components/ui/dialog";
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 interface CommentItemProps {
   comment: CommentType;
@@ -152,14 +154,14 @@ export default function LatestPostPage() {
         } else if (post && post.id === latestPost.id) {
             setEditedCaption(latestPost.caption);
         }
-        setShowVideoControls(false); // Reset on post change
+        setShowVideoControls(false); 
 
         const foundAuthor = users.find(u => u.id === (post || latestPost).userId);
         setAuthor(foundAuthor || null);
       }
     }
     setIsLoading(false);
-  }, [users, router, setAllPosts, allPosts]);
+  }, [users, router, setAllPosts, allPosts]); // Ensure allPosts is a dependency for reactivity to its changes.
 
    useEffect(() => {
     if (allPosts.length > 0) {
@@ -263,7 +265,7 @@ export default function LatestPostPage() {
     const postUrl = `${window.location.origin}/post/${post.id}`;
     navigator.clipboard.writeText(postUrl)
       .then(() => {
-        toast({ title: "Tautan Disalin!", description: "Tautan postingan disalin ke clipboard." });
+        toast({ title: "Tautan Disalin!", description: "Tautan postingan disalin ke papan klip." });
       })
       .catch(err => {
         console.error("Gagal menyalin tautan: ", err);
@@ -307,10 +309,12 @@ export default function LatestPostPage() {
 
   const handleMediaClick = () => {
     if (!post) return;
-    if (post.type === 'photo') {
-      setIsMediaModalOpen(true);
+    if (post.type === 'story' && post.mediaMimeType?.startsWith('video/')) {
+        setShowVideoControls(true);
     } else if (post.type === 'video' || post.type === 'reel') {
-      setShowVideoControls(true);
+        setShowVideoControls(true);
+    } else { 
+        setIsMediaModalOpen(true);
     }
   };
 
@@ -329,24 +333,31 @@ export default function LatestPostPage() {
   const isSavedByCurrentUser = (currentUser?.savedPosts || []).includes(post.id);
   const sortedRootComments = [...post.comments.filter(c => !c.parentId)].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
+  const isVideoContent = post.type === 'video' || post.type === 'reel' || (post.type === 'story' && post.mediaMimeType?.startsWith('video/'));
+  const isImageContent = post.type === 'photo' || (post.type === 'story' && post.mediaMimeType?.startsWith('image/'));
+
+
   return (
     <>
     <div className="container mx-auto max-w-2xl py-8">
       <h1 className="font-headline text-3xl text-foreground mb-6 text-center">Postingan Terbaru</h1>
       <Card className="w-full shadow-lg rounded-xl overflow-hidden bg-card">
         <CardHeader className="flex flex-row items-center justify-between p-4">
-          <Link href={`/profile/${author.id}`} className="flex items-center gap-3 group">
-            <Avatar className="h-11 w-11 border-2 border-primary/50 group-hover:border-primary transition-colors">
-              <AvatarImage src={author.avatarUrl} alt={author.username} data-ai-hint="portrait person"/>
-              <AvatarFallback>{author.username.substring(0, 2).toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <div>
-              <CardTitle className="text-base font-headline group-hover:text-primary transition-colors">{author.username}</CardTitle>
-              <p className="text-xs text-muted-foreground">
-                {formatDistanceToNow(new Date(post.timestamp), { addSuffix: true, locale: localeID })}
-              </p>
-            </div>
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href={`/profile/${author.id}`} className="flex items-center gap-3 group">
+              <Avatar className="h-11 w-11 border-2 border-primary/50 group-hover:border-primary transition-colors">
+                <AvatarImage src={author.avatarUrl} alt={author.username} data-ai-hint="portrait person"/>
+                <AvatarFallback>{author.username.substring(0, 2).toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <div>
+                <CardTitle className="text-base font-headline group-hover:text-primary transition-colors">{author.username}</CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  {formatDistanceToNow(new Date(post.timestamp), { addSuffix: true, locale: localeID })}
+                </p>
+              </div>
+            </Link>
+            {post.type === 'story' && <Badge variant="secondary" className="ml-2"><GalleryVerticalEnd className="h-3 w-3 mr-1"/>Cerita</Badge>}
+          </div>
           {isOwner && (
              <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -373,26 +384,33 @@ export default function LatestPostPage() {
         </CardHeader>
 
         <div
-          className="relative aspect-square sm:aspect-video bg-muted/30 cursor-pointer"
+          className={cn(
+            "relative bg-muted/30 cursor-pointer",
+            post.type === 'story' ? 'aspect-[9/16]' : 'aspect-square sm:aspect-video'
+          )}
           onClick={handleMediaClick}
         >
-          {post.type === 'photo' ? (
-            <Image src={post.mediaUrl} alt={post.caption || 'Gambar postingan'} layout="fill" objectFit="cover" data-ai-hint="social media image"/>
-          ) : (
+          {isImageContent ? (
+            <Image src={post.mediaUrl} alt={post.caption || 'Gambar postingan'} layout="fill" objectFit="cover" data-ai-hint={post.type === 'story' ? "story image" : "social media image"}/>
+          ) : isVideoContent ? (
             <div className="w-full h-full flex items-center justify-center">
                <video
                 src={post.mediaUrl}
                 className="w-full h-full object-cover"
-                autoPlay
+                autoPlay={!showVideoControls}
                 loop={!showVideoControls}
                 muted={!showVideoControls}
                 playsInline
                 controls={showVideoControls}
-                data-ai-hint={post.type === 'reel' ? 'reel video' : 'video content'}
+                data-ai-hint={post.type === 'story' ? "story video" : (post.type === 'reel' ? 'reel video' : 'video content')}
               />
-              {(post.type === 'video' || post.type === 'reel') && !showVideoControls && (
+              {(post.type === 'video' || post.type === 'reel' || (post.type === 'story' && post.mediaMimeType?.startsWith('video/'))) && !showVideoControls && (
                 <PlayCircle className="absolute h-16 w-16 text-background/70 pointer-events-none" />
               )}
+            </div>
+          ) : (
+             <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
+                Format media tidak didukung atau tidak diketahui.
             </div>
           )}
         </div>
@@ -528,7 +546,7 @@ export default function LatestPostPage() {
       </AlertDialogContent>
     </AlertDialog>
 
-    {post && post.type === 'photo' && (
+    {post && isImageContent && (
       <Dialog open={isMediaModalOpen} onOpenChange={setIsMediaModalOpen}>
         <DialogContent className="sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-7xl w-auto max-h-[95vh] p-2 bg-background flex items-center justify-center">
           <DialogHead className="sr-only">
