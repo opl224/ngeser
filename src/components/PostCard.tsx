@@ -207,7 +207,7 @@ export function PostCard({ post, onLikePost, onAddComment, onUpdatePostCaption, 
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="flex items-center gap-1.5 px-2 text-muted-foreground hover:text-accent">
+                  <Button variant="ghost" size="sm" className="flex items-center gap-1.5 px-2 text-muted-foreground hover:text-accent" disabled>
                     <Share2 className="h-5 w-5" />
                   </Button>
                 </DropdownMenuTrigger>
