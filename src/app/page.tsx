@@ -107,9 +107,9 @@ export default function FeedPage() {
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isStoryModalOpen && storyModalContent && storyModalContent.post.mediaMimeType?.startsWith('image/')) {
-      setStoryProgress(0); // Reset progress
-      const duration = 7000; // 7 seconds for image story
-      const interval = 50; // update every 50ms
+      setStoryProgress(0); 
+      const duration = 7000; 
+      const interval = 50; 
       const steps = duration / interval;
       let currentStep = 0;
       
@@ -118,7 +118,7 @@ export default function FeedPage() {
         setStoryProgress((currentStep / steps) * 100);
         if (currentStep >= steps) {
           clearInterval(timer);
-          // setIsStoryModalOpen(false); // Optionally close modal or advance to next story
+          
         }
       }, interval);
     }
@@ -208,17 +208,15 @@ export default function FeedPage() {
   }, [users, currentUserId]);
 
   const handleStoryAvatarClick = (userId: string) => {
-    const user = users.find(u => u.id === userId);
-    if (!user) return;
-
+    const userWithStoryCount = usersWithStories.find(u => u.id === userId);
+    if (!userWithStoryCount) return;
+  
     const userStories = posts
       .filter(p => p.userId === userId && p.type === 'story')
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     
-    const storyCount = userStories.length;
-
-    if (storyCount > 0) {
-      setStoryModalContent({ user, post: userStories[0], storyCount }); // Show the latest story
+    if (userStories.length > 0) {
+      setStoryModalContent({ user: userWithStoryCount, post: userStories[0], storyCount: userWithStoryCount.storyCount });
       setIsStoryModalOpen(true);
     } else {
       toast({ title: "Tidak ada cerita", description: "Tidak ada cerita aktif dari pengguna ini untuk ditampilkan.", variant: "default" });
@@ -294,22 +292,22 @@ export default function FeedPage() {
         <DialogContent className="p-0 bg-black text-white w-full h-full sm:max-w-sm sm:h-auto sm:aspect-[9/16] sm:rounded-lg flex flex-col items-center justify-center overflow-hidden">
           {storyModalContent && (
             <div className="relative w-full h-full">
-              <DialogHeader className="absolute top-0 left-0 right-0 p-3 z-10 bg-gradient-to-b from-black/60 to-transparent">
+              <DialogHeader className="absolute top-0 left-0 right-0 px-3 pt-4 pb-3 z-10 bg-gradient-to-b from-black/60 to-transparent">
                  <DialogTitle className="sr-only">
                   Cerita oleh {storyModalContent.user.username}
                 </DialogTitle>
-                {/* Progress bars container */}
+                
                 {storyModalContent.storyCount > 0 && (
                   <div className="flex space-x-1 mb-2 h-1">
                     {Array.from({ length: storyModalContent.storyCount }).map((_, index) => (
                       <div key={index} className="flex-1 bg-white/30 rounded-full overflow-hidden">
-                        {index === 0 && storyModalContent.post.mediaMimeType?.startsWith('image/') && ( // Assuming we only show the 1st story for now
+                        {index === 0 && storyModalContent.post.mediaMimeType?.startsWith('image/') && ( 
                            <div className="h-full bg-white rounded-full" style={{ width: `${storyProgress}%`, transition: 'width 0.05s linear' }}></div>
                         )}
                         {index === 0 && storyModalContent.post.mediaMimeType?.startsWith('video/') && (
-                           <div className="h-full bg-white rounded-full w-full"></div> // Full for video as it has its own progress
+                           <div className="h-full bg-white rounded-full w-full"></div> 
                         )}
-                        {/* For subsequent stories if navigation is implemented, logic would change here */}
+                        
                          {index !== 0 && (
                            <div className="h-full bg-transparent rounded-full w-full"></div>
                         )}
@@ -318,11 +316,11 @@ export default function FeedPage() {
                   </div>
                 )}
                 <div className="flex items-center gap-2">
-                  <Avatar className="h-8 w-8 border-2 border-white">
+                  <Avatar className="h-7 w-7 border-2 border-white">
                     <AvatarImage src={storyModalContent.user.avatarUrl} alt={storyModalContent.user.username} />
                     <AvatarFallback className="bg-black/50 text-white">{storyModalContent.user.username.substring(0,1).toUpperCase()}</AvatarFallback>
                   </Avatar>
-                  <span className="font-semibold text-sm">{storyModalContent.user.username}</span>
+                  <span className="font-semibold text-xs">{storyModalContent.user.username}</span>
                   <span className="text-xs text-gray-300 ml-1">
                     {formatDistanceToNow(new Date(storyModalContent.post.timestamp), { addSuffix: true, locale: localeID })}
                   </span>
