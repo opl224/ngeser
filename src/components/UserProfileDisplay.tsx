@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import type { User, Post, Comment as CommentType } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from './PostCard';
@@ -123,6 +123,8 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
   const handleLogoutAndSaveData = () => {
     if (typeof window !== 'undefined') {
+      // Dispatch an event to notify AppNavbar to update its state
+      window.dispatchEvent(new CustomEvent('authChange'));
       localStorage.removeItem('currentUserId');
     }
     toast({
@@ -133,11 +135,14 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   };
 
   const handleLogoutAndDeleteAllData = () => {
-    setPosts([]); // Clear all posts
-    setUsers([]); // Clear all users
+    setPosts([]); 
+    setUsers([]); 
     if (typeof window !== 'undefined') {
+      // Dispatch an event to notify AppNavbar to update its state
+      window.dispatchEvent(new CustomEvent('authChange'));
       localStorage.removeItem('currentUserId');
-      // useLocalStorageState will update localStorage for 'posts' and 'users' to []
+      localStorage.setItem('posts', '[]'); // Explicitly set to empty array
+      localStorage.setItem('users', '[]'); // Explicitly set to empty array
     }
     toast({
       title: "Data Deleted & Logged Out",
