@@ -11,6 +11,7 @@ import { ArrowUp } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import { StoryAvatarReel } from '@/components/StoryAvatarReel';
 
 export default function FeedPage() {
   const router = useRouter();
@@ -56,6 +57,28 @@ export default function FeedPage() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const usersWithStories = useMemo(() => {
+    if (!posts || !users) return [];
+    const userIdsWithStories = new Set<string>();
+    posts.forEach(post => {
+      if (post.type === 'story') {
+        userIdsWithStories.add(post.userId);
+      }
+    });
+    // Map to user objects and ensure correct type, also sort by latest story from that user
+    const usersFound = Array.from(userIdsWithStories)
+        .map(userId => {
+            const user = users.find(u => u.id === userId);
+            const latestStoryTimestamp = posts
+                .filter(p => p.userId === userId && p.type === 'story')
+                .reduce((latest, current) => new Date(current.timestamp) > new Date(latest) ? current.timestamp : latest, "1970-01-01T00:00:00.000Z");
+            return user ? { ...user, latestStoryTimestamp } : null;
+        })
+        .filter(Boolean) as (User & { latestStoryTimestamp: string })[];
+    
+    return usersFound.sort((a, b) => new Date(b.latestStoryTimestamp).getTime() - new Date(a.latestStoryTimestamp).getTime());
+  }, [posts, users]);
 
 
   const handleLikePost = (postId: string) => {
@@ -110,7 +133,7 @@ export default function FeedPage() {
     let toastInfo: { title: string; description: string } | null = null;
 
     setUsers(prevUsers => {
-      return prevUsers.map(user => {
+      const newUsers = prevUsers.map(user => {
         if (user.id === currentUserId) {
           const currentSavedPosts = user.savedPosts || [];
           const isSaved = currentSavedPosts.includes(postId);
@@ -127,6 +150,7 @@ export default function FeedPage() {
         }
         return user;
       });
+      return newUsers;
     });
 
     if (toastInfo) {
@@ -157,7 +181,7 @@ export default function FeedPage() {
     );
   }
 
-  const sortedPosts = [...posts].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  const sortedPosts = [...posts.filter(p => p.type !== 'story')].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -165,7 +189,9 @@ export default function FeedPage() {
 
   return (
     <div className="w-full max-w-2xl mx-auto">
-      <h1 className="font-headline text-3xl text-foreground mb-8 text-center">Beranda Anda</h1>
+      {usersWithStories.length > 0 && <StoryAvatarReel usersWithStories={usersWithStories} />}
+      
+      <h1 className="font-headline text-3xl text-foreground mb-8 text-center mt-6">Beranda Anda</h1>
       {sortedPosts.length > 0 ? (
         <div className="space-y-8">
           {sortedPosts.map(post => {
@@ -186,7 +212,7 @@ export default function FeedPage() {
         </div>
       ) : (
         <div className="text-center py-10">
-          <p className="text-muted-foreground text-lg">Belum ada postingan. Ikuti beberapa pengguna atau unggah konten Anda sendiri!</p>
+          <p className="text-muted-foreground text-lg">Belum ada postingan di beranda. Unggah konten Anda sendiri atau ikuti pengguna lain!</p>
           <Button onClick={() => router.push('/upload')} className="mt-4">Unggah Postingan</Button>
         </div>
       )}
@@ -203,3 +229,4 @@ export default function FeedPage() {
     </div>
   );
 }
+
