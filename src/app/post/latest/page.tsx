@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Heart, MessageCircle, Share2, MoreHorizontal, Send, PlayCircle, CornerUpLeft, Edit, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, Send, PlayCircle, CornerUpLeft, Edit, Trash2, Link2 } from 'lucide-react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -63,7 +63,7 @@ function CommentItem({ comment, allUsers, currentUserId, onReply, level = 0 }: C
     }
   };
 
-  const paddingClasses = ['pl-0', 'pl-4', 'pl-8', 'pl-12', 'pl-16', 'pl-20']; 
+  const paddingClasses = ['pl-0', 'pl-4', 'pl-8', 'pl-12', 'pl-16', 'pl-20'];
   const currentPadding = paddingClasses[level] ?? `pl-${level * 4}`;
   const replyFormPadding = paddingClasses[level + 1] ?? `pl-${(level + 1) * 4}`;
 
@@ -122,7 +122,7 @@ export default function LatestPostPage() {
   const [allPosts, setAllPosts] = useLocalStorageState<Post[]>('posts', initialPosts);
   const [users] = useLocalStorageState<User[]>('users', initialUsers);
   const [currentUserId, setCurrentUserIdState] = useState<string | null>(null);
-  
+
   const [post, setPost] = useState<Post | null>(null);
   const [author, setAuthor] = useState<User | null>(null);
   const [newCommentText, setNewCommentText] = useState('');
@@ -134,11 +134,11 @@ export default function LatestPostPage() {
 
   useEffect(() => {
     setCurrentUserIdState(getCurrentUserId());
-    
+
     if (allPosts.length > 0) {
       const sortedPosts = [...allPosts].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       const latestPost = sortedPosts[0];
-      
+
       if (latestPost) {
         setPost(latestPost);
         setEditedCaption(latestPost.caption);
@@ -157,7 +157,7 @@ export default function LatestPostPage() {
           ? p.likes.filter(uid => uid !== currentUserId)
           : [...p.likes, currentUserId];
         const updatedPostResult = { ...p, likes };
-        setPost(updatedPostResult); 
+        setPost(updatedPostResult);
         return updatedPostResult;
       }
       return p;
@@ -189,7 +189,7 @@ export default function LatestPostPage() {
       parentId: parentId || null,
       replies: [],
     };
-    
+
     const updatedPosts = allPosts.map(p => {
       if (p.id === post.id) {
         let updatedComments;
@@ -214,7 +214,7 @@ export default function LatestPostPage() {
       setIsEditingCaption(false);
       return;
     }
-    const updatedPosts = allPosts.map(p => 
+    const updatedPosts = allPosts.map(p =>
       p.id === post.id ? { ...p, caption: editedCaption.trim() } : p
     );
     setAllPosts(updatedPosts);
@@ -229,7 +229,24 @@ export default function LatestPostPage() {
     setAllPosts(remainingPosts);
     toast({ title: "Post Deleted", description: "The post has been successfully deleted.", variant: "destructive" });
     setShowDeleteConfirm(false);
-    router.push('/'); 
+    router.push('/');
+  };
+
+  const handleCopyLink = () => {
+    if (!post) return;
+    const postUrl = `${window.location.origin}/post/${post.id}`;
+    navigator.clipboard.writeText(postUrl)
+      .then(() => {
+        toast({ title: "Link Copied!", description: "Post link copied to clipboard." });
+      })
+      .catch(err => {
+        console.error("Failed to copy link: ", err);
+        toast({ title: "Error", description: "Could not copy link.", variant: "destructive" });
+      });
+  };
+
+  const handleShareToSocial = () => {
+    toast({ title: "Share to Social", description: "This feature is coming soon!" });
   };
 
 
@@ -284,7 +301,7 @@ export default function LatestPostPage() {
                   <span>Edit Caption</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={() => setShowDeleteConfirm(true)}
                   className="text-destructive focus:text-destructive focus:bg-destructive/10"
                 >
@@ -306,7 +323,7 @@ export default function LatestPostPage() {
             </div>
           )}
         </div>
-        
+
         <CardContent className="p-4 space-y-2">
           <p className="text-sm font-body text-foreground leading-relaxed">{post.caption}</p>
           {post.hashtags.length > 0 && (
@@ -328,10 +345,23 @@ export default function LatestPostPage() {
               <MessageCircle className="h-5 w-5" />
               <span>{post.comments.length + post.comments.reduce((acc, curr) => acc + (curr.replies?.length || 0), 0) }</span>
             </Button>
-            <Button variant="ghost" size="sm" className="flex items-center gap-1.5 px-2 text-muted-foreground hover:text-accent">
-              <Share2 className="h-5 w-5" />
-              <span>{post.shareCount}</span>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="flex items-center gap-1.5 px-2 text-muted-foreground hover:text-accent">
+                  <Share2 className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={handleShareToSocial}>
+                  <Share2 className="mr-2 h-4 w-4" />
+                  <span>Share to Social Media</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleCopyLink}>
+                  <Link2 className="mr-2 h-4 w-4" />
+                  <span>Copy Link</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </CardFooter>
       </Card>
@@ -373,7 +403,6 @@ export default function LatestPostPage() {
       </Card>
     </div>
 
-    {/* Edit Caption Dialog */}
     <Dialog open={isEditingCaption} onOpenChange={setIsEditingCaption}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHead>
@@ -398,7 +427,6 @@ export default function LatestPostPage() {
       </DialogContent>
     </Dialog>
 
-    {/* Delete Post Alert Dialog */}
     <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
       <AlertDialogContent>
         <AlertDialogHeader>
@@ -418,3 +446,5 @@ export default function LatestPostPage() {
     </>
   );
 }
+
+    

@@ -7,12 +7,12 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Heart, MessageCircle, Share2, MoreHorizontal, PlayCircle, Edit, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, PlayCircle, Edit, Trash2, Link2 } from 'lucide-react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { useState, useEffect } from 'react';
 import { Textarea } from './ui/textarea';
-import { initialUsers, getCurrentUserId } from '@/lib/data'; 
+import { initialUsers, getCurrentUserId } from '@/lib/data';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import {
   DropdownMenu,
@@ -30,7 +30,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
   Dialog,
@@ -39,7 +38,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 
@@ -67,9 +65,9 @@ export function PostCard({ post, onLikePost, onAddComment, onUpdatePostCaption, 
     setCurrentUserIdState(getCurrentUserId());
     const postAuthor = users.find(u => u.id === post.userId);
     setAuthor(postAuthor);
-    setEditedCaption(post.caption); // Sync editedCaption if post.caption changes from parent
+    setEditedCaption(post.caption);
   }, [post.userId, post.caption, users]);
-  
+
   const handleCommentSubmit = () => {
     if (newComment.trim()) {
       onAddComment(post.id, newComment.trim());
@@ -88,7 +86,24 @@ export function PostCard({ post, onLikePost, onAddComment, onUpdatePostCaption, 
   const confirmDeletePost = () => {
     onDeletePost(post.id);
     toast({ title: "Post Deleted", description: "The post has been successfully deleted.", variant: "destructive" });
-    setShowDeleteConfirm(false); 
+    setShowDeleteConfirm(false);
+  };
+
+  const handleCopyLink = () => {
+    const postUrl = `${window.location.origin}/post/${post.id}`;
+    navigator.clipboard.writeText(postUrl)
+      .then(() => {
+        toast({ title: "Link Copied!", description: "Post link copied to clipboard." });
+      })
+      .catch(err => {
+        console.error("Failed to copy link: ", err);
+        toast({ title: "Error", description: "Could not copy link.", variant: "destructive" });
+      });
+  };
+
+  const handleShareToSocial = () => {
+    // Placeholder for actual social media sharing
+    toast({ title: "Share to Social", description: "This feature is coming soon!" });
   };
 
   const isLiked = currentUserId ? post.likes.includes(currentUserId) : false;
@@ -144,7 +159,7 @@ export function PostCard({ post, onLikePost, onAddComment, onUpdatePostCaption, 
                   <span>Edit Caption</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={() => setShowDeleteConfirm(true)}
                   className="text-destructive focus:text-destructive focus:bg-destructive/10"
                 >
@@ -166,7 +181,7 @@ export function PostCard({ post, onLikePost, onAddComment, onUpdatePostCaption, 
             </div>
           )}
         </div>
-        
+
         <CardContent className="p-4 space-y-2">
           <p className="text-sm font-body text-foreground leading-relaxed">{post.caption}</p>
           {post.hashtags.length > 0 && (
@@ -191,13 +206,27 @@ export function PostCard({ post, onLikePost, onAddComment, onUpdatePostCaption, 
                 <MessageCircle className="h-5 w-5" />
                 <span className="text-sm">{post.comments.length}</span>
               </Button>
-              <Button variant="ghost" size="sm" className="flex items-center gap-1.5 px-2 text-muted-foreground hover:text-accent">
-                <Share2 className="h-5 w-5" />
-                <span className="text-sm">{post.shareCount}</span>
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="flex items-center gap-1.5 px-2 text-muted-foreground hover:text-accent">
+                    <Share2 className="h-5 w-5" />
+                    {/* Removed share count display from button text, can be added to tooltip or menu if needed */}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem onClick={handleShareToSocial}>
+                    <Share2 className="mr-2 h-4 w-4" />
+                    <span>Share to Social Media</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleCopyLink}>
+                    <Link2 className="mr-2 h-4 w-4" />
+                    <span>Copy Link</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
-          
+
           {showComments && (
             <div className="w-full mt-3 space-y-3">
               <Separator />
@@ -223,8 +252,8 @@ export function PostCard({ post, onLikePost, onAddComment, onUpdatePostCaption, 
                   </Link>
               )}
               <div className="flex gap-2 mt-2">
-                <Textarea 
-                  placeholder="Add a comment..." 
+                <Textarea
+                  placeholder="Add a comment..."
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   className="text-sm min-h-[40px] flex-grow resize-none"
@@ -237,7 +266,6 @@ export function PostCard({ post, onLikePost, onAddComment, onUpdatePostCaption, 
         </CardFooter>
       </Card>
 
-      {/* Edit Caption Dialog */}
       <Dialog open={isEditingCaption} onOpenChange={setIsEditingCaption}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -262,7 +290,6 @@ export function PostCard({ post, onLikePost, onAddComment, onUpdatePostCaption, 
         </DialogContent>
       </Dialog>
 
-      {/* Delete Post Alert Dialog */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -283,3 +310,5 @@ export function PostCard({ post, onLikePost, onAddComment, onUpdatePostCaption, 
     </>
   );
 }
+
+    
