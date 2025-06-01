@@ -79,8 +79,8 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     });
     const isCurrentlyFollowing = profileUser.followers.includes(currentSessionUserId);
     toast({
-        title: isCurrentlyFollowing ? "Unfollowed" : "Followed",
-        description: `You are now ${isCurrentlyFollowing ? "no longer following" : "following"} ${profileUser.username}.`
+        title: isCurrentlyFollowing ? "Berhenti Mengikuti" : "Mulai Mengikuti",
+        description: `Anda sekarang ${isCurrentlyFollowing ? "tidak lagi mengikuti" : "mengikuti"} ${profileUser.username}.`
     });
   };
 
@@ -117,7 +117,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           : post
       )
     );
-    toast({ title: "Comment Added", description: "Your comment has been posted."});
+    toast({ title: "Komentar Ditambahkan", description: "Komentar Anda telah diposting."});
   };
   
   const handleUpdatePostCaptionOnProfile = (postId: string, newCaption: string) => {
@@ -138,8 +138,8 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       localStorage.removeItem('currentUserId');
     }
     toast({
-      title: "Logged Out",
-      description: "Your data is saved. You have been logged out.",
+      title: "Berhasil Keluar",
+      description: "Data Anda tersimpan. Anda telah berhasil keluar.",
     });
     router.push('/login');
   };
@@ -154,8 +154,8 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       localStorage.setItem('users', '[]'); 
     }
     toast({
-      title: "Data Deleted & Logged Out",
-      description: "All app data has been deleted. You have been logged out.",
+      title: "Data Dihapus & Berhasil Keluar",
+      description: "Semua data aplikasi telah dihapus. Anda telah berhasil keluar.",
       variant: "destructive",
     });
     router.push('/login');
@@ -163,7 +163,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
 
   if (!profileUser) {
-    return <div className="text-center py-10"><p className="text-xl text-muted-foreground font-headline">User not found.</p></div>;
+    return <div className="text-center py-10"><p className="text-xl text-muted-foreground font-headline">Pengguna tidak ditemukan.</p></div>;
   }
 
   const isCurrentUserProfile = currentSessionUserId === profileUser.id;
@@ -181,14 +181,14 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             <CardTitle className="font-headline text-3xl md:text-4xl text-foreground">{profileUser.username}</CardTitle>
             {profileUser.bio && <p className="text-muted-foreground mt-2 font-body text-sm md:text-base">{profileUser.bio}</p>}
             <div className="flex justify-center md:justify-start gap-4 mt-4 text-sm">
-              <div><span className="font-semibold">{userPosts.length}</span> Posts</div>
-              <div><span className="font-semibold">{profileUser.followers.length}</span> Followers</div>
-              <div><span className="font-semibold">{profileUser.following.length}</span> Following</div>
+              <div><span className="font-semibold">{userPosts.length}</span> Postingan</div>
+              <div><span className="font-semibold">{profileUser.followers.length}</span> Pengikut</div>
+              <div><span className="font-semibold">{profileUser.following.length}</span> Mengikuti</div>
             </div>
             <div className="mt-5 flex flex-wrap justify-center md:justify-start gap-2">
               {isCurrentUserProfile ? (
                 <>
-                  <Button variant="outline" size="sm"><Edit3 className="mr-2 h-4 w-4" /> Edit Profile</Button>
+                  <Button variant="outline" size="sm"><Edit3 className="mr-2 h-4 w-4" /> Edit Profil</Button>
                   <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-accent"><Settings className="h-5 w-5" /></Button>
                   <Button variant="outline" size="sm" onClick={handleLogoutAndSaveData}>
                     <LogOut className="mr-2 h-4 w-4" /> Keluar &amp; Simpan Data
@@ -219,7 +219,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               ) : (
                 <Button onClick={handleFollowToggle} variant={isFollowing ? "secondary" : "default"} size="sm" disabled={!currentSessionUserId}>
                   {isFollowing ? <UserCheck className="mr-2 h-4 w-4" /> : <UserPlus className="mr-2 h-4 w-4" />}
-                  {isFollowing ? 'Following' : 'Follow'}
+                  {isFollowing ? 'Mengikuti' : 'Ikuti'}
                 </Button>
               )}
             </div>
@@ -229,9 +229,9 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
       <Tabs defaultValue="posts" className="w-full">
         <TabsList className="grid w-full grid-cols-3 mb-6 bg-muted/50 rounded-lg">
-          <TabsTrigger value="posts" className="font-headline">Posts</TabsTrigger>
-          <TabsTrigger value="followers" className="font-headline">Followers</TabsTrigger>
-          <TabsTrigger value="following" className="font-headline">Following</TabsTrigger>
+          <TabsTrigger value="posts" className="font-headline">Postingan</TabsTrigger>
+          <TabsTrigger value="followers" className="font-headline">Pengikut</TabsTrigger>
+          <TabsTrigger value="following" className="font-headline">Mengikuti</TabsTrigger>
         </TabsList>
         <TabsContent value="posts">
           {userPosts.length > 0 ? (
@@ -248,14 +248,14 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               ))}
             </div>
           ) : (
-            <p className="text-center text-muted-foreground py-8 font-body">No posts yet.</p>
+            <p className="text-center text-muted-foreground py-8 font-body">Belum ada postingan.</p>
           )}
         </TabsContent>
         <TabsContent value="followers">
-          <UserList userIds={profileUser.followers} allUsers={allUsers} listTitle="Followers" />
+          <UserList userIds={profileUser.followers} allUsers={allUsers} listTitle="Pengikut" />
         </TabsContent>
         <TabsContent value="following">
-          <UserList userIds={profileUser.following} allUsers={allUsers} listTitle="Following" />
+          <UserList userIds={profileUser.following} allUsers={allUsers} listTitle="Mengikuti" />
         </TabsContent>
       </Tabs>
     </div>
@@ -270,7 +270,7 @@ interface UserListProps {
 
 function UserList({ userIds, allUsers, listTitle }: UserListProps) {
   if (userIds.length === 0) {
-    return <p className="text-center text-muted-foreground py-8 font-body">No users in this list yet.</p>;
+    return <p className="text-center text-muted-foreground py-8 font-body">Belum ada pengguna di daftar ini.</p>;
   }
   return (
     <Card>

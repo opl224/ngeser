@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Heart, MessageCircle, Share2, MoreHorizontal, PlayCircle, Edit, Trash2, Link2 } from 'lucide-react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
+import { id as localeID } from 'date-fns/locale';
 import { useState, useEffect } from 'react';
 import { Textarea } from './ui/textarea';
 import { initialUsers, getCurrentUserId } from '@/lib/data';
@@ -80,14 +81,14 @@ export function PostCard({ post, onLikePost, onAddComment, onUpdatePostCaption, 
   const handleSaveCaption = () => {
     if (editedCaption.trim() !== post.caption) {
       onUpdatePostCaption(post.id, editedCaption.trim());
-      toast({ title: "Caption Updated", description: "Your post caption has been successfully updated." });
+      toast({ title: "Keterangan Diperbarui", description: "Keterangan postingan Anda telah berhasil diperbarui." });
     }
     setIsEditingCaption(false);
   };
 
   const confirmDeletePost = () => {
     onDeletePost(post.id);
-    toast({ title: "Post Deleted", description: "The post has been successfully deleted.", variant: "destructive" });
+    toast({ title: "Postingan Dihapus", description: "Postingan telah berhasil dihapus.", variant: "destructive" });
     setShowDeleteConfirm(false);
   };
 
@@ -95,16 +96,16 @@ export function PostCard({ post, onLikePost, onAddComment, onUpdatePostCaption, 
     const postUrl = `${window.location.origin}/post/${post.id}`;
     navigator.clipboard.writeText(postUrl)
       .then(() => {
-        toast({ title: "Link Copied!", description: "Post link copied to clipboard." });
+        toast({ title: "Tautan Disalin!", description: "Tautan postingan disalin ke clipboard." });
       })
       .catch(err => {
-        console.error("Failed to copy link: ", err);
-        toast({ title: "Error", description: "Could not copy link.", variant: "destructive" });
+        console.error("Gagal menyalin tautan: ", err);
+        toast({ title: "Kesalahan", description: "Tidak dapat menyalin tautan.", variant: "destructive" });
       });
   };
 
   const handleShareToSocial = () => {
-    toast({ title: "Coming Soon!", description: "This feature will be available in a future update." });
+    toast({ title: "Segera Hadir!", description: "Fitur ini akan tersedia di pembaruan mendatang." });
   };
 
   const isLiked = currentUserId ? post.likes.includes(currentUserId) : false;
@@ -143,7 +144,7 @@ export function PostCard({ post, onLikePost, onAddComment, onUpdatePostCaption, 
             <div>
               <CardTitle className="text-base font-headline group-hover:text-primary transition-colors">{author.username}</CardTitle>
               <p className="text-xs text-muted-foreground">
-                {formatDistanceToNow(new Date(post.timestamp), { addSuffix: true })}
+                {formatDistanceToNow(new Date(post.timestamp), { addSuffix: true, locale: localeID })}
               </p>
             </div>
           </Link>
@@ -157,7 +158,7 @@ export function PostCard({ post, onLikePost, onAddComment, onUpdatePostCaption, 
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => { setEditedCaption(post.caption); setIsEditingCaption(true); }}>
                   <Edit className="mr-2 h-4 w-4" />
-                  <span>Edit Caption</span>
+                  <span>Edit Keterangan</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -165,7 +166,7 @@ export function PostCard({ post, onLikePost, onAddComment, onUpdatePostCaption, 
                   className="text-destructive focus:text-destructive focus:bg-destructive/10"
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
-                  <span>Delete Post</span>
+                  <span>Hapus Postingan</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -219,11 +220,11 @@ export function PostCard({ post, onLikePost, onAddComment, onUpdatePostCaption, 
                 <DropdownMenuContent align="start">
                   <DropdownMenuItem onClick={handleShareToSocial}>
                     <Share2 className="mr-2 h-4 w-4" />
-                    <span>Share to Social Media</span>
+                    <span>Bagikan ke Media Sosial</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleCopyLink}>
                     <Link2 className="mr-2 h-4 w-4" />
-                    <span>Copy Link</span>
+                    <span>Salin Tautan</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -244,25 +245,25 @@ export function PostCard({ post, onLikePost, onAddComment, onUpdatePostCaption, 
                     <div className="flex-1">
                       <span className="font-semibold font-headline text-foreground/90">{commentAuthor?.username}</span>
                       <p className="text-foreground/80 font-body">{comment.text}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{formatDistanceToNow(new Date(comment.timestamp), { addSuffix: true })}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{formatDistanceToNow(new Date(comment.timestamp), { addSuffix: true, locale: localeID })}</p>
                     </div>
                   </div>
                  );
               })}
               {post.comments.length > 2 && (
                   <Link href={`/post/${post.id}`} className="text-xs text-primary hover:underline font-medium">
-                      View all {post.comments.length} comments
+                      Lihat semua {post.comments.length} komentar
                   </Link>
               )}
               <div className="flex gap-2 mt-2">
                 <Textarea
-                  placeholder="Add a comment..."
+                  placeholder="Tambahkan komentar..."
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   className="text-sm min-h-[40px] flex-grow resize-none"
                   rows={1}
                 />
-                <Button size="sm" onClick={handleCommentSubmit} disabled={!newComment.trim()}>Post</Button>
+                <Button size="sm" onClick={handleCommentSubmit} disabled={!newComment.trim()}>Kirim</Button>
               </div>
             </div>
           )}
@@ -272,9 +273,9 @@ export function PostCard({ post, onLikePost, onAddComment, onUpdatePostCaption, 
       <Dialog open={isEditingCaption} onOpenChange={setIsEditingCaption}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="font-headline">Edit Caption</DialogTitle>
+            <DialogTitle className="font-headline">Edit Keterangan</DialogTitle>
             <DialogDescription>
-              Make changes to your post caption here. Click save when you're done.
+              Buat perubahan pada keterangan postingan Anda di sini. Klik simpan jika sudah selesai.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -287,8 +288,8 @@ export function PostCard({ post, onLikePost, onAddComment, onUpdatePostCaption, 
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditingCaption(false)}>Cancel</Button>
-            <Button onClick={handleSaveCaption}>Save Changes</Button>
+            <Button variant="outline" onClick={() => setIsEditingCaption(false)}>Batal</Button>
+            <Button onClick={handleSaveCaption}>Simpan Perubahan</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -296,16 +297,15 @@ export function PostCard({ post, onLikePost, onAddComment, onUpdatePostCaption, 
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-headline">Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogTitle className="font-headline">Apakah Anda benar-benar yakin?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete your post
-              and remove its data from our servers.
+              Tindakan ini tidak dapat dibatalkan. Ini akan menghapus postingan Anda secara permanen.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowDeleteConfirm(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setShowDeleteConfirm(false)}>Batal</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDeletePost} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Yes, Delete Post
+              Ya, Hapus Postingan
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -315,7 +315,7 @@ export function PostCard({ post, onLikePost, onAddComment, onUpdatePostCaption, 
         <Dialog open={isMediaModalOpen} onOpenChange={setIsMediaModalOpen}>
           <DialogContent className="sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-7xl w-auto max-h-[95vh] p-2 bg-background flex items-center justify-center">
             <DialogHeader className="sr-only">
-              <DialogTitle>Full Media View</DialogTitle>
+              <DialogTitle>Tampilan Media Penuh</DialogTitle>
             </DialogHeader>
             {post.type === 'photo' ? (
               <Image
@@ -335,7 +335,7 @@ export function PostCard({ post, onLikePost, onAddComment, onUpdatePostCaption, 
                 className="rounded-md max-w-full max-h-[calc(95vh-2rem)]"
                 data-ai-hint="social media video full"
               >
-                Your browser does not support the video tag.
+                Browser Anda tidak mendukung tag video.
               </video>
             )}
           </DialogContent>

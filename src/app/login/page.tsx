@@ -31,8 +31,8 @@ export default function LoginPage() {
     e.preventDefault();
     if (!username.trim()) {
       toast({
-        title: "Username required",
-        description: "Please enter a username to log in.",
+        title: "Nama pengguna diperlukan",
+        description: "Silakan masukkan nama pengguna untuk masuk.",
         variant: "destructive",
       });
       return;
@@ -47,8 +47,8 @@ export default function LoginPage() {
         localStorage.setItem('currentUserId', targetUser.id);
       }
       toast({
-        title: `Welcome back, ${targetUser.username}!`,
-        description: "You have been logged in.",
+        title: `Selamat datang kembali, ${targetUser.username}!`,
+        description: "Anda telah berhasil masuk.",
       });
     } else {
       // Create new user
@@ -66,8 +66,8 @@ export default function LoginPage() {
         localStorage.setItem('currentUserId', newUser.id);
       }
       toast({
-        title: `Welcome, ${newUser.username}!`,
-        description: "Your new account has been created and you're logged in.",
+        title: `Selamat datang, ${newUser.username}!`,
+        description: "Akun baru Anda telah dibuat dan Anda berhasil masuk.",
       });
     }
     
@@ -84,18 +84,18 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
           <CardTitle className="font-headline text-3xl flex items-center justify-center gap-2">
-            <LogIn className="h-7 w-7 text-primary" /> Login
+            <LogIn className="h-7 w-7 text-primary" /> Masuk
           </CardTitle>
-          <CardDescription>Enter your username to continue or create an account.</CardDescription>
+          <CardDescription>Masukkan nama pengguna Anda untuk melanjutkan atau membuat akun.</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="username" className="font-medium">Username</Label>
+              <Label htmlFor="username" className="font-medium">Nama Pengguna</Label>
               <Input
                 id="username"
                 type="text"
-                placeholder="e.g., YourName"
+                placeholder="contoh: NamaAnda"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="mt-1"
@@ -106,14 +106,14 @@ export default function LoginPage() {
           </CardContent>
           <CardFooter>
             <Button type="submit" className="w-full" disabled={isLoading || !username.trim()}>
-              {isLoading ? 'Logging in...' : 'Login / Create Account'}
+              {isLoading ? 'Masuk...' : 'Masuk / Buat Akun'}
             </Button>
           </CardFooter>
         </form>
       </Card>
       <p className="text-xs text-muted-foreground mt-8 text-center">
-        &copy; {new Date().getFullYear()} Elegance Social. All rights reserved. <br/>
-        A project for demonstration purposes.
+        &copy; {new Date().getFullYear()} Elegance Social. Hak cipta dilindungi. <br/>
+        Proyek untuk tujuan demonstrasi.
       </p>
     </div>
   );

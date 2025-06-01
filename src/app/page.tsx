@@ -90,7 +90,7 @@ export default function FeedPage() {
           : post
       )
     );
-    toast({ title: "Comment Added", description: "Your comment has been posted."});
+    toast({ title: "Komentar Ditambahkan", description: "Komentar Anda telah diposting."});
   };
 
   const handleUpdatePostCaption = (postId: string, newCaption: string) => {
@@ -110,7 +110,7 @@ export default function FeedPage() {
     return (
       <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-        <p className="text-xl font-headline text-muted-foreground">Loading Feed...</p>
+        <p className="text-xl font-headline text-muted-foreground">Memuat Beranda...</p>
       </div>
     );
   }
@@ -119,7 +119,7 @@ export default function FeedPage() {
     return (
       <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-        <p className="text-xl font-headline text-muted-foreground">Redirecting to login...</p>
+        <p className="text-xl font-headline text-muted-foreground">Mengalihkan ke halaman masuk...</p>
       </div>
     );
   }
@@ -132,7 +132,7 @@ export default function FeedPage() {
 
   return (
     <div className="w-full max-w-2xl mx-auto">
-      <h1 className="font-headline text-3xl text-foreground mb-8 text-center">Your Feed</h1>
+      <h1 className="font-headline text-3xl text-foreground mb-8 text-center">Beranda Anda</h1>
       {sortedPosts.length > 0 ? (
         <div className="space-y-8">
           {sortedPosts.map(post => (
@@ -148,8 +148,8 @@ export default function FeedPage() {
         </div>
       ) : (
         <div className="text-center py-10">
-          <p className="text-muted-foreground text-lg">No posts yet. Follow some users or upload your own content!</p>
-          <Button onClick={() => router.push('/upload')} className="mt-4">Upload Post</Button>
+          <p className="text-muted-foreground text-lg">Belum ada postingan. Ikuti beberapa pengguna atau unggah konten Anda sendiri!</p>
+          <Button onClick={() => router.push('/upload')} className="mt-4">Unggah Postingan</Button>
         </div>
       )}
       {showScrollTop && (

@@ -15,6 +15,7 @@ import { Separator } from '@/components/ui/separator';
 import { Heart, MessageCircle, Share2, MoreHorizontal, Send, PlayCircle, CornerUpLeft, Edit, Trash2, Link2 } from 'lucide-react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
+import { id as localeID } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import React from 'react';
 import {
@@ -75,18 +76,18 @@ function CommentItem({ comment, allUsers, currentUserId, onReply, level = 0 }: C
         <div className="flex-1 bg-muted/30 p-3 rounded-lg">
           <div className="flex items-center justify-between">
             <Link href={`/profile/${author?.id}`} className="font-headline text-sm font-semibold hover:underline">{author?.username}</Link>
-            <span className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(comment.timestamp), { addSuffix: true })}</span>
+            <span className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(comment.timestamp), { addSuffix: true, locale: localeID })}</span>
           </div>
           <p className="text-sm font-body mt-1 text-foreground/90">{comment.text}</p>
           <Button variant="ghost" size="xs" className="mt-1 text-xs text-muted-foreground hover:text-primary p-1 h-auto" onClick={() => setShowReplyForm(!showReplyForm)}>
-            <CornerUpLeft className="h-3 w-3 mr-1"/> Reply
+            <CornerUpLeft className="h-3 w-3 mr-1"/> Balas
           </Button>
         </div>
       </div>
       {showReplyForm && currentUserId && (
         <div className={`ml-${(level + 1) * 4 + 4} mt-2 flex gap-2 items-center`}>
           <Textarea
-            placeholder={`Replying to ${author?.username}...`}
+            placeholder={`Membalas ${author?.username}...`}
             value={replyText}
             onChange={(e) => setReplyText(e.target.value)}
             className="text-sm min-h-[40px] flex-grow resize-none"
@@ -197,7 +198,7 @@ export default function PostPage() {
     });
     setAllPosts(updatedPosts);
     if (!parentId) setNewCommentText('');
-    toast({ title: "Comment added!", description: "Your comment has been posted." });
+    toast({ title: "Komentar ditambahkan!", description: "Komentar Anda telah diposting." });
   };
 
   const handleSaveEditedCaption = () => {
@@ -211,14 +212,14 @@ export default function PostPage() {
     setAllPosts(updatedPosts);
     setPost(prev => prev ? { ...prev, caption: editedCaption.trim() } : null);
     setIsEditingCaption(false);
-    toast({ title: "Caption Updated", description: "Post caption has been updated." });
+    toast({ title: "Keterangan Diperbarui", description: "Keterangan postingan telah diperbarui." });
   };
 
   const confirmDeletePostAction = () => {
     if (!post) return;
     const remainingPosts = allPosts.filter(p => p.id !== post.id);
     setAllPosts(remainingPosts);
-    toast({ title: "Post Deleted", description: "The post has been successfully deleted.", variant: "destructive" });
+    toast({ title: "Postingan Dihapus", description: "Postingan telah berhasil dihapus.", variant: "destructive" });
     setShowDeleteConfirm(false);
     router.push('/');
   };
@@ -228,23 +229,23 @@ export default function PostPage() {
     const postUrl = window.location.href; 
     navigator.clipboard.writeText(postUrl)
       .then(() => {
-        toast({ title: "Link Copied!", description: "Post link copied to clipboard." });
+        toast({ title: "Tautan Disalin!", description: "Tautan postingan disalin ke clipboard." });
       })
       .catch(err => {
-        console.error("Failed to copy link: ", err);
-        toast({ title: "Error", description: "Could not copy link.", variant: "destructive" });
+        console.error("Gagal menyalin tautan: ", err);
+        toast({ title: "Kesalahan", description: "Tidak dapat menyalin tautan.", variant: "destructive" });
       });
   };
 
   const handleShareToSocial = () => {
-    toast({ title: "Coming Soon!", description: "This feature will be available in a future update." });
+    toast({ title: "Segera Hadir!", description: "Fitur ini akan tersedia di pembaruan mendatang." });
   };
 
 
   if (!post || !author) {
     return (
       <div className="container mx-auto max-w-2xl py-8 text-center">
-        <p className="font-headline text-xl">Loading post...</p>
+        <p className="font-headline text-xl">Memuat postingan...</p>
       </div>
     );
   }
@@ -267,7 +268,7 @@ export default function PostPage() {
             <div>
               <CardTitle className="text-base font-headline group-hover:text-primary transition-colors">{author.username}</CardTitle>
               <p className="text-xs text-muted-foreground">
-                {formatDistanceToNow(new Date(post.timestamp), { addSuffix: true })}
+                {formatDistanceToNow(new Date(post.timestamp), { addSuffix: true, locale: localeID })}
               </p>
             </div>
           </Link>
@@ -281,7 +282,7 @@ export default function PostPage() {
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => { setEditedCaption(post.caption); setIsEditingCaption(true); }}>
                   <Edit className="mr-2 h-4 w-4" />
-                  <span>Edit Caption</span>
+                  <span>Edit Keterangan</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -289,7 +290,7 @@ export default function PostPage() {
                   className="text-destructive focus:text-destructive focus:bg-destructive/10"
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
-                  <span>Delete Post</span>
+                  <span>Hapus Postingan</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -340,11 +341,11 @@ export default function PostPage() {
               <DropdownMenuContent align="start">
                 <DropdownMenuItem onClick={handleShareToSocial}>
                   <Share2 className="mr-2 h-4 w-4" />
-                  <span>Share to Social Media</span>
+                  <span>Bagikan ke Media Sosial</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleCopyLink}>
                   <Link2 className="mr-2 h-4 w-4" />
-                  <span>Copy Link</span>
+                  <span>Salin Tautan</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -354,7 +355,7 @@ export default function PostPage() {
 
       <Card className="mt-6 shadow-lg rounded-xl">
         <CardHeader>
-          <CardTitle className="font-headline text-xl">Comments</CardTitle>
+          <CardTitle className="font-headline text-xl">Komentar</CardTitle>
         </CardHeader>
         <CardContent>
           {currentUserId && (
@@ -364,14 +365,14 @@ export default function PostPage() {
                 <AvatarFallback>{users.find(u=>u.id === currentUserId)?.username.substring(0,1)}</AvatarFallback>
               </Avatar>
               <Textarea
-                placeholder="Add a public comment..."
+                placeholder="Tambahkan komentar publik..."
                 value={newCommentText}
                 onChange={(e) => setNewCommentText(e.target.value)}
                 className="text-sm min-h-[60px] flex-grow resize-none"
                 rows={2}
               />
               <Button size="default" onClick={() => handleAddComment(newCommentText)} disabled={!newCommentText.trim()} className="self-end">
-                <Send className="h-4 w-4 mr-2"/>Post
+                <Send className="h-4 w-4 mr-2"/>Kirim
               </Button>
             </div>
           )}
@@ -383,7 +384,7 @@ export default function PostPage() {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-4">No comments yet. Be the first to comment!</p>
+            <p className="text-sm text-muted-foreground text-center py-4">Belum ada komentar. Jadilah yang pertama berkomentar!</p>
           )}
         </CardContent>
       </Card>
@@ -392,9 +393,9 @@ export default function PostPage() {
     <Dialog open={isEditingCaption} onOpenChange={setIsEditingCaption}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHead>
-          <DialogTitl className="font-headline">Edit Caption</DialogTitl>
+          <DialogTitl className="font-headline">Edit Keterangan</DialogTitl>
           <DialogDesc>
-            Make changes to your post caption here. Click save when you're done.
+            Buat perubahan pada keterangan postingan Anda di sini. Klik simpan jika sudah selesai.
           </DialogDesc>
         </DialogHead>
         <div className="grid gap-4 py-4">
@@ -407,8 +408,8 @@ export default function PostPage() {
           />
         </div>
         <DialogFoot>
-          <Button variant="outline" onClick={() => setIsEditingCaption(false)}>Cancel</Button>
-          <Button onClick={handleSaveEditedCaption}>Save Changes</Button>
+          <Button variant="outline" onClick={() => setIsEditingCaption(false)}>Batal</Button>
+          <Button onClick={handleSaveEditedCaption}>Simpan Perubahan</Button>
         </DialogFoot>
       </DialogContent>
     </Dialog>
@@ -416,15 +417,15 @@ export default function PostPage() {
     <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle className="font-headline">Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogTitle className="font-headline">Apakah Anda benar-benar yakin?</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete your post.
+            Tindakan ini tidak dapat dibatalkan. Ini akan menghapus postingan Anda secara permanen.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={() => setShowDeleteConfirm(false)}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel onClick={() => setShowDeleteConfirm(false)}>Batal</AlertDialogCancel>
           <AlertDialogAction onClick={confirmDeletePostAction} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-            Yes, Delete Post
+            Ya, Hapus Postingan
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -433,8 +434,8 @@ export default function PostPage() {
     {post && (
       <Dialog open={isMediaModalOpen} onOpenChange={setIsMediaModalOpen}>
         <DialogContent className="sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-7xl w-auto max-h-[95vh] p-2 bg-background flex items-center justify-center">
-          <DialogHead className="sr-only">
-            <DialogTitl>Full Media View</DialogTitl>
+          <DialogHead>
+            <DialogTitl className="sr-only">Tampilan Media Penuh</DialogTitl>
           </DialogHead>
           {post.type === 'photo' ? (
             <Image
@@ -454,7 +455,7 @@ export default function PostPage() {
               className="rounded-md max-w-full max-h-[calc(95vh-2rem)]"
               data-ai-hint="social media video full"
             >
-              Your browser does not support the video tag.
+              Browser Anda tidak mendukung tag video.
             </video>
           )}
         </DialogContent>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, ChangeEvent, FormEvent } from 'react';
@@ -54,11 +55,11 @@ export function UploadForm() {
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!currentUserId) {
-        toast({ title: "Error", description: "User not identified. Cannot create post.", variant: "destructive"});
+        toast({ title: "Kesalahan", description: "Pengguna tidak dikenal. Tidak dapat membuat postingan.", variant: "destructive"});
         return;
     }
     if (!mediaFile) {
-        toast({ title: "Error", description: "Please select a media file to upload.", variant: "destructive"});
+        toast({ title: "Kesalahan", description: "Silakan pilih file media untuk diunggah.", variant: "destructive"});
         return;
     }
     setIsSubmitting(true);
@@ -83,7 +84,7 @@ export function UploadForm() {
 
     setPosts(prevPosts => [newPost, ...prevPosts]);
     
-    toast({ title: "Success!", description: "Your post has been uploaded.", className: "bg-primary text-primary-foreground" });
+    toast({ title: "Berhasil!", description: "Postingan Anda telah diunggah.", className: "bg-primary text-primary-foreground" });
     setIsSubmitting(false);
     router.push('/'); // Redirect to feed
   };
@@ -92,14 +93,14 @@ export function UploadForm() {
     <Card className="w-full max-w-2xl mx-auto shadow-xl">
       <CardHeader>
         <CardTitle className="font-headline text-2xl flex items-center gap-2">
-            <UploadCloud className="h-7 w-7 text-primary" /> Create New Post
+            <UploadCloud className="h-7 w-7 text-primary" /> Buat Postingan Baru
         </CardTitle>
-        <CardDescription>Share your moments with the world. Upload a photo, video, or reel.</CardDescription>
+        <CardDescription>Bagikan momen Anda dengan dunia. Unggah foto, video, atau reel.</CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-6">
           <div>
-            <Label htmlFor="mediaType" className="font-medium block mb-2">Media Type</Label>
+            <Label htmlFor="mediaType" className="font-medium block mb-2">Jenis Media</Label>
             <RadioGroup
               id="mediaType"
               defaultValue="photo"
@@ -108,7 +109,7 @@ export function UploadForm() {
             >
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="photo" id="r-photo" />
-                <Label htmlFor="r-photo" className="flex items-center gap-1.5"><ImageIcon className="h-4 w-4"/> Photo</Label>
+                <Label htmlFor="r-photo" className="flex items-center gap-1.5"><ImageIcon className="h-4 w-4"/> Foto</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="video" id="r-video" />
@@ -122,7 +123,7 @@ export function UploadForm() {
           </div>
 
           <div>
-            <Label htmlFor="mediaFile" className="font-medium">Media File</Label>
+            <Label htmlFor="mediaFile" className="font-medium">File Media</Label>
             <Input
               id="mediaFile"
               type="file"
@@ -143,10 +144,10 @@ export function UploadForm() {
           </div>
 
           <div>
-            <Label htmlFor="caption" className="font-medium">Caption</Label>
+            <Label htmlFor="caption" className="font-medium">Keterangan</Label>
             <Textarea
               id="caption"
-              placeholder="Write a caption..."
+              placeholder="Tulis keterangan..."
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
               className="mt-1 min-h-[100px]"
@@ -155,10 +156,10 @@ export function UploadForm() {
           </div>
 
           <div>
-            <Label htmlFor="hashtags" className="font-medium">Hashtags</Label>
+            <Label htmlFor="hashtags" className="font-medium">Tagar</Label>
             <Input
               id="hashtags"
-              placeholder="e.g., travel, foodie, sunset (comma separated)"
+              placeholder="cth: liburan, kuliner, senja (dipisah koma)"
               value={hashtags}
               onChange={(e) => setHashtags(e.target.value)}
               className="mt-1"
@@ -168,10 +169,10 @@ export function UploadForm() {
           <SuggestedHashtagsClient onHashtagsSuggested={handleHashtagsSuggested} initialDescription={caption} />
 
           <div>
-            <Label htmlFor="mentions" className="font-medium">Mentions</Label>
+            <Label htmlFor="mentions" className="font-medium">Sebutan</Label>
             <Input
               id="mentions"
-              placeholder="e.g., @username1, @username2 (comma separated)"
+              placeholder="cth: @pengguna1, @pengguna2 (dipisah koma)"
               value={mentions}
               onChange={(e) => setMentions(e.target.value)}
               className="mt-1"
@@ -181,7 +182,7 @@ export function UploadForm() {
         <CardFooter>
           <Button type="submit" className="w-full" disabled={isSubmitting || !mediaFile}>
             {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Upload Post
+            Unggah Postingan
           </Button>
         </CardFooter>
       </form>

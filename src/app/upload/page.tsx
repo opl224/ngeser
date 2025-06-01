@@ -25,7 +25,7 @@ export default function UploadPage() {
     return (
       <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-        <p className="text-xl font-headline text-muted-foreground">Loading Upload Page...</p>
+        <p className="text-xl font-headline text-muted-foreground">Memuat Halaman Unggah...</p>
       </div>
     );
   }
@@ -34,7 +34,7 @@ export default function UploadPage() {
     return (
       <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-        <p className="text-xl font-headline text-muted-foreground">Redirecting to login...</p>
+        <p className="text-xl font-headline text-muted-foreground">Mengalihkan ke halaman masuk...</p>
       </div>
     );
   }

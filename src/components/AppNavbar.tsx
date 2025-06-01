@@ -35,17 +35,17 @@ export function AppNavbar() {
 
   // Base nav items always visible
   const baseNavItems = [
-    { href: '/', label: 'Feed', icon: Home },
+    { href: '/', label: 'Beranda', icon: Home },
   ];
 
   // Nav items for authenticated users
   const authNavItems = [
-    { href: '/upload', label: 'Upload', icon: PlusSquare },
-    { href: '/profile', label: 'Profile', icon: User },
+    { href: '/upload', label: 'Unggah', icon: PlusSquare },
+    { href: '/profile', label: 'Profil', icon: User },
   ];
   
   // Nav item for unauthenticated users
-  const loginNavItem = { href: '/login', label: 'Login', icon: LogIn };
+  const loginNavItem = { href: '/login', label: 'Masuk', icon: LogIn };
 
   const allNavItems = currentUserId 
     ? [...baseNavItems, ...authNavItems] 
