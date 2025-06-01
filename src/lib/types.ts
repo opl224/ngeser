@@ -5,6 +5,7 @@ export interface User {
   bio?: string;
   followers: string[]; // array of user IDs
   following: string[]; // array of user IDs
+  savedPosts: string[]; // array of post IDs
 }
 
 export interface Comment {
@@ -31,6 +32,7 @@ export interface Post {
   comments: Comment[];
   timestamp: string; 
   shareCount: number;
+  viewCount: number;
 }
 
 // For suggested hashtags AI

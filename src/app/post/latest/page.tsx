@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import type { Post, User, Comment as CommentType } from '@/lib/types';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Heart, MessageCircle, Share2, MoreHorizontal, Send, PlayCircle, CornerUpLeft, Edit, Trash2, Link2 } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, Send, PlayCircle, CornerUpLeft, Edit, Trash2, Link2, Eye, Bookmark } from 'lucide-react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { id as localeID } from 'date-fns/locale';
@@ -121,7 +121,7 @@ export default function LatestPostPage() {
   const router = useRouter();
 
   const [allPosts, setAllPosts] = useLocalStorageState<Post[]>('posts', initialPosts);
-  const [users] = useLocalStorageState<User[]>('users', initialUsers);
+  const [users, setUsers] = useLocalStorageState<User[]>('users', initialUsers);
   const [currentUserId, setCurrentUserIdState] = useState<string | null>(null);
 
   const [post, setPost] = useState<Post | null>(null);
@@ -135,21 +135,34 @@ export default function LatestPostPage() {
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
 
   useEffect(() => {
-    setCurrentUserIdState(getCurrentUserId());
+    const CUID = getCurrentUserId();
+    setCurrentUserIdState(CUID);
 
     if (allPosts.length > 0) {
       const sortedPosts = [...allPosts].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       const latestPost = sortedPosts[0];
 
       if (latestPost) {
-        setPost(latestPost);
+         setPost(prevPost => {
+          if(prevPost && prevPost.id === latestPost.id && prevPost.viewCount === latestPost.viewCount +1) {
+            return prevPost; // Already incremented
+          }
+          // Increment view count
+          const updatedViewCountPost = { ...latestPost, viewCount: (latestPost.viewCount || 0) + 1 };
+          setAllPosts(prevAllPosts => prevAllPosts.map(p => p.id === latestPost.id ? updatedViewCountPost : p));
+          return updatedViewCountPost;
+        });
         setEditedCaption(latestPost.caption);
         const foundAuthor = users.find(u => u.id === latestPost.userId);
         setAuthor(foundAuthor || null);
       }
     }
     setIsLoading(false);
-  }, [allPosts, users]);
+  }, [allPosts, users, setAllPosts]);
+
+  const currentUser = useMemo(() => {
+    return users.find(u => u.id === currentUserId);
+  }, [users, currentUserId]);
 
   const handleLikePost = () => {
     if (!post || !currentUserId) return;
@@ -251,6 +264,27 @@ export default function LatestPostPage() {
     toast({ title: "Segera Hadir!", description: "Fitur ini akan tersedia di pembaruan mendatang." });
   };
 
+  const handleToggleSavePost = () => {
+    if (!post || !currentUserId) return;
+    setUsers(prevUsers => {
+      return prevUsers.map(user => {
+        if (user.id === currentUserId) {
+          const isSaved = user.savedPosts.includes(post.id);
+          const newSavedPosts = isSaved
+            ? user.savedPosts.filter(id => id !== post.id)
+            : [...user.savedPosts, post.id];
+           if (isSaved) {
+            toast({ title: "Postingan Dihapus dari Simpanan", description: "Postingan telah dihapus dari daftar simpanan Anda." });
+          } else {
+            toast({ title: "Postingan Disimpan", description: "Postingan telah ditambahkan ke daftar simpanan Anda." });
+          }
+          return { ...user, savedPosts: newSavedPosts };
+        }
+        return user;
+      });
+    });
+  };
+
 
   if (isLoading) {
      return (
@@ -270,6 +304,7 @@ export default function LatestPostPage() {
 
   const isOwner = currentUserId === post.userId;
   const isLiked = currentUserId ? post.likes.includes(currentUserId) : false;
+  const isSavedByCurrentUser = currentUser?.savedPosts.includes(post.id) || false;
   const sortedRootComments = [...post.comments.filter(c => !c.parentId)].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return (
@@ -341,32 +376,43 @@ export default function LatestPostPage() {
         </CardContent>
 
         <CardFooter className="flex flex-col items-start p-4 gap-3">
-          <div className="flex items-center justify-start w-full gap-4">
-            <Button variant="ghost" size="sm" onClick={handleLikePost} className="flex items-center gap-1.5 px-2 text-muted-foreground hover:text-destructive">
-              <Heart className={`h-5 w-5 ${isLiked ? 'fill-destructive text-destructive' : ''}`} />
-              <span>{post.likes.length}</span>
-            </Button>
-            <Button variant="ghost" size="sm" className="flex items-center gap-1.5 px-2 text-muted-foreground hover:text-primary">
-              <MessageCircle className="h-5 w-5" />
-              <span>{post.comments.length + post.comments.reduce((acc, curr) => acc + (curr.replies?.length || 0), 0) }</span>
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="flex items-center gap-1.5 px-2 text-muted-foreground hover:text-accent" disabled>
-                  <Share2 className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                <DropdownMenuItem onClick={handleShareToSocial}>
-                  <Share2 className="mr-2 h-4 w-4" />
-                  <span>Bagikan ke Media Sosial</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleCopyLink}>
-                  <Link2 className="mr-2 h-4 w-4" />
-                  <span>Salin Tautan</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-x-1 sm:gap-x-2 md:gap-x-3">
+              <Button variant="ghost" size="sm" onClick={handleLikePost} className="flex items-center gap-1.5 px-1.5 sm:px-2 text-muted-foreground hover:text-destructive">
+                <Heart className={`h-5 w-5 ${isLiked ? 'fill-destructive text-destructive' : ''}`} />
+                <span>{post.likes.length}</span>
+              </Button>
+              <Button variant="ghost" size="sm" className="flex items-center gap-1.5 px-1.5 sm:px-2 text-muted-foreground hover:text-primary">
+                <MessageCircle className="h-5 w-5" />
+                <span>{post.comments.length + post.comments.reduce((acc, curr) => acc + (curr.replies?.length || 0), 0) }</span>
+              </Button>
+              <div className="flex items-center gap-1.5 px-1.5 sm:px-2 text-muted-foreground text-sm">
+                <Eye className="h-5 w-5" />
+                <span>{post.viewCount}</span>
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="flex items-center gap-1.5 px-1.5 sm:px-2 text-muted-foreground hover:text-accent" disabled>
+                    <Share2 className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem onClick={handleShareToSocial}>
+                    <Share2 className="mr-2 h-4 w-4" />
+                    <span>Bagikan ke Media Sosial</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleCopyLink}>
+                    <Link2 className="mr-2 h-4 w-4" />
+                    <span>Salin Tautan</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+             {currentUserId && (
+              <Button variant="ghost" size="icon" onClick={handleToggleSavePost} className="text-muted-foreground hover:text-primary">
+                <Bookmark className={`h-5 w-5 ${isSavedByCurrentUser ? 'fill-primary text-primary' : ''}`} />
+              </Button>
+            )}
           </div>
         </CardFooter>
       </Card>

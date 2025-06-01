@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, ChangeEvent } from 'react';
+import { useState, useEffect, ChangeEvent, useMemo } from 'react';
 import type { User, Post, Comment as CommentType } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from './PostCard';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialUsers, initialPosts, getCurrentUserId } from '@/lib/data';
-import { Settings, UserPlus, UserCheck, Edit3, LogOut, Trash2, Image as ImageIcon, Save } from 'lucide-react';
+import { Settings, UserPlus, UserCheck, Edit3, LogOut, Trash2, Image as ImageIcon, Save, Bookmark } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
@@ -39,11 +39,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import NextImage from 'next/image';
+// import NextImage from 'next/image'; // Already imported by PostCard, not needed here directly if not used for other NextImages
 
 
 interface UserProfileDisplayProps {
@@ -60,7 +59,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const { toast } = useToast();
   const router = useRouter();
 
-  // State for Edit Profile Modal
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editedUsername, setEditedUsername] = useState('');
   const [editedAvatarFile, setEditedAvatarFile] = useState<File | null>(null);
@@ -68,18 +66,30 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
 
   useEffect(() => {
-    setCurrentSessionUserId(getCurrentUserId());
+    const CUID = getCurrentUserId();
+    setCurrentSessionUserId(CUID);
     const foundUser = allUsers.find(u => u.id === userId);
     setProfileUser(foundUser || null);
     if (foundUser) {
       setEditedUsername(foundUser.username);
-      setEditedAvatarPreview(foundUser.avatarUrl); // Initialize with current avatar
+      setEditedAvatarPreview(foundUser.avatarUrl); 
     }
   }, [userId, allUsers]);
 
-  const userPosts = allPosts
+  const userPosts = useMemo(() => allPosts
     .filter(p => p.userId === userId)
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()), [allPosts, userId]);
+
+  const currentSessionUser = useMemo(() => {
+    return allUsers.find(u => u.id === currentSessionUserId);
+  }, [allUsers, currentSessionUserId]);
+  
+  const savedPostsForCurrentUser = useMemo(() => {
+    if (!currentSessionUser) return [];
+    return allPosts.filter(post => currentSessionUser.savedPosts.includes(post.id))
+                   .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }, [allPosts, currentSessionUser]);
+
 
   const handleFollowToggle = () => {
     if (!currentSessionUserId || !profileUser || currentSessionUserId === profileUser.id) return;
@@ -107,10 +117,17 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         return u;
       });
     });
-    const isCurrentlyFollowing = profileUser.followers.includes(currentSessionUserId);
+    // Re-fetch profileUser to update follower count immediately for UI
+    setProfileUser(prev => prev ? {...prev, followers: allUsers.find(u => u.id === profileUser.id)?.followers || []} : null )
+
+    const isCurrentlyFollowing = profileUser.followers.includes(currentSessionUserId); // This might be stale after update, check against new state
+    const updatedProfileUser = allUsers.find(u => u.id === profileUser.id);
+    const nowFollowing = updatedProfileUser?.followers.includes(currentSessionUserId);
+
+
     toast({
-        title: isCurrentlyFollowing ? "Berhenti Mengikuti" : "Mulai Mengikuti",
-        description: `Anda sekarang ${isCurrentlyFollowing ? "tidak lagi mengikuti" : "mengikuti"} ${profileUser.username}.`
+        title: nowFollowing ? "Mulai Mengikuti" : "Berhenti Mengikuti",
+        description: `Anda sekarang ${nowFollowing ? "mengikuti" : "tidak lagi mengikuti"} ${profileUser.username}.`
     });
   };
 
@@ -162,6 +179,27 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     setAllPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
   };
 
+  const handleToggleSavePost = (postId: string) => {
+    if (!currentSessionUserId) return;
+    setAllUsers(prevUsers => {
+      return prevUsers.map(user => {
+        if (user.id === currentSessionUserId) {
+          const isSaved = user.savedPosts.includes(postId);
+          const newSavedPosts = isSaved
+            ? user.savedPosts.filter(id => id !== postId)
+            : [...user.savedPosts, postId];
+          if (isSaved) {
+            toast({ title: "Postingan Dihapus dari Simpanan", description: "Postingan telah dihapus dari daftar simpanan Anda." });
+          } else {
+            toast({ title: "Postingan Disimpan", description: "Postingan telah ditambahkan ke daftar simpanan Anda." });
+          }
+          return { ...user, savedPosts: newSavedPosts };
+        }
+        return user;
+      });
+    });
+  };
+
   const handleLogoutAndSaveData = () => {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('authChange'));
@@ -195,7 +233,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     if (profileUser) {
       setEditedUsername(profileUser.username);
       setEditedAvatarPreview(profileUser.avatarUrl);
-      setEditedAvatarFile(null); // Reset file input
+      setEditedAvatarFile(null); 
       setIsEditModalOpen(true);
     }
   };
@@ -210,7 +248,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       };
       reader.readAsDataURL(file);
     } else {
-      // If no file is selected, or selection is cancelled, revert to original avatar
       setEditedAvatarFile(null);
       setEditedAvatarPreview(profileUser?.avatarUrl || null);
     }
@@ -232,7 +269,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           return {
             ...user,
             username: editedUsername.trim(),
-            avatarUrl: editedAvatarPreview || user.avatarUrl, // Use new preview if available, else keep old
+            avatarUrl: editedAvatarPreview || user.avatarUrl, 
           };
         }
         return user;
@@ -272,8 +309,8 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                 <div><span className="font-semibold">{profileUser.following.length}</span> Mengikuti</div>
               </div>
             </div>
-            {isCurrentUserProfile && (
-              <div className="md:absolute md:top-6 md:right-6 flex gap-2 mt-4 md:mt-0 flex-wrap justify-center md:justify-end">
+            {isCurrentUserProfile ? (
+              <div className="md:absolute md:top-4 md:right-4 flex items-center gap-2 mt-4 md:mt-0">
                 <Button variant="outline" size="sm" onClick={handleOpenEditModal}><Edit3 className="mr-2 h-4 w-4" /> Edit Profil</Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -288,7 +325,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <AlertDialogTrigger asChild>
-                      <DropdownMenuItem
+                       <DropdownMenuItem
                         className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
                         onSelect={(e) => e.preventDefault()} 
                       >
@@ -299,14 +336,13 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-            )}
-            {!isCurrentUserProfile && currentSessionUserId && (
-              <div className="md:absolute md:top-6 md:right-6 mt-4 md:mt-0">
-                <Button onClick={handleFollowToggle} variant={isFollowing ? "secondary" : "default"} size="sm">
-                  {isFollowing ? <UserCheck className="mr-2 h-4 w-4" /> : <UserPlus className="mr-2 h-4 w-4" />}
-                  {isFollowing ? 'Mengikuti' : 'Ikuti'}
-                </Button>
-              </div>
+            ) : currentSessionUserId && ( // Show follow/unfollow only if logged in and not own profile
+                <div className="md:absolute md:top-6 md:right-6 mt-4 md:mt-0">
+                    <Button onClick={handleFollowToggle} variant={isFollowing ? "secondary" : "default"} size="sm">
+                    {isFollowing ? <UserCheck className="mr-2 h-4 w-4" /> : <UserPlus className="mr-2 h-4 w-4" />}
+                    {isFollowing ? 'Mengikuti' : 'Ikuti'}
+                    </Button>
+                </div>
             )}
           </CardHeader>
         </Card>
@@ -384,11 +420,14 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           <TabsTrigger value="posts" className="font-headline">Postingan</TabsTrigger>
           <TabsTrigger value="followers" className="font-headline">Pengikut</TabsTrigger>
           <TabsTrigger value="following" className="font-headline">Mengikuti</TabsTrigger>
+          {isCurrentUserProfile && <TabsTrigger value="saved" className="font-headline">Disimpan</TabsTrigger>}
         </TabsList>
         <TabsContent value="posts">
           {userPosts.length > 0 ? (
             <div className="grid grid-cols-1 gap-6">
-              {userPosts.map(post => (
+              {userPosts.map(post => {
+                const isSavedByCurrentUser = currentSessionUser?.savedPosts.includes(post.id) || false;
+                return(
                 <PostCard 
                   key={post.id} 
                   post={post} 
@@ -396,8 +435,11 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                   onAddComment={handleAddComment} 
                   onUpdatePostCaption={handleUpdatePostCaptionOnProfile}
                   onDeletePost={handleDeletePostOnProfile}
+                  onToggleSavePost={handleToggleSavePost}
+                  isSavedByCurrentUser={isSavedByCurrentUser}
                 />
-              ))}
+              );
+            })}
             </div>
           ) : (
             <p className="text-center text-muted-foreground py-8 font-body">Belum ada postingan.</p>
@@ -409,6 +451,31 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         <TabsContent value="following">
           <UserList userIds={profileUser.following} allUsers={allUsers} listTitle="Mengikuti" />
         </TabsContent>
+         {isCurrentUserProfile && (
+          <TabsContent value="saved">
+            {savedPostsForCurrentUser.length > 0 ? (
+              <div className="grid grid-cols-1 gap-6">
+                {savedPostsForCurrentUser.map(post => {
+                   const isSavedByCurrentUser = currentSessionUser?.savedPosts.includes(post.id) || false; // Should always be true here
+                  return(
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    onLikePost={handleLikePost}
+                    onAddComment={handleAddComment}
+                    onUpdatePostCaption={handleUpdatePostCaptionOnProfile}
+                    onDeletePost={handleDeletePostOnProfile}
+                    onToggleSavePost={handleToggleSavePost}
+                    isSavedByCurrentUser={isSavedByCurrentUser}
+                  />
+                );
+              })}
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground py-8 font-body">Belum ada postingan yang disimpan.</p>
+            )}
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
@@ -447,6 +514,3 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
-    
-
-    

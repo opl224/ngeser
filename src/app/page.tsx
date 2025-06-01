@@ -5,7 +5,7 @@ import { PostCard } from '@/components/PostCard';
 import type { Post, Comment as CommentType, User } from '@/lib/types';
 import { initialPosts, initialUsers, getCurrentUserId } from '@/lib/data';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowUp } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -105,6 +105,31 @@ export default function FeedPage() {
     setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
   };
 
+  const handleToggleSavePost = (postId: string) => {
+    if (!currentUserId) return;
+    setUsers(prevUsers => {
+      return prevUsers.map(user => {
+        if (user.id === currentUserId) {
+          const isSaved = user.savedPosts.includes(postId);
+          const newSavedPosts = isSaved
+            ? user.savedPosts.filter(id => id !== postId)
+            : [...user.savedPosts, postId];
+          if (isSaved) {
+            toast({ title: "Postingan Dihapus", description: "Postingan telah dihapus dari daftar simpanan Anda." });
+          } else {
+            toast({ title: "Postingan Disimpan", description: "Postingan telah ditambahkan ke daftar simpanan Anda." });
+          }
+          return { ...user, savedPosts: newSavedPosts };
+        }
+        return user;
+      });
+    });
+  };
+
+  const currentUser = useMemo(() => {
+    return users.find(u => u.id === currentUserId);
+  }, [users, currentUserId]);
+
 
   if (authStatus === 'loading') {
     return (
@@ -135,16 +160,21 @@ export default function FeedPage() {
       <h1 className="font-headline text-3xl text-foreground mb-8 text-center">Beranda Anda</h1>
       {sortedPosts.length > 0 ? (
         <div className="space-y-8">
-          {sortedPosts.map(post => (
-            <PostCard 
-              key={post.id} 
-              post={post} 
-              onLikePost={handleLikePost}
-              onAddComment={handleAddComment}
-              onUpdatePostCaption={handleUpdatePostCaption}
-              onDeletePost={handleDeletePost}
-            />
-          ))}
+          {sortedPosts.map(post => {
+            const isSavedByCurrentUser = currentUser?.savedPosts.includes(post.id) || false;
+            return (
+              <PostCard 
+                key={post.id} 
+                post={post} 
+                onLikePost={handleLikePost}
+                onAddComment={handleAddComment}
+                onUpdatePostCaption={handleUpdatePostCaption}
+                onDeletePost={handleDeletePost}
+                onToggleSavePost={handleToggleSavePost}
+                isSavedByCurrentUser={isSavedByCurrentUser}
+              />
+            );
+          })}
         </div>
       ) : (
         <div className="text-center py-10">

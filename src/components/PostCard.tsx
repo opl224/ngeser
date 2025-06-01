@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Heart, MessageCircle, Share2, MoreHorizontal, PlayCircle, Edit, Trash2, Link2 } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, PlayCircle, Edit, Trash2, Link2, Eye, Bookmark } from 'lucide-react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { id as localeID } from 'date-fns/locale';
@@ -35,10 +35,10 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 
@@ -48,9 +48,19 @@ interface PostCardProps {
   onAddComment: (postId: string, text: string) => void;
   onUpdatePostCaption: (postId: string, newCaption: string) => void;
   onDeletePost: (postId: string) => void;
+  onToggleSavePost: (postId: string) => void;
+  isSavedByCurrentUser: boolean;
 }
 
-export function PostCard({ post, onLikePost, onAddComment, onUpdatePostCaption, onDeletePost }: PostCardProps) {
+export function PostCard({ 
+  post, 
+  onLikePost, 
+  onAddComment, 
+  onUpdatePostCaption, 
+  onDeletePost,
+  onToggleSavePost,
+  isSavedByCurrentUser 
+}: PostCardProps) {
   const [author, setAuthor] = useState<User | undefined>(undefined);
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState('');
@@ -202,18 +212,22 @@ export function PostCard({ post, onLikePost, onAddComment, onUpdatePostCaption, 
 
         <CardFooter className="flex flex-col items-start p-4 gap-3">
           <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm" onClick={() => onLikePost(post.id)} className="flex items-center gap-1.5 px-2 text-muted-foreground hover:text-destructive">
+            <div className="flex items-center gap-x-1 sm:gap-x-2 md:gap-x-3">
+              <Button variant="ghost" size="sm" onClick={() => onLikePost(post.id)} className="flex items-center gap-1.5 px-1.5 sm:px-2 text-muted-foreground hover:text-destructive">
                 <Heart className={`h-5 w-5 ${isLiked ? 'fill-destructive text-destructive' : ''}`} />
                 <span className="text-sm">{post.likes.length}</span>
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => setShowComments(!showComments)} className="flex items-center gap-1.5 px-2 text-muted-foreground hover:text-primary">
+              <Button variant="ghost" size="sm" onClick={() => setShowComments(!showComments)} className="flex items-center gap-1.5 px-1.5 sm:px-2 text-muted-foreground hover:text-primary">
                 <MessageCircle className="h-5 w-5" />
                 <span className="text-sm">{post.comments.length}</span>
               </Button>
+               <div className="flex items-center gap-1.5 px-1.5 sm:px-2 text-muted-foreground text-sm">
+                <Eye className="h-5 w-5" />
+                <span>{post.viewCount}</span>
+              </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="flex items-center gap-1.5 px-2 text-muted-foreground hover:text-accent" disabled>
+                  <Button variant="ghost" size="sm" className="flex items-center gap-1.5 px-1.5 sm:px-2 text-muted-foreground hover:text-accent" disabled>
                     <Share2 className="h-5 w-5" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -229,6 +243,11 @@ export function PostCard({ post, onLikePost, onAddComment, onUpdatePostCaption, 
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
+             {currentUserId && (
+              <Button variant="ghost" size="icon" onClick={() => onToggleSavePost(post.id)} className="text-muted-foreground hover:text-primary">
+                <Bookmark className={`h-5 w-5 ${isSavedByCurrentUser ? 'fill-primary text-primary' : ''}`} />
+              </Button>
+            )}
           </div>
 
           {showComments && (
@@ -255,16 +274,18 @@ export function PostCard({ post, onLikePost, onAddComment, onUpdatePostCaption, 
                       Lihat semua {post.comments.length} komentar
                   </Link>
               )}
-              <div className="flex gap-2 mt-2">
-                <Textarea
-                  placeholder="Tambahkan komentar..."
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  className="text-sm min-h-[40px] flex-grow resize-none"
-                  rows={1}
-                />
-                <Button size="sm" onClick={handleCommentSubmit} disabled={!newComment.trim()}>Kirim</Button>
-              </div>
+              {currentUserId && (
+                <div className="flex gap-2 mt-2">
+                  <Textarea
+                    placeholder="Tambahkan komentar..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    className="text-sm min-h-[40px] flex-grow resize-none"
+                    rows={1}
+                  />
+                  <Button size="sm" onClick={handleCommentSubmit} disabled={!newComment.trim()}>Kirim</Button>
+                </div>
+              )}
             </div>
           )}
         </CardFooter>

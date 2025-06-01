@@ -5,18 +5,20 @@ export const initialUsers: User[] = [
   {
     id: 'user2',
     username: 'EthanJames',
-    avatarUrl: 'https://placehold.co/100x100.png',
+    avatarUrl: 'https://placehold.co/100x100.png?text=EJ',
     bio: 'Penggemar teknologi & pecandu kopi. Membuat kode sepanjang hidup. 💻☕',
     followers: [],
     following: ['user3'],
+    savedPosts: [],
   },
   {
     id: 'user3',
     username: 'SophiaWillow',
-    avatarUrl: 'https://placehold.co/100x100.png',
+    avatarUrl: 'https://placehold.co/100x100.png?text=SW',
     bio: 'Pecinta makanan, kutu buku, dan pencinta alam. Menemukan keindahan di setiap momen. 📚🌿',
     followers: ['user2'],
     following: [],
+    savedPosts: [],
   },
 ];
 
@@ -35,6 +37,7 @@ export const initialPosts: Post[] = [
     ],
     timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
     shareCount: 2,
+    viewCount: Math.floor(Math.random() * 200) + 50,
   },
   {
     id: 'post3',
@@ -48,6 +51,7 @@ export const initialPosts: Post[] = [
     comments: [],
     timestamp: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
     shareCount: 8,
+    viewCount: Math.floor(Math.random() * 300) + 70,
   },
 ];
 
