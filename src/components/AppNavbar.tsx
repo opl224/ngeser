@@ -2,58 +2,62 @@
 "use client";
 
 import Link from 'next/link';
-import { Home, PlusSquare, User, Film, LogIn } from 'lucide-react';
+import { Home, PlusSquare, User, Film, LogIn, Search as SearchIconLucide } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { usePathname } from 'next/navigation';
+import { Input } from '@/components/ui/input';
+import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, FormEvent } from 'react';
 import { getCurrentUserId } from '@/lib/data';
 
 export function AppNavbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [currentUserId, setCurrentUserIdState] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    setIsClient(true); // Component has mounted
+    setIsClient(true);
     setCurrentUserIdState(getCurrentUserId());
     
-    // Listen to storage changes to update login state, e.g., after login/logout
     const handleStorageChange = () => {
       setCurrentUserIdState(getCurrentUserId());
     };
     window.addEventListener('storage', handleStorageChange);
-    // Custom event for login/logout as 'storage' event might not fire for same-tab changes
     window.addEventListener('authChange', handleStorageChange);
-
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('authChange', handleStorageChange);
     };
-  }, [pathname]); // Re-check on pathname change for SPA navigations
+  }, [pathname]);
 
-  // Base nav items always visible
   const baseNavItems = [
     { href: '/', label: 'Beranda', icon: Home },
   ];
 
-  // Nav items for authenticated users
   const authNavItems = [
     { href: '/upload', label: 'Unggah', icon: PlusSquare },
     { href: '/profile', label: 'Profil', icon: User },
   ];
   
-  // Nav item for unauthenticated users
   const loginNavItem = { href: '/login', label: 'Masuk', icon: LogIn };
 
   const allNavItems = currentUserId 
     ? [...baseNavItems, ...authNavItems] 
     : [...baseNavItems, loginNavItem];
 
+  const handleSearchSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery(''); // Kosongkan input setelah submit
+    }
+  };
 
+  // Placeholder untuk SSR/pre-hydration
   if (!isClient) {
-    // Render a placeholder or minimal navbar during SSR/pre-hydration
     return (
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
@@ -61,23 +65,51 @@ export function AppNavbar() {
             <Film className="h-7 w-7 text-primary" />
             <span className="font-headline text-2xl font-semibold text-foreground">Elegance</span>
           </Link>
-          <nav className="flex items-center gap-2">
-            {/* Placeholder for nav items */}
-          </nav>
+          <div className="flex items-center gap-2">
+            {/* Placeholder minimal untuk item navigasi */}
+          </div>
         </div>
       </header>
     );
   }
 
-
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
+      <div className="container flex h-16 items-center justify-between gap-x-4"> {/* Menggunakan gap-x-4 untuk spasi horizontal antar elemen utama */}
+        <Link href="/" className="flex items-center gap-2 flex-shrink-0"> {/* Logo tidak menyusut */}
           <Film className="h-7 w-7 text-primary" />
           <span className="font-headline text-2xl font-semibold text-foreground">Elegance</span>
         </Link>
-        <nav className="flex items-center gap-1 sm:gap-2">
+
+        {/* Area Pencarian Desktop: Mengambil ruang fleksibel di tengah */}
+        <div className="flex-1 hidden sm:flex justify-center px-2 md:px-4"> 
+          <form onSubmit={handleSearchSubmit} className="flex items-center relative w-full max-w-sm md:max-w-md"> {/* max-w disesuaikan */}
+            <SearchIconLucide className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Input
+              type="search"
+              placeholder="Cari pengguna..."
+              className="pl-10 pr-3 py-2 text-sm h-9 w-full rounded-md bg-muted/50 hover:bg-muted focus:bg-background"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              data-ai-hint="search users input"
+            />
+          </form>
+        </div>
+        
+        <nav className="flex items-center gap-1 sm:gap-0 flex-shrink-0"> {/* Item navigasi tidak menyusut, gap sm:gap-0 agar desktop search tidak terlalu jauh */}
+          {/* Ikon Pencarian Mobile: Hanya muncul di layar kecil (xs) */}
+          <Button
+            variant="ghost"
+            size="icon" 
+            asChild
+            className="sm:hidden text-muted-foreground hover:text-foreground"
+            aria-label="Cari"
+          >
+            <Link href="/search">
+              <SearchIconLucide className="h-5 w-5" />
+            </Link>
+          </Button>
+
           {allNavItems.map((item) => (
             <Button
               key={item.label}
