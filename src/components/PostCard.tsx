@@ -35,8 +35,8 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
+  DialogHeader as DialogHead,
+  DialogTitle as DialogTitl,
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
@@ -188,11 +188,21 @@ export function PostCard({
           onClick={() => setIsMediaModalOpen(true)}
         >
           {post.type === 'photo' ? (
-           <Image src={post.mediaUrl} alt={post.caption || 'Post image'} layout="fill" objectFit="cover" data-ai-hint="social media image" />
-          ) : (
+           <Image src={post.mediaUrl} alt={post.caption || 'Gambar postingan'} layout="fill" objectFit="cover" data-ai-hint="social media image" />
+          ) : ( // video or reel
             <div className="w-full h-full flex items-center justify-center">
-             <Image src={post.mediaUrl} alt={post.caption || 'Post media'} layout="fill" objectFit="cover" data-ai-hint="social media video" />
-            <PlayCircle className="absolute h-16 w-16 text-background/70" />
+              <Image 
+                src={
+                  post.mediaUrl.startsWith('blob:')
+                    ? (post.type === 'reel' ? 'https://placehold.co/400x600.png' : 'https://placehold.co/600x400.png')
+                    : post.mediaUrl
+                } 
+                alt={post.caption || (post.type === 'video' ? 'Pratinjau video' : 'Pratinjau reel')} 
+                layout="fill" 
+                objectFit="cover" 
+                data-ai-hint={post.type === 'reel' ? 'placeholder reel' : 'placeholder video'}
+              />
+              <PlayCircle className="absolute h-16 w-16 text-background/70" />
             </div>
           )}
         </div>
@@ -293,12 +303,12 @@ export function PostCard({
 
       <Dialog open={isEditingCaption} onOpenChange={setIsEditingCaption}>
         <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle className="font-headline">Edit Keterangan</DialogTitle>
+          <DialogHead>
+            <DialogTitl className="font-headline">Edit Keterangan</DialogTitl>
             <DialogDescription>
               Buat perubahan pada keterangan postingan Anda di sini. Klik simpan jika sudah selesai.
             </DialogDescription>
-          </DialogHeader>
+          </DialogHead>
           <div className="grid gap-4 py-4">
             <Textarea
               id="edit-caption"
@@ -332,36 +342,38 @@ export function PostCard({
         </AlertDialogContent>
       </AlertDialog>
 
-      {post && (
-        <Dialog open={isMediaModalOpen} onOpenChange={setIsMediaModalOpen}>
-          <DialogContent className="sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-7xl w-auto max-h-[95vh] p-2 bg-background flex items-center justify-center">
-            <DialogHeader className="sr-only">
-              <DialogTitle>Tampilan Media Penuh</DialogTitle>
-            </DialogHeader>
-            {post.type === 'photo' ? (
-              <Image
-                src={post.mediaUrl}
-                alt={post.caption || 'Post image'}
-                width={1920} 
-                height={1080}
-                objectFit="contain"
-                className="rounded-md max-w-full max-h-[calc(95vh-2rem)]" 
-                data-ai-hint="social media image full"
-              />
-            ) : (
-              <video
-                src={post.mediaUrl}
-                controls
-                autoPlay
-                className="rounded-md max-w-full max-h-[calc(95vh-2rem)]"
-                data-ai-hint="social media video full"
-              >
-                Browser Anda tidak mendukung tag video.
-              </video>
-            )}
-          </DialogContent>
-        </Dialog>
-      )}
+    {post && (
+      <Dialog open={isMediaModalOpen} onOpenChange={setIsMediaModalOpen}>
+        <DialogContent className="sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-7xl w-auto max-h-[95vh] p-2 bg-background flex items-center justify-center">
+          <DialogHead className="sr-only">
+            <DialogTitl>Tampilan Media Penuh</DialogTitl>
+          </DialogHead>
+          {post.type === 'photo' ? (
+            <Image
+              src={post.mediaUrl}
+              alt={post.caption || 'Gambar postingan ukuran penuh'}
+              width={1920} 
+              height={1080}
+              style={{objectFit:"contain"}}
+              className="rounded-md max-w-full max-h-[calc(95vh-2rem)]" 
+              data-ai-hint="social media image full"
+            />
+          ) : ( 
+            <video
+              src={post.mediaUrl}
+              controls
+              autoPlay
+              className="rounded-md max-w-full max-h-[calc(95vh-2rem)]"
+              data-ai-hint="social media video full"
+            >
+              Browser Anda tidak mendukung tag video.
+            </video>
+          )}
+        </DialogContent>
+      </Dialog>
+    )}
     </>
   );
 }
+
+    

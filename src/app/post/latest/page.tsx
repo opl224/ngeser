@@ -144,7 +144,7 @@ export default function LatestPostPage() {
 
       if (latestPost) {
          setPost(prevPost => {
-          if(prevPost && prevPost.id === latestPost.id && prevPost.viewCount === latestPost.viewCount +1) {
+          if(prevPost && prevPost.id === latestPost.id && prevPost.viewCount === latestPost.viewCount +1) { // Check if already incremented
             return prevPost; 
           }
           const updatedViewCountPost = { ...latestPost, viewCount: (latestPost.viewCount || 0) + 1 };
@@ -157,7 +157,7 @@ export default function LatestPostPage() {
       }
     }
     setIsLoading(false);
-  }, [allPosts, users, setAllPosts]);
+  }, [allPosts, users, setAllPosts]); // Removed post from dep array to avoid re-triggering view count
 
   const currentUser = useMemo(() => {
     return users.find(u => u.id === currentUserId);
@@ -268,7 +268,7 @@ export default function LatestPostPage() {
     let toastInfo: { title: string; description: string } | null = null;
 
     setUsers(prevUsers => {
-      return prevUsers.map(user => {
+      const newUsers = prevUsers.map(user => {
         if (user.id === currentUserId) {
           const currentSavedPosts = user.savedPosts || [];
           const isSaved = currentSavedPosts.includes(post.id);
@@ -285,6 +285,7 @@ export default function LatestPostPage() {
         }
         return user;
       });
+      return newUsers;
     });
 
     if (toastInfo) {
@@ -362,10 +363,20 @@ export default function LatestPostPage() {
           onClick={() => setIsMediaModalOpen(true)}
         >
           {post.type === 'photo' ? (
-            <Image src={post.mediaUrl} alt={post.caption || 'Post image'} layout="fill" objectFit="cover" data-ai-hint="social media image"/>
-          ) : (
+            <Image src={post.mediaUrl} alt={post.caption || 'Gambar postingan'} layout="fill" objectFit="cover" data-ai-hint="social media image"/>
+          ) : ( // video or reel
             <div className="w-full h-full flex items-center justify-center">
-               <Image src={post.mediaUrl} alt={post.caption || 'Post media'} layout="fill" objectFit="cover" data-ai-hint="social media video"/>
+               <Image 
+                src={
+                  post.mediaUrl.startsWith('blob:')
+                    ? (post.type === 'reel' ? 'https://placehold.co/400x600.png' : 'https://placehold.co/600x400.png')
+                    : post.mediaUrl
+                } 
+                alt={post.caption || (post.type === 'video' ? 'Pratinjau video' : 'Pratinjau reel')} 
+                layout="fill" 
+                objectFit="cover" 
+                data-ai-hint={post.type === 'reel' ? 'placeholder reel' : 'placeholder video'}
+              />
               <PlayCircle className="absolute h-16 w-16 text-background/70" />
             </div>
           )}
@@ -511,10 +522,10 @@ export default function LatestPostPage() {
           {post.type === 'photo' ? (
             <Image
               src={post.mediaUrl}
-              alt={post.caption || 'Post image'}
+              alt={post.caption || 'Gambar postingan ukuran penuh'}
               width={1920} 
               height={1080}
-              objectFit="contain"
+              style={{objectFit:"contain"}}
               className="rounded-md max-w-full max-h-[calc(95vh-2rem)]" 
               data-ai-hint="social media image full"
             />
@@ -535,3 +546,5 @@ export default function LatestPostPage() {
     </>
   );
 }
+
+    

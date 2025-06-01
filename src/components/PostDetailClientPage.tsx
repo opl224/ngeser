@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation'; // useParams is not needed as postId is a prop
+import { useRouter } from 'next/navigation'; 
 import Image from 'next/image';
 import type { Post, User, Comment as CommentType } from '@/lib/types';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
@@ -38,10 +38,10 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogHeader as DialogHead, // Renamed to avoid conflict
-  DialogTitle as DialogTitl,   // Renamed to avoid conflict
-  DialogDescription as DialogDesc, // Renamed to avoid conflict
-  DialogFooter as DialogFoot,     // Renamed to avoid conflict
+  DialogHeader as DialogHead, 
+  DialogTitle as DialogTitl,   
+  DialogDescription as DialogDesc, 
+  DialogFooter as DialogFoot,     
 } from "@/components/ui/dialog";
 
 
@@ -157,7 +157,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
          router.push('/'); 
       }
     }
-  }, [postId, users, router, setAllPosts]); // Removed allPosts from dependency to avoid re-incrementing viewCount on every state change
+  }, [postId, users, router, setAllPosts]); 
 
   const currentUser = useMemo(() => {
     return users.find(u => u.id === currentUserId);
@@ -170,9 +170,9 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
         const likes = p.likes.includes(currentUserId)
           ? p.likes.filter(uid => uid !== currentUserId)
           : [...p.likes, currentUserId];
-        const updatedPost = { ...p, likes };
-        setPost(updatedPost); 
-        return updatedPost;
+        const updatedPostResult = { ...p, likes };
+        setPost(updatedPostResult); 
+        return updatedPostResult;
       }
       return p;
     });
@@ -212,9 +212,9 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
         } else {
           updatedComments = [...p.comments, newComment];
         }
-        const updatedPost = { ...p, comments: updatedComments };
-        setPost(updatedPost);
-        return updatedPost;
+        const updatedPostResult = { ...p, comments: updatedComments };
+        setPost(updatedPostResult);
+        return updatedPostResult;
       }
       return p;
     });
@@ -355,10 +355,20 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
           onClick={() => setIsMediaModalOpen(true)}
         >
           {post.type === 'photo' ? (
-            <Image src={post.mediaUrl} alt={post.caption || 'Post image'} layout="fill" objectFit="cover" data-ai-hint="social media image"/>
-          ) : (
+            <Image src={post.mediaUrl} alt={post.caption || 'Gambar postingan'} layout="fill" objectFit="cover" data-ai-hint="social media image"/>
+          ) : ( // video or reel
             <div className="w-full h-full flex items-center justify-center">
-               <Image src={post.mediaUrl} alt={post.caption || 'Post media'} layout="fill" objectFit="cover" data-ai-hint="social media video thumbnail"/>
+               <Image 
+                src={
+                  post.mediaUrl.startsWith('blob:')
+                    ? (post.type === 'reel' ? 'https://placehold.co/400x600.png' : 'https://placehold.co/600x400.png')
+                    : post.mediaUrl
+                } 
+                alt={post.caption || (post.type === 'video' ? 'Pratinjau video' : 'Pratinjau reel')} 
+                layout="fill" 
+                objectFit="cover" 
+                data-ai-hint={post.type === 'reel' ? 'placeholder reel' : 'placeholder video'}
+              />
               <PlayCircle className="absolute h-16 w-16 text-background/70" />
             </div>
           )}
@@ -504,7 +514,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
           {post.type === 'photo' ? (
             <Image
               src={post.mediaUrl}
-              alt={post.caption || 'Post image'}
+              alt={post.caption || 'Gambar postingan ukuran penuh'}
               width={1920} 
               height={1080}
               style={{objectFit:"contain"}}
@@ -528,3 +538,5 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
     </>
   );
 }
+
+    
