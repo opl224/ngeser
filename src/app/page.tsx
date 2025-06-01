@@ -12,7 +12,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { StoryAvatarReel } from '@/components/StoryAvatarReel';
-import { Dialog, DialogContent, DialogHeader } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';
@@ -137,8 +137,8 @@ export default function FeedPage() {
 
   const handleToggleSavePost = (postId: string) => {
     if (!currentUserId) return;
-    let toastInfo: { title: string; description: string } | null = null;
-
+    let toastInfoParcel: { title: string; description: string } | null = null;
+  
     setUsers(prevUsers => {
       const newUsers = prevUsers.map(user => {
         if (user.id === currentUserId) {
@@ -149,9 +149,9 @@ export default function FeedPage() {
             : [...currentSavedPosts, postId];
           
           if (isSaved) {
-            toastInfo = { title: "Postingan Dihapus", description: "Postingan telah dihapus dari daftar simpanan Anda." };
+            toastInfoParcel = { title: "Postingan Dihapus", description: "Postingan telah dihapus dari daftar simpanan Anda." };
           } else {
-            toastInfo = { title: "Postingan Disimpan", description: "Postingan telah ditambahkan ke daftar simpanan Anda." };
+            toastInfoParcel = { title: "Postingan Disimpan", description: "Postingan telah ditambahkan ke daftar simpanan Anda." };
           }
           return { ...user, savedPosts: newSavedPosts };
         }
@@ -159,9 +159,9 @@ export default function FeedPage() {
       });
       return newUsers;
     });
-
-    if (toastInfo) {
-      toast(toastInfo);
+  
+    if (toastInfoParcel) {
+      toast(toastInfoParcel);
     }
   };
 
@@ -181,9 +181,7 @@ export default function FeedPage() {
       setStoryModalContent({ user, post: latestStory });
       setIsStoryModalOpen(true);
     } else {
-      // Fallback or notify if no story is found (should be rare due to usersWithStories logic)
       toast({ title: "Tidak ada cerita", description: "Tidak ada cerita aktif dari pengguna ini untuk ditampilkan.", variant: "default" });
-      // router.push(`/profile/${userId}`); 
     }
   };
 
@@ -257,6 +255,9 @@ export default function FeedPage() {
           {storyModalContent && (
             <div className="relative w-full h-full">
               <DialogHeader className="absolute top-0 left-0 right-0 p-3 z-10 bg-gradient-to-b from-black/60 to-transparent">
+                <DialogTitle className="sr-only">
+                  Cerita oleh {storyModalContent.user.username}
+                </DialogTitle>
                 <div className="flex items-center gap-2">
                   <Avatar className="h-8 w-8 border-2 border-white">
                     <AvatarImage src={storyModalContent.user.avatarUrl} alt={storyModalContent.user.username} />
