@@ -32,10 +32,10 @@ interface UserProfileDisplayProps {
 
 export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const [profileUser, setProfileUser] = useState<User | null>(null);
-  const [userPosts, setUserPosts] = useState<Post[]>([]);
+  // userPosts will be derived from allPosts, so we only need to manage allPosts
   
-  const [users, setUsers] = useLocalStorageState<User[]>('users', initialUsers);
-  const [posts, setPosts] = useLocalStorageState<Post[]>('posts', initialPosts);
+  const [allUsers, setAllUsers] = useLocalStorageState<User[]>('users', initialUsers);
+  const [allPosts, setAllPosts] = useLocalStorageState<Post[]>('posts', initialPosts);
   
   const [currentSessionUserId, setCurrentSessionUserId] = useState<string | null>(null);
   const { toast } = useToast();
@@ -43,20 +43,18 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
   useEffect(() => {
     setCurrentSessionUserId(getCurrentUserId());
-    const foundUser = users.find(u => u.id === userId);
+    const foundUser = allUsers.find(u => u.id === userId);
     setProfileUser(foundUser || null);
-    if (foundUser) {
-      const foundPosts = posts
-        .filter(p => p.userId === userId)
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      setUserPosts(foundPosts);
-    }
-  }, [userId, users, posts]);
+  }, [userId, allUsers]);
+
+  const userPosts = allPosts
+    .filter(p => p.userId === userId)
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   const handleFollowToggle = () => {
     if (!currentSessionUserId || !profileUser || currentSessionUserId === profileUser.id) return;
 
-    setUsers(prevUsers => {
+    setAllUsers(prevUsers => {
       return prevUsers.map(u => {
         if (u.id === currentSessionUserId) { 
           const isFollowing = u.following.includes(profileUser.id);
@@ -88,7 +86,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
   const handleLikePost = (postId: string) => {
     if (!currentSessionUserId) return;
-    setPosts(prevPosts =>
+    setAllPosts(prevPosts =>
       prevPosts.map(post => {
         if (post.id === postId) {
           const likes = post.likes.includes(currentSessionUserId)
@@ -112,18 +110,30 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       parentId: null,
       replies: [],
     };
-    setPosts(prevPosts =>
+    setAllPosts(prevPosts =>
       prevPosts.map(post =>
         post.id === postId
           ? { ...post, comments: [...post.comments, newComment] }
           : post
       )
     );
+    toast({ title: "Comment Added", description: "Your comment has been posted."});
+  };
+  
+  const handleUpdatePostCaptionOnProfile = (postId: string, newCaption: string) => {
+    setAllPosts(prevPosts =>
+      prevPosts.map(post =>
+        post.id === postId ? { ...post, caption: newCaption } : post
+      )
+    );
+  };
+
+  const handleDeletePostOnProfile = (postId: string) => {
+    setAllPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
   };
 
   const handleLogoutAndSaveData = () => {
     if (typeof window !== 'undefined') {
-      // Dispatch an event to notify AppNavbar to update its state
       window.dispatchEvent(new CustomEvent('authChange'));
       localStorage.removeItem('currentUserId');
     }
@@ -135,14 +145,13 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   };
 
   const handleLogoutAndDeleteAllData = () => {
-    setPosts([]); 
-    setUsers([]); 
+    setAllPosts([]); 
+    setAllUsers([]); 
     if (typeof window !== 'undefined') {
-      // Dispatch an event to notify AppNavbar to update its state
       window.dispatchEvent(new CustomEvent('authChange'));
       localStorage.removeItem('currentUserId');
-      localStorage.setItem('posts', '[]'); // Explicitly set to empty array
-      localStorage.setItem('users', '[]'); // Explicitly set to empty array
+      localStorage.setItem('posts', '[]'); 
+      localStorage.setItem('users', '[]'); 
     }
     toast({
       title: "Data Deleted & Logged Out",
@@ -158,7 +167,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   }
 
   const isCurrentUserProfile = currentSessionUserId === profileUser.id;
-  const isFollowing = currentSessionUserId ? users.find(u=> u.id === currentSessionUserId)?.following.includes(profileUser.id) : false;
+  const isFollowing = currentSessionUserId ? allUsers.find(u=> u.id === currentSessionUserId)?.following.includes(profileUser.id) : false;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -192,7 +201,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Anda yakin?</AlertDialogTitle>
+                        <AlertDialogTitle className="font-headline">Anda yakin?</AlertDialogTitle>
                         <AlertDialogDescription>
                           Tindakan ini akan menghapus semua data postingan dan pengguna secara permanen dari aplikasi ini di browser Anda. 
                           Data tidak dapat dipulihkan.
@@ -228,7 +237,14 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           {userPosts.length > 0 ? (
             <div className="grid grid-cols-1 gap-6">
               {userPosts.map(post => (
-                <PostCard key={post.id} post={post} onLikePost={handleLikePost} onAddComment={handleAddComment} />
+                <PostCard 
+                  key={post.id} 
+                  post={post} 
+                  onLikePost={handleLikePost} 
+                  onAddComment={handleAddComment} 
+                  onUpdatePostCaption={handleUpdatePostCaptionOnProfile}
+                  onDeletePost={handleDeletePostOnProfile}
+                />
               ))}
             </div>
           ) : (
@@ -236,10 +252,10 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           )}
         </TabsContent>
         <TabsContent value="followers">
-          <UserList userIds={profileUser.followers} allUsers={users} listTitle="Followers" />
+          <UserList userIds={profileUser.followers} allUsers={allUsers} listTitle="Followers" />
         </TabsContent>
         <TabsContent value="following">
-          <UserList userIds={profileUser.following} allUsers={users} listTitle="Following" />
+          <UserList userIds={profileUser.following} allUsers={allUsers} listTitle="Following" />
         </TabsContent>
       </Tabs>
     </div>

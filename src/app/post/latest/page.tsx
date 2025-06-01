@@ -11,10 +11,36 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Heart, MessageCircle, Share2, MoreHorizontal, Send, PlayCircle, CornerUpLeft } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, Send, PlayCircle, CornerUpLeft, Edit, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription as DialogDesc,
+  DialogFooter as DialogFoot,
+  DialogHeader as DialogHead,
+  DialogTitle as DialogTitl,
+} from "@/components/ui/dialog";
 
 interface CommentItemProps {
   comment: CommentType;
@@ -37,7 +63,7 @@ function CommentItem({ comment, allUsers, currentUserId, onReply, level = 0 }: C
     }
   };
 
-  const paddingClasses = ['pl-0', 'pl-4', 'pl-8', 'pl-12', 'pl-16', 'pl-20']; // Max level 5
+  const paddingClasses = ['pl-0', 'pl-4', 'pl-8', 'pl-12', 'pl-16', 'pl-20']; 
   const currentPadding = paddingClasses[level] ?? `pl-${level * 4}`;
   const replyFormPadding = paddingClasses[level + 1] ?? `pl-${(level + 1) * 4}`;
 
@@ -91,6 +117,7 @@ function CommentItem({ comment, allUsers, currentUserId, onReply, level = 0 }: C
 
 export default function LatestPostPage() {
   const { toast } = useToast();
+  const router = useRouter();
 
   const [allPosts, setAllPosts] = useLocalStorageState<Post[]>('posts', initialPosts);
   const [users] = useLocalStorageState<User[]>('users', initialUsers);
@@ -101,6 +128,10 @@ export default function LatestPostPage() {
   const [newCommentText, setNewCommentText] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
+  const [isEditingCaption, setIsEditingCaption] = useState(false);
+  const [editedCaption, setEditedCaption] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
   useEffect(() => {
     setCurrentUserIdState(getCurrentUserId());
     
@@ -110,6 +141,7 @@ export default function LatestPostPage() {
       
       if (latestPost) {
         setPost(latestPost);
+        setEditedCaption(latestPost.caption);
         const foundAuthor = users.find(u => u.id === latestPost.userId);
         setAuthor(foundAuthor || null);
       }
@@ -119,19 +151,18 @@ export default function LatestPostPage() {
 
   const handleLikePost = () => {
     if (!post || !currentUserId) return;
-    setAllPosts(prevPosts =>
-      prevPosts.map(p => {
-        if (p.id === post.id) {
-          const likes = p.likes.includes(currentUserId)
-            ? p.likes.filter(uid => uid !== currentUserId)
-            : [...p.likes, currentUserId];
-          const updatedPost = { ...p, likes };
-          setPost(updatedPost); 
-          return updatedPost;
-        }
-        return p;
-      })
-    );
+    const updatedPosts = allPosts.map(p => {
+      if (p.id === post.id) {
+        const likes = p.likes.includes(currentUserId)
+          ? p.likes.filter(uid => uid !== currentUserId)
+          : [...p.likes, currentUserId];
+        const updatedPostResult = { ...p, likes };
+        setPost(updatedPostResult); 
+        return updatedPostResult;
+      }
+      return p;
+    });
+    setAllPosts(updatedPosts);
   };
 
   const addCommentToThread = (comments: CommentType[], parentId: string, newReply: CommentType): CommentType[] => {
@@ -159,25 +190,48 @@ export default function LatestPostPage() {
       replies: [],
     };
     
-    setAllPosts(prevPosts =>
-      prevPosts.map(p => {
-        if (p.id === post.id) {
-          let updatedComments;
-          if (parentId) {
-            updatedComments = addCommentToThread(p.comments, parentId, newComment);
-          } else {
-            updatedComments = [...p.comments, newComment];
-          }
-          const updatedPost = { ...p, comments: updatedComments };
-          setPost(updatedPost);
-          return updatedPost;
+    const updatedPosts = allPosts.map(p => {
+      if (p.id === post.id) {
+        let updatedComments;
+        if (parentId) {
+          updatedComments = addCommentToThread(p.comments, parentId, newComment);
+        } else {
+          updatedComments = [...p.comments, newComment];
         }
-        return p;
-      })
-    );
+        const updatedPostResult = { ...p, comments: updatedComments };
+        setPost(updatedPostResult);
+        return updatedPostResult;
+      }
+      return p;
+    });
+    setAllPosts(updatedPosts);
     if (!parentId) setNewCommentText('');
     toast({ title: "Comment added!", description: "Your comment has been posted." });
   };
+
+  const handleSaveEditedCaption = () => {
+    if (!post || editedCaption.trim() === post.caption) {
+      setIsEditingCaption(false);
+      return;
+    }
+    const updatedPosts = allPosts.map(p => 
+      p.id === post.id ? { ...p, caption: editedCaption.trim() } : p
+    );
+    setAllPosts(updatedPosts);
+    setPost(prev => prev ? { ...prev, caption: editedCaption.trim() } : null);
+    setIsEditingCaption(false);
+    toast({ title: "Caption Updated", description: "Post caption has been updated." });
+  };
+
+  const confirmDeletePostAction = () => {
+    if (!post) return;
+    const remainingPosts = allPosts.filter(p => p.id !== post.id);
+    setAllPosts(remainingPosts);
+    toast({ title: "Post Deleted", description: "The post has been successfully deleted.", variant: "destructive" });
+    setShowDeleteConfirm(false);
+    router.push('/'); 
+  };
+
 
   if (isLoading) {
      return (
@@ -195,10 +249,12 @@ export default function LatestPostPage() {
     );
   }
 
+  const isOwner = currentUserId === post.userId;
   const isLiked = currentUserId ? post.likes.includes(currentUserId) : false;
   const sortedRootComments = [...post.comments.filter(c => !c.parentId)].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return (
+    <>
     <div className="container mx-auto max-w-2xl py-8">
       <h1 className="font-headline text-3xl text-foreground mb-6 text-center">Latest Post</h1>
       <Card className="w-full shadow-lg rounded-xl overflow-hidden bg-card">
@@ -215,9 +271,29 @@ export default function LatestPostPage() {
               </p>
             </div>
           </Link>
-          <Button variant="ghost" size="icon" className="text-muted-foreground">
-            <MoreHorizontal className="h-5 w-5" />
-          </Button>
+          {isOwner && (
+             <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="text-muted-foreground">
+                  <MoreHorizontal className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => { setEditedCaption(post.caption); setIsEditingCaption(true); }}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  <span>Edit Caption</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  <span>Delete Post</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </CardHeader>
 
         <div className="relative aspect-square sm:aspect-video bg-muted/30">
@@ -296,5 +372,49 @@ export default function LatestPostPage() {
         </CardContent>
       </Card>
     </div>
+
+    {/* Edit Caption Dialog */}
+    <Dialog open={isEditingCaption} onOpenChange={setIsEditingCaption}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHead>
+          <DialogTitl className="font-headline">Edit Caption</DialogTitl>
+          <DialogDesc>
+            Make changes to your post caption here. Click save when you're done.
+          </DialogDesc>
+        </DialogHead>
+        <div className="grid gap-4 py-4">
+          <Textarea
+            id="edit-caption-latest-page"
+            value={editedCaption}
+            onChange={(e) => setEditedCaption(e.target.value)}
+            className="min-h-[100px]"
+            rows={4}
+          />
+        </div>
+        <DialogFoot>
+          <Button variant="outline" onClick={() => setIsEditingCaption(false)}>Cancel</Button>
+          <Button onClick={handleSaveEditedCaption}>Save Changes</Button>
+        </DialogFoot>
+      </DialogContent>
+    </Dialog>
+
+    {/* Delete Post Alert Dialog */}
+    <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="font-headline">Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete your post.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => setShowDeleteConfirm(false)}>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmDeletePostAction} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            Yes, Delete Post
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

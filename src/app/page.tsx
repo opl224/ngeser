@@ -10,9 +10,11 @@ import { Button } from '@/components/ui/button';
 import { ArrowUp } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
 
 export default function FeedPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [posts, setPosts] = useLocalStorageState<Post[]>('posts', initialPosts);
   const [users, setUsers] = useLocalStorageState<User[]>('users', initialUsers); 
   const [currentUserId, setCurrentUserIdState] = useState<string | null>(null);
@@ -31,22 +33,17 @@ export default function FeedPage() {
   }, [router]);
   
   useEffect(() => {
-    // Initialize posts and users from localStorage if they don't exist
-    // This ensures that after a "delete all data", they remain empty until new data is created
     if (typeof window !== 'undefined') {
       const storedPosts = localStorage.getItem('posts');
-      if (storedPosts === null) { // Only set if key truly doesn't exist
+      if (storedPosts === null) { 
         localStorage.setItem('posts', JSON.stringify(initialPosts));
-        // Optionally reload state if `useLocalStorageState` doesn't pick it up immediately
-        // setPosts(initialPosts); 
       }
       const storedUsers = localStorage.getItem('users');
-      if (storedUsers === null) { // Only set if key truly doesn't exist
+      if (storedUsers === null) { 
         localStorage.setItem('users', JSON.stringify(initialUsers));
-        // setUsers(initialUsers);
       }
     }
-  }, []); // Runs once on mount
+  }, []); 
   
   useEffect(() => {
     const handleScroll = () => {
@@ -93,7 +90,21 @@ export default function FeedPage() {
           : post
       )
     );
+    toast({ title: "Comment Added", description: "Your comment has been posted."});
   };
+
+  const handleUpdatePostCaption = (postId: string, newCaption: string) => {
+    setPosts(prevPosts =>
+      prevPosts.map(post =>
+        post.id === postId ? { ...post, caption: newCaption } : post
+      )
+    );
+  };
+
+  const handleDeletePost = (postId: string) => {
+    setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
+  };
+
 
   if (authStatus === 'loading') {
     return (
@@ -130,6 +141,8 @@ export default function FeedPage() {
               post={post} 
               onLikePost={handleLikePost}
               onAddComment={handleAddComment}
+              onUpdatePostCaption={handleUpdatePostCaption}
+              onDeletePost={handleDeletePost}
             />
           ))}
         </div>

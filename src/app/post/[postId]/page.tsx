@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import type { Post, User, Comment as CommentType } from '@/lib/types';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
@@ -12,11 +12,37 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Heart, MessageCircle, Share2, MoreHorizontal, Send, PlayCircle, CornerUpLeft } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, Send, PlayCircle, CornerUpLeft, Edit, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import React from 'react'; // Import React
+import React from 'react'; 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"; // Removed AlertDialogTrigger as it's part of DropdownMenuItem now
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription as DialogDesc, // Renamed to avoid conflict
+  DialogFooter as DialogFoot,
+  DialogHeader as DialogHead,
+  DialogTitle as DialogTitl,
+} from "@/components/ui/dialog"; // Renamed to avoid conflict
+
 
 interface CommentItemProps {
   comment: CommentType;
@@ -85,8 +111,9 @@ export default function PostPage() {
   const params = useParams();
   const postId = params?.postId as string;
   const { toast } = useToast();
+  const router = useRouter();
 
-  const [posts, setPosts] = useLocalStorageState<Post[]>('posts', initialPosts);
+  const [allPosts, setAllPosts] = useLocalStorageState<Post[]>('posts', initialPosts);
   const [users] = useLocalStorageState<User[]>('users', initialUsers);
   const [currentUserId, setCurrentUserIdState] = useState<string | null>(null);
   
@@ -94,33 +121,38 @@ export default function PostPage() {
   const [author, setAuthor] = useState<User | null>(null);
   const [newCommentText, setNewCommentText] = useState('');
 
+  const [isEditingCaption, setIsEditingCaption] = useState(false);
+  const [editedCaption, setEditedCaption] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+
   useEffect(() => {
     setCurrentUserIdState(getCurrentUserId());
     if (postId) {
-      const foundPost = posts.find(p => p.id === postId);
+      const foundPost = allPosts.find(p => p.id === postId);
       if (foundPost) {
         setPost(foundPost);
+        setEditedCaption(foundPost.caption);
         const foundAuthor = users.find(u => u.id === foundPost.userId);
         setAuthor(foundAuthor || null);
       }
     }
-  }, [postId, posts, users]);
+  }, [postId, allPosts, users]);
 
   const handleLikePost = () => {
     if (!post || !currentUserId) return;
-    setPosts(prevPosts =>
-      prevPosts.map(p => {
-        if (p.id === post.id) {
-          const likes = p.likes.includes(currentUserId)
-            ? p.likes.filter(uid => uid !== currentUserId)
-            : [...p.likes, currentUserId];
-          const updatedPost = { ...p, likes };
-          setPost(updatedPost); // Update local state for immediate UI feedback
-          return updatedPost;
-        }
-        return p;
-      })
-    );
+    const updatedPosts = allPosts.map(p => {
+      if (p.id === post.id) {
+        const likes = p.likes.includes(currentUserId)
+          ? p.likes.filter(uid => uid !== currentUserId)
+          : [...p.likes, currentUserId];
+        const updatedPost = { ...p, likes };
+        setPost(updatedPost); 
+        return updatedPost;
+      }
+      return p;
+    });
+    setAllPosts(updatedPosts);
   };
 
   const addCommentToThread = (comments: CommentType[], parentId: string, newReply: CommentType): CommentType[] => {
@@ -148,26 +180,47 @@ export default function PostPage() {
       replies: [],
     };
     
-    setPosts(prevPosts =>
-      prevPosts.map(p => {
-        if (p.id === post.id) {
-          let updatedComments;
-          if (parentId) {
-            updatedComments = addCommentToThread(p.comments, parentId, newComment);
-          } else {
-            updatedComments = [...p.comments, newComment];
-          }
-          const updatedPost = { ...p, comments: updatedComments };
-          setPost(updatedPost); // Update local state for immediate UI feedback
-          return updatedPost;
+    const updatedPosts = allPosts.map(p => {
+      if (p.id === post.id) {
+        let updatedComments;
+        if (parentId) {
+          updatedComments = addCommentToThread(p.comments, parentId, newComment);
+        } else {
+          updatedComments = [...p.comments, newComment];
         }
-        return p;
-      })
-    );
-    if (!parentId) setNewCommentText(''); // Clear main comment box only
+        const updatedPost = { ...p, comments: updatedComments };
+        setPost(updatedPost); 
+        return updatedPost;
+      }
+      return p;
+    });
+    setAllPosts(updatedPosts);
+    if (!parentId) setNewCommentText(''); 
     toast({ title: "Comment added!", description: "Your comment has been posted." });
   };
 
+  const handleSaveEditedCaption = () => {
+    if (!post || editedCaption.trim() === post.caption) {
+      setIsEditingCaption(false);
+      return;
+    }
+    const updatedPosts = allPosts.map(p => 
+      p.id === post.id ? { ...p, caption: editedCaption.trim() } : p
+    );
+    setAllPosts(updatedPosts);
+    setPost(prev => prev ? { ...prev, caption: editedCaption.trim() } : null);
+    setIsEditingCaption(false);
+    toast({ title: "Caption Updated", description: "Post caption has been updated." });
+  };
+
+  const confirmDeletePostAction = () => {
+    if (!post) return;
+    const remainingPosts = allPosts.filter(p => p.id !== post.id);
+    setAllPosts(remainingPosts);
+    toast({ title: "Post Deleted", description: "The post has been successfully deleted.", variant: "destructive" });
+    setShowDeleteConfirm(false);
+    router.push('/'); // Navigate to feed after deletion
+  };
 
   if (!post || !author) {
     return (
@@ -177,13 +230,13 @@ export default function PostPage() {
     );
   }
 
+  const isOwner = currentUserId === post.userId;
   const isLiked = currentUserId ? post.likes.includes(currentUserId) : false;
-  
-  // Sort comments by timestamp, newest first for root comments
   const sortedRootComments = [...post.comments.filter(c => !c.parentId)].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
 
   return (
+    <>
     <div className="container mx-auto max-w-2xl py-8">
       <Card className="w-full shadow-lg rounded-xl overflow-hidden bg-card">
         <CardHeader className="flex flex-row items-center justify-between p-4">
@@ -199,9 +252,29 @@ export default function PostPage() {
               </p>
             </div>
           </Link>
-          <Button variant="ghost" size="icon" className="text-muted-foreground">
-            <MoreHorizontal className="h-5 w-5" />
-          </Button>
+          {isOwner && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="text-muted-foreground">
+                  <MoreHorizontal className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => { setEditedCaption(post.caption); setIsEditingCaption(true); }}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  <span>Edit Caption</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  <span>Delete Post</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </CardHeader>
 
         <div className="relative aspect-square sm:aspect-video bg-muted/30">
@@ -280,5 +353,49 @@ export default function PostPage() {
         </CardContent>
       </Card>
     </div>
+
+    {/* Edit Caption Dialog */}
+    <Dialog open={isEditingCaption} onOpenChange={setIsEditingCaption}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHead>
+          <DialogTitl className="font-headline">Edit Caption</DialogTitl>
+          <DialogDesc>
+            Make changes to your post caption here. Click save when you're done.
+          </DialogDesc>
+        </DialogHead>
+        <div className="grid gap-4 py-4">
+          <Textarea
+            id="edit-caption-page"
+            value={editedCaption}
+            onChange={(e) => setEditedCaption(e.target.value)}
+            className="min-h-[100px]"
+            rows={4}
+          />
+        </div>
+        <DialogFoot>
+          <Button variant="outline" onClick={() => setIsEditingCaption(false)}>Cancel</Button>
+          <Button onClick={handleSaveEditedCaption}>Save Changes</Button>
+        </DialogFoot>
+      </DialogContent>
+    </Dialog>
+
+    {/* Delete Post Alert Dialog */}
+    <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="font-headline">Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete your post.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => setShowDeleteConfirm(false)}>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmDeletePostAction} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            Yes, Delete Post
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
