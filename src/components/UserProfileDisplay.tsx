@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ChangeEvent } from 'react';
 import type { User, Post, Comment as CommentType } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from './PostCard';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialUsers, initialPosts, getCurrentUserId } from '@/lib/data';
-import { Settings, UserPlus, UserCheck, Edit3, LogOut, Trash2 } from 'lucide-react';
+import { Settings, UserPlus, UserCheck, Edit3, LogOut, Trash2, Image as ImageIcon, Save } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
@@ -31,7 +31,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import NextImage from 'next/image';
+
 
 interface UserProfileDisplayProps {
   userId: string;
@@ -47,10 +60,21 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const { toast } = useToast();
   const router = useRouter();
 
+  // State for Edit Profile Modal
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editedUsername, setEditedUsername] = useState('');
+  const [editedAvatarFile, setEditedAvatarFile] = useState<File | null>(null);
+  const [editedAvatarPreview, setEditedAvatarPreview] = useState<string | null>(null);
+
+
   useEffect(() => {
     setCurrentSessionUserId(getCurrentUserId());
     const foundUser = allUsers.find(u => u.id === userId);
     setProfileUser(foundUser || null);
+    if (foundUser) {
+      setEditedUsername(foundUser.username);
+      setEditedAvatarPreview(foundUser.avatarUrl); // Initialize with current avatar
+    }
   }, [userId, allUsers]);
 
   const userPosts = allPosts
@@ -167,6 +191,61 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     router.push('/login');
   };
 
+  const handleOpenEditModal = () => {
+    if (profileUser) {
+      setEditedUsername(profileUser.username);
+      setEditedAvatarPreview(profileUser.avatarUrl);
+      setEditedAvatarFile(null); // Reset file input
+      setIsEditModalOpen(true);
+    }
+  };
+
+  const handleAvatarFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setEditedAvatarFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditedAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      // If no file is selected, or selection is cancelled, revert to original avatar
+      setEditedAvatarFile(null);
+      setEditedAvatarPreview(profileUser?.avatarUrl || null);
+    }
+  };
+
+  const handleSaveChanges = () => {
+    if (!profileUser || !currentSessionUserId || !editedUsername.trim()) {
+      toast({
+        title: "Gagal Menyimpan",
+        description: "Nama pengguna tidak boleh kosong.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setAllUsers(prevUsers => 
+      prevUsers.map(user => {
+        if (user.id === currentSessionUserId) {
+          return {
+            ...user,
+            username: editedUsername.trim(),
+            avatarUrl: editedAvatarPreview || user.avatarUrl, // Use new preview if available, else keep old
+          };
+        }
+        return user;
+      })
+    );
+
+    toast({
+      title: "Profil Diperbarui",
+      description: "Informasi profil Anda telah berhasil diperbarui.",
+    });
+    setIsEditModalOpen(false);
+  };
+
 
   if (!profileUser) {
     return <div className="text-center py-10"><p className="text-xl text-muted-foreground font-headline">Pengguna tidak ditemukan.</p></div>;
@@ -177,9 +256,9 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <AlertDialog> {/* Moved AlertDialog to wrap the part that needs it */}
+      <AlertDialog>
         <Card className="mb-8 shadow-lg rounded-xl overflow-hidden">
-          <CardHeader className="p-6 bg-card flex flex-col md:flex-row items-center gap-6 relative"> {/* Added relative for positioning context */}
+          <CardHeader className="p-6 bg-card flex flex-col md:flex-row items-center gap-6 relative">
             <Avatar className="h-28 w-28 md:h-36 md:w-36 border-4 border-primary shadow-md">
               <AvatarImage src={profileUser.avatarUrl} alt={profileUser.username} data-ai-hint="portrait person large" />
               <AvatarFallback className="text-4xl font-headline">{profileUser.username.substring(0, 2).toUpperCase()}</AvatarFallback>
@@ -193,10 +272,9 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                 <div><span className="font-semibold">{profileUser.following.length}</span> Mengikuti</div>
               </div>
             </div>
-             {/* Actions for current user: Edit Profile and Settings Dropdown */}
             {isCurrentUserProfile && (
               <div className="md:absolute md:top-6 md:right-6 flex gap-2 mt-4 md:mt-0 flex-wrap justify-center md:justify-end">
-                <Button variant="outline" size="sm"><Edit3 className="mr-2 h-4 w-4" /> Edit Profil</Button>
+                <Button variant="outline" size="sm" onClick={handleOpenEditModal}><Edit3 className="mr-2 h-4 w-4" /> Edit Profil</Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-accent">
@@ -212,7 +290,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                     <AlertDialogTrigger asChild>
                       <DropdownMenuItem
                         className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
-                        onSelect={(e) => e.preventDefault()} // Prevent dropdown closing before dialog opens
+                        onSelect={(e) => e.preventDefault()} 
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
                         Keluar & Hapus Semua Data
@@ -222,7 +300,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                 </DropdownMenu>
               </div>
             )}
-            {/* Follow/Unfollow button for other users */}
             {!isCurrentUserProfile && currentSessionUserId && (
               <div className="md:absolute md:top-6 md:right-6 mt-4 md:mt-0">
                 <Button onClick={handleFollowToggle} variant={isFollowing ? "secondary" : "default"} size="sm">
@@ -250,6 +327,56 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle className="font-headline text-2xl flex items-center gap-2">
+              <Edit3 className="h-6 w-6 text-primary"/>Edit Profil
+            </DialogTitle>
+            <DialogDescription>
+              Perbarui nama pengguna dan gambar profil Anda di sini. Klik simpan jika sudah selesai.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-username" className="font-medium">Nama Pengguna</Label>
+              <Input
+                id="edit-username"
+                value={editedUsername}
+                onChange={(e) => setEditedUsername(e.target.value)}
+                className="mt-1"
+                placeholder="Masukkan nama pengguna baru"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-avatar" className="font-medium">Gambar Profil</Label>
+              <Input
+                id="edit-avatar"
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarFileChange}
+                className="mt-1 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+              />
+            </div>
+            {editedAvatarPreview && (
+              <div className="space-y-2">
+                <Label className="font-medium">Pratinjau Avatar</Label>
+                <div className="mt-2 flex justify-center">
+                  <Avatar className="h-32 w-32 border-2 border-primary/50">
+                    <AvatarImage src={editedAvatarPreview} alt="Pratinjau avatar baru" data-ai-hint="portrait person preview"/>
+                    <AvatarFallback className="text-3xl">{editedUsername.substring(0,2).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Batal</Button>
+            <Button onClick={handleSaveChanges}><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
 
       <Tabs defaultValue="posts" className="w-full">
@@ -320,6 +447,6 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
-
+    
 
     
