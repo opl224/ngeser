@@ -2,6 +2,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { AppNavbar } from '@/components/AppNavbar';
+import { BottomNavbar } from '@/components/BottomNavbar'; // Import BottomNavbar
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
@@ -23,11 +24,11 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased min-h-screen flex flex-col bg-background">
-        {/* AppNavbar will handle its own rendering based on auth state */}
         <AppNavbar />
-        <main className="flex-grow container mx-auto px-4 py-8">
+        <main className="flex-grow container mx-auto px-4 py-8 pb-20 sm:pb-8"> {/* Add padding-bottom for mobile to avoid overlap */}
           {children}
         </main>
+        <BottomNavbar /> {/* Add BottomNavbar here */}
         <Toaster />
       </body>
     </html>
