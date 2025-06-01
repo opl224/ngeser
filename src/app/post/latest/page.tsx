@@ -133,6 +133,7 @@ export default function LatestPostPage() {
   const [editedCaption, setEditedCaption] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
+  const [showVideoControls, setShowVideoControls] = useState(false);
 
   useEffect(() => {
     const CUID = getCurrentUserId();
@@ -143,30 +144,28 @@ export default function LatestPostPage() {
       const latestPost = sortedPosts[0];
 
       if (latestPost) {
-        // Increment view count if this specific post instance hasn't been "viewed" in this state yet
         if (!post || post.id !== latestPost.id || (post && post.viewCount === latestPost.viewCount)) {
           const updatedViewCountPost = { ...latestPost, viewCount: (latestPost.viewCount || 0) + 1 };
           setAllPosts(prevAllPosts => prevAllPosts.map(p => p.id === latestPost.id ? updatedViewCountPost : p));
           setPost(updatedViewCountPost);
           setEditedCaption(updatedViewCountPost.caption);
-        } else if (post && post.id === latestPost.id) { // If post already set and matches, just update caption if it changed
+        } else if (post && post.id === latestPost.id) {
             setEditedCaption(latestPost.caption);
         }
-        
+        setShowVideoControls(false); // Reset on post change
+
         const foundAuthor = users.find(u => u.id === (post || latestPost).userId);
         setAuthor(foundAuthor || null);
       }
     }
     setIsLoading(false);
-  }, [users, router, setAllPosts, allPosts]); // Removed post from dep array to avoid re-triggering view count logic incorrectly
+  }, [users, router, setAllPosts, allPosts]);
 
-   // This effect ensures that if allPosts is updated (e.g. by another component interaction like liking from a feed),
-  // the local `post` state reflects the latest version from `allPosts`.
-  useEffect(() => {
+   useEffect(() => {
     if (allPosts.length > 0) {
         const sortedPosts = [...allPosts].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         const latestPostFromAllPosts = sortedPosts[0];
-        
+
         if (latestPostFromAllPosts && JSON.stringify(latestPostFromAllPosts) !== JSON.stringify(post)) {
             setPost(latestPostFromAllPosts);
             setEditedCaption(latestPostFromAllPosts.caption);
@@ -187,7 +186,6 @@ export default function LatestPostPage() {
           ? p.likes.filter(uid => uid !== currentUserId)
           : [...p.likes, currentUserId];
         const updatedPostResult = { ...p, likes };
-        // setPost(updatedPostResult); // Let useEffect handle this
         return updatedPostResult;
       }
       return p;
@@ -229,7 +227,6 @@ export default function LatestPostPage() {
           updatedComments = [...p.comments, newComment];
         }
         const updatedPostResult = { ...p, comments: updatedComments };
-        // setPost(updatedPostResult); // Let useEffect handle
         return updatedPostResult;
       }
       return p;
@@ -248,7 +245,6 @@ export default function LatestPostPage() {
       p.id === post.id ? { ...p, caption: editedCaption.trim() } : p
     );
     setAllPosts(updatedPosts);
-    // setPost(prev => prev ? { ...prev, caption: editedCaption.trim() } : null); // Let useEffect handle
     setIsEditingCaption(false);
     toast({ title: "Keterangan Diperbarui", description: "Keterangan postingan telah diperbarui." });
   };
@@ -281,7 +277,7 @@ export default function LatestPostPage() {
 
  const handleToggleSavePost = () => {
     if (!post || !currentUserId) return;
-    let toastInfo: { title: string; description: string } | null = null;
+    let toastInfoParcel: { title: string; description: string } | null = null;
 
     setUsers(prevUsers => {
       const newUsers = prevUsers.map(user => {
@@ -291,11 +287,11 @@ export default function LatestPostPage() {
           const newSavedPosts = isSaved
             ? currentSavedPosts.filter(id => id !== post.id)
             : [...currentSavedPosts, post.id];
-           
+
           if (isSaved) {
-            toastInfo = { title: "Postingan Dihapus dari Simpanan", description: "Postingan telah dihapus dari daftar simpanan Anda." };
+            toastInfoParcel = { title: "Postingan Dihapus dari Simpanan", description: "Postingan telah dihapus dari daftar simpanan Anda." };
           } else {
-            toastInfo = { title: "Postingan Disimpan", description: "Postingan telah ditambahkan ke daftar simpanan Anda." };
+            toastInfoParcel = { title: "Postingan Disimpan", description: "Postingan telah ditambahkan ke daftar simpanan Anda." };
           }
           return { ...user, savedPosts: newSavedPosts };
         }
@@ -304,13 +300,22 @@ export default function LatestPostPage() {
       return newUsers;
     });
 
-    if (toastInfo) {
-      toast(toastInfo);
+    if (toastInfoParcel) {
+      toast(toastInfoParcel);
+    }
+  };
+
+  const handleMediaClick = () => {
+    if (!post) return;
+    if (post.type === 'photo') {
+      setIsMediaModalOpen(true);
+    } else if (post.type === 'video' || post.type === 'reel') {
+      setShowVideoControls(true);
     }
   };
 
 
-  if (isLoading || !post || !author) { // Combined loading and !post/!author check
+  if (isLoading || !post || !author) {
      return (
       <div className="container mx-auto max-w-2xl py-8 text-center">
         <p className="font-headline text-xl">Memuat postingan terbaru...</p>
@@ -367,24 +372,27 @@ export default function LatestPostPage() {
           )}
         </CardHeader>
 
-        <div 
+        <div
           className="relative aspect-square sm:aspect-video bg-muted/30 cursor-pointer"
-          onClick={() => setIsMediaModalOpen(true)}
+          onClick={handleMediaClick}
         >
           {post.type === 'photo' ? (
             <Image src={post.mediaUrl} alt={post.caption || 'Gambar postingan'} layout="fill" objectFit="cover" data-ai-hint="social media image"/>
-          ) : ( 
+          ) : (
             <div className="w-full h-full flex items-center justify-center">
-               <video 
-                src={post.mediaUrl} 
-                className="w-full h-full object-cover" 
-                autoPlay 
-                loop 
-                muted 
+               <video
+                src={post.mediaUrl}
+                className="w-full h-full object-cover"
+                autoPlay
+                loop={!showVideoControls}
+                muted={!showVideoControls}
                 playsInline
+                controls={showVideoControls}
                 data-ai-hint={post.type === 'reel' ? 'reel video' : 'video content'}
               />
-              <PlayCircle className="absolute h-16 w-16 text-background/70 pointer-events-none" />
+              {(post.type === 'video' || post.type === 'reel') && !showVideoControls && (
+                <PlayCircle className="absolute h-16 w-16 text-background/70 pointer-events-none" />
+              )}
             </div>
           )}
         </div>
@@ -519,39 +527,25 @@ export default function LatestPostPage() {
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-    
-    {post && (
+
+    {post && post.type === 'photo' && (
       <Dialog open={isMediaModalOpen} onOpenChange={setIsMediaModalOpen}>
         <DialogContent className="sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-7xl w-auto max-h-[95vh] p-2 bg-background flex items-center justify-center">
           <DialogHead className="sr-only">
             <DialogTitl>Tampilan Media Penuh</DialogTitl>
           </DialogHead>
-          {post.type === 'photo' ? (
             <Image
               src={post.mediaUrl}
               alt={post.caption || 'Gambar postingan ukuran penuh'}
-              width={1920} 
+              width={1920}
               height={1080}
               style={{objectFit:"contain"}}
-              className="rounded-md max-w-full max-h-[calc(95vh-2rem)]" 
+              className="rounded-md max-w-full max-h-[calc(95vh-2rem)]"
               data-ai-hint="social media image full"
             />
-          ) : ( 
-            <video
-              src={post.mediaUrl}
-              controls
-              autoPlay
-              className="rounded-md max-w-full max-h-[calc(95vh-2rem)]"
-              data-ai-hint="social media video full"
-            >
-              Browser Anda tidak mendukung tag video.
-            </video>
-          )}
         </DialogContent>
       </Dialog>
     )}
     </>
   );
 }
-
-    

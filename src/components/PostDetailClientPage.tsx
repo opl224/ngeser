@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation'; 
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import type { Post, User, Comment as CommentType } from '@/lib/types';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
@@ -38,10 +38,10 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogHeader as DialogHead, 
-  DialogTitle as DialogTitl,   
-  DialogDescription as DialogDesc, 
-  DialogFooter as DialogFoot,     
+  DialogHeader as DialogHead,
+  DialogTitle as DialogTitl,
+  DialogDescription as DialogDesc,
+  DialogFooter as DialogFoot,
 } from "@/components/ui/dialog";
 
 
@@ -133,6 +133,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
   const [editedCaption, setEditedCaption] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
+  const [showVideoControls, setShowVideoControls] = useState(false);
 
 
   useEffect(() => {
@@ -141,34 +142,29 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
     if (postId) {
       const foundPost = allPosts.find(p => p.id === postId);
       if (foundPost) {
-        // Only increment viewCount if it's the first time this specific post state is set, or if the count hasn't been incremented in this session yet for this post.
-        // This very basic check helps avoid incrementing on every re-render after a state change to this post.
-        // A more robust solution might involve a session-based flag or only incrementing when `post` was previously null.
         if (!post || post.id !== foundPost.id || (post && post.viewCount === foundPost.viewCount) ) {
             const postToUpdate = { ...foundPost };
             if (typeof postToUpdate.viewCount !== 'number' || isNaN(postToUpdate.viewCount)) {
               postToUpdate.viewCount = 0;
             }
             postToUpdate.viewCount += 1;
-            
+
             setPost(postToUpdate);
             setAllPosts(prevAllPosts => prevAllPosts.map(p => p.id === postId ? postToUpdate : p));
             setEditedCaption(postToUpdate.caption);
-        } else if (post && post.id === foundPost.id) { // If post is already set and matches foundPost, just update caption if it changed
+        } else if (post && post.id === foundPost.id) {
             setEditedCaption(foundPost.caption);
         }
-
+        setShowVideoControls(false); // Reset on post change
 
         const foundAuthor = users.find(u => u.id === (post || foundPost).userId);
         setAuthor(foundAuthor || null);
       } else {
-         router.push('/'); 
+         router.push('/');
       }
     }
-  }, [postId, users, router, setAllPosts, allPosts]); // allPosts is needed to react to external changes
+  }, [postId, users, router, setAllPosts]); // Removed allPosts, post from deps to avoid loop
 
-  // This effect ensures that if allPosts is updated (e.g. by another component interaction like liking from a feed),
-  // the local `post` state reflects the latest version from `allPosts`.
   useEffect(() => {
     if (postId) {
         const currentVersionOfPostInAllPosts = allPosts.find(p => p.id === postId);
@@ -192,12 +188,11 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
           ? p.likes.filter(uid => uid !== currentUserId)
           : [...p.likes, currentUserId];
         const updatedPostResult = { ...p, likes };
-        // setPost(updatedPostResult); // Let the useEffect linked to allPosts handle this
         return updatedPostResult;
       }
       return p;
     });
-    setAllPosts(updatedPosts); 
+    setAllPosts(updatedPosts);
   };
 
   const addCommentToThread = (comments: CommentType[], parentId: string, newReply: CommentType): CommentType[] => {
@@ -234,7 +229,6 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
           updatedComments = [...p.comments, newComment];
         }
         const updatedPostResult = { ...p, comments: updatedComments };
-        // setPost(updatedPostResult); // Let useEffect handle this
         return updatedPostResult;
       }
       return p;
@@ -253,7 +247,6 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
       p.id === post.id ? { ...p, caption: editedCaption.trim() } : p
     );
     setAllPosts(updatedPosts);
-    // setPost(prev => prev ? { ...prev, caption: editedCaption.trim() } : null); // Let useEffect handle this
     setIsEditingCaption(false);
     toast({ title: "Keterangan Diperbarui", description: "Keterangan postingan telah diperbarui." });
   };
@@ -269,7 +262,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
 
   const handleCopyLink = () => {
     if (!post) return;
-    const postUrl = window.location.href; 
+    const postUrl = window.location.href;
     navigator.clipboard.writeText(postUrl)
       .then(() => {
         toast({ title: "Tautan Disalin!", description: "Tautan postingan disalin ke clipboard." });
@@ -284,9 +277,9 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
     toast({ title: "Segera Hadir!", description: "Fitur ini akan tersedia di pembaruan mendatang." });
   };
 
-  const handleToggleSavePost = () => {
+ const handleToggleSavePost = () => {
     if (!post || !currentUserId) return;
-    let toastInfo: { title: string; description: string } | null = null;
+    let toastInfoParcel: { title: string; description: string } | null = null;
 
     setUsers(prevUsers => {
       const newUsers = prevUsers.map(user => {
@@ -296,11 +289,11 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
           const newSavedPosts = isSaved
             ? currentSavedPosts.filter(id => id !== post.id)
             : [...currentSavedPosts, post.id];
-           
+
           if (isSaved) {
-            toastInfo = { title: "Postingan Dihapus dari Simpanan", description: "Postingan telah dihapus dari daftar simpanan Anda." };
+            toastInfoParcel = { title: "Postingan Dihapus dari Simpanan", description: "Postingan telah dihapus dari daftar simpanan Anda." };
           } else {
-            toastInfo = { title: "Postingan Disimpan", description: "Postingan telah ditambahkan ke daftar simpanan Anda." };
+            toastInfoParcel = { title: "Postingan Disimpan", description: "Postingan telah ditambahkan ke daftar simpanan Anda." };
           }
           return { ...user, savedPosts: newSavedPosts };
         }
@@ -308,9 +301,18 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
       });
       return newUsers;
     });
-    
-    if (toastInfo) {
-        toast(toastInfo);
+
+    if (toastInfoParcel) {
+        toast(toastInfoParcel);
+    }
+  };
+
+  const handleMediaClick = () => {
+    if (!post) return;
+    if (post.type === 'photo') {
+      setIsMediaModalOpen(true);
+    } else if (post.type === 'video' || post.type === 'reel') {
+      setShowVideoControls(true);
     }
   };
 
@@ -371,24 +373,27 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
           )}
         </CardHeader>
 
-        <div 
+        <div
           className="relative aspect-square sm:aspect-video bg-muted/30 cursor-pointer"
-          onClick={() => setIsMediaModalOpen(true)}
+          onClick={handleMediaClick}
         >
           {post.type === 'photo' ? (
             <Image src={post.mediaUrl} alt={post.caption || 'Gambar postingan'} layout="fill" objectFit="cover" data-ai-hint="social media image"/>
-          ) : ( 
+          ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <video 
-                src={post.mediaUrl} 
-                className="w-full h-full object-cover" 
-                autoPlay 
-                loop 
-                muted 
+              <video
+                src={post.mediaUrl}
+                className="w-full h-full object-cover"
+                autoPlay
+                loop={!showVideoControls}
+                muted={!showVideoControls}
                 playsInline
+                controls={showVideoControls}
                 data-ai-hint={post.type === 'reel' ? 'reel video' : 'video content'}
               />
-              <PlayCircle className="absolute h-16 w-16 text-background/70 pointer-events-none" />
+              {(post.type === 'video' || post.type === 'reel') && !showVideoControls && (
+                <PlayCircle className="absolute h-16 w-16 text-background/70 pointer-events-none" />
+              )}
             </div>
           )}
         </div>
@@ -524,38 +529,24 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
       </AlertDialogContent>
     </AlertDialog>
 
-    {post && (
+    {post && post.type === 'photo' && (
       <Dialog open={isMediaModalOpen} onOpenChange={setIsMediaModalOpen}>
         <DialogContent className="sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-7xl w-auto max-h-[95vh] p-2 bg-background flex items-center justify-center">
           <DialogHead>
             <DialogTitl className="sr-only">Tampilan Media Penuh</DialogTitl>
           </DialogHead>
-          {post.type === 'photo' ? (
             <Image
               src={post.mediaUrl}
               alt={post.caption || 'Gambar postingan ukuran penuh'}
-              width={1920} 
+              width={1920}
               height={1080}
               style={{objectFit:"contain"}}
-              className="rounded-md max-w-full max-h-[calc(95vh-2rem)]" 
+              className="rounded-md max-w-full max-h-[calc(95vh-2rem)]"
               data-ai-hint="social media image full"
             />
-          ) : ( 
-            <video
-              src={post.mediaUrl}
-              controls
-              autoPlay
-              className="rounded-md max-w-full max-h-[calc(95vh-2rem)]"
-              data-ai-hint="social media video full"
-            >
-              Browser Anda tidak mendukung tag video.
-            </video>
-          )}
         </DialogContent>
       </Dialog>
     )}
     </>
   );
 }
-
-    

@@ -52,14 +52,14 @@ interface PostCardProps {
   isSavedByCurrentUser: boolean;
 }
 
-export function PostCard({ 
-  post, 
-  onLikePost, 
-  onAddComment, 
-  onUpdatePostCaption, 
+export function PostCard({
+  post,
+  onLikePost,
+  onAddComment,
+  onUpdatePostCaption,
   onDeletePost,
   onToggleSavePost,
-  isSavedByCurrentUser 
+  isSavedByCurrentUser
 }: PostCardProps) {
   const [author, setAuthor] = useState<User | undefined>(undefined);
   const [showComments, setShowComments] = useState(false);
@@ -72,6 +72,7 @@ export function PostCard({
   const [editedCaption, setEditedCaption] = useState(post.caption);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
+  const [showVideoControls, setShowVideoControls] = useState(false);
 
 
   useEffect(() => {
@@ -79,7 +80,8 @@ export function PostCard({
     const postAuthor = users.find(u => u.id === post.userId);
     setAuthor(postAuthor);
     setEditedCaption(post.caption);
-  }, [post.userId, post.caption, users]);
+    setShowVideoControls(false); // Reset video controls state on post change
+  }, [post.userId, post.caption, users, post.id]);
 
   const handleCommentSubmit = () => {
     if (newComment.trim()) {
@@ -116,6 +118,14 @@ export function PostCard({
 
   const handleShareToSocial = () => {
     toast({ title: "Segera Hadir!", description: "Fitur ini akan tersedia di pembaruan mendatang." });
+  };
+
+  const handleMediaClick = () => {
+    if (post.type === 'photo') {
+      setIsMediaModalOpen(true);
+    } else if (post.type === 'video' || post.type === 'reel') {
+      setShowVideoControls(true);
+    }
   };
 
   const isLiked = currentUserId ? post.likes.includes(currentUserId) : false;
@@ -183,24 +193,27 @@ export function PostCard({
           )}
         </CardHeader>
 
-        <div 
+        <div
           className="relative aspect-square sm:aspect-video bg-muted/30 cursor-pointer"
-          onClick={() => setIsMediaModalOpen(true)}
+          onClick={handleMediaClick}
         >
           {post.type === 'photo' ? (
            <Image src={post.mediaUrl} alt={post.caption || 'Gambar postingan'} layout="fill" objectFit="cover" data-ai-hint="social media image" />
-          ) : ( 
+          ) : (
             <div className="w-full h-full flex items-center justify-center">
-               <video 
-                src={post.mediaUrl} 
-                className="w-full h-full object-cover" 
-                autoPlay 
-                loop 
-                muted 
+               <video
+                src={post.mediaUrl}
+                className="w-full h-full object-cover"
+                autoPlay
+                loop={!showVideoControls}
+                muted={!showVideoControls}
                 playsInline
+                controls={showVideoControls}
                 data-ai-hint={post.type === 'reel' ? 'reel video' : 'video content'}
               />
-              <PlayCircle className="absolute h-16 w-16 text-background/70 pointer-events-none" />
+              {(post.type === 'video' || post.type === 'reel') && !showVideoControls && (
+                <PlayCircle className="absolute h-16 w-16 text-background/70 pointer-events-none" />
+              )}
             </div>
           )}
         </div>
@@ -340,38 +353,24 @@ export function PostCard({
         </AlertDialogContent>
       </AlertDialog>
 
-    {post && (
+    {post && post.type === 'photo' && (
       <Dialog open={isMediaModalOpen} onOpenChange={setIsMediaModalOpen}>
         <DialogContent className="sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-7xl w-auto max-h-[95vh] p-2 bg-background flex items-center justify-center">
           <DialogHead>
             <DialogTitl className="sr-only">Tampilan Media Penuh</DialogTitl>
           </DialogHead>
-          {post.type === 'photo' ? (
             <Image
               src={post.mediaUrl}
               alt={post.caption || 'Gambar postingan ukuran penuh'}
-              width={1920} 
+              width={1920}
               height={1080}
               style={{objectFit:"contain"}}
-              className="rounded-md max-w-full max-h-[calc(95vh-2rem)]" 
+              className="rounded-md max-w-full max-h-[calc(95vh-2rem)]"
               data-ai-hint="social media image full"
             />
-          ) : ( 
-            <video
-              src={post.mediaUrl}
-              controls
-              autoPlay
-              className="rounded-md max-w-full max-h-[calc(95vh-2rem)]"
-              data-ai-hint="social media video full"
-            >
-              Browser Anda tidak mendukung tag video.
-            </video>
-          )}
         </DialogContent>
       </Dialog>
     )}
     </>
   );
 }
-
-    
