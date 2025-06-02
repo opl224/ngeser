@@ -1,12 +1,12 @@
 
 "use client";
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, Dispatch, SetStateAction } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import type { Post, User, Comment as CommentType } from '@/lib/types';
+import type { Post, User, Comment as CommentType, Notification } from '@/lib/types';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
-import { initialPosts, initialUsers, getCurrentUserId } from '@/lib/data';
+import { initialPosts, initialUsers, initialNotifications, getCurrentUserId } from '@/lib/data';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -45,6 +45,24 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from '@/lib/utils';
 import { Badge } from './ui/badge';
+
+
+// Helper function for creating notifications
+function createAndAddNotification(
+  setNotifications: Dispatch<SetStateAction<Notification[]>>,
+  newNotificationData: Omit<Notification, 'id' | 'timestamp' | 'isRead'>
+) {
+  if (newNotificationData.actorUserId === newNotificationData.recipientUserId) {
+    return; // Don't notify self
+  }
+  const notification: Notification = {
+    ...newNotificationData,
+    id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    timestamp: new Date().toISOString(),
+    isRead: false,
+  };
+  setNotifications(prev => [notification, ...prev]);
+}
 
 
 interface CommentItemProps {
@@ -125,6 +143,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
 
   const [allPosts, setAllPosts] = useLocalStorageState<Post[]>('posts', initialPosts);
   const [users, setUsers] = useLocalStorageState<User[]>('users', initialUsers);
+  const [notifications, setNotifications] = useLocalStorageState<Notification[]>('notifications', initialNotifications);
   const [currentUserId, setCurrentUserIdState] = useState<string | null>(null);
 
   const [post, setPost] = useState<Post | null>(null);
@@ -165,7 +184,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
          router.push('/');
       }
     }
-  }, [postId, users, router, setAllPosts]); 
+  }, [postId, users, router, setAllPosts, allPosts, post]); 
 
   useEffect(() => {
     if (postId) {
@@ -184,17 +203,29 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
 
   const handleLikePost = () => {
     if (!post || !currentUserId) return;
-    const updatedPosts = allPosts.map(p => {
-      if (p.id === post.id) {
-        const likes = p.likes.includes(currentUserId)
-          ? p.likes.filter(uid => uid !== currentUserId)
-          : [...p.likes, currentUserId];
-        const updatedPostResult = { ...p, likes };
-        return updatedPostResult;
-      }
-      return p;
+    setAllPosts(prevPosts => {
+      return prevPosts.map(p => {
+        if (p.id === post.id) {
+          const isAlreadyLiked = p.likes.includes(currentUserId);
+          const likes = isAlreadyLiked
+            ? p.likes.filter(uid => uid !== currentUserId)
+            : [...p.likes, currentUserId];
+          
+          const updatedPostResult = { ...p, likes };
+          if (!isAlreadyLiked && p.userId !== currentUserId) {
+            createAndAddNotification(setNotifications, {
+              recipientUserId: p.userId,
+              actorUserId: currentUserId,
+              type: 'like',
+              postId: p.id,
+              postMediaUrl: p.mediaUrl,
+            });
+          }
+          return updatedPostResult;
+        }
+        return p;
+      });
     });
-    setAllPosts(updatedPosts);
   };
 
   const addCommentToThread = (comments: CommentType[], parentId: string, newReply: CommentType): CommentType[] => {
@@ -213,7 +244,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
     if (!post || !currentUserId || !text.trim()) return;
 
     const newComment: CommentType = {
-      id: `comment-${Date.now()}`,
+      id: `comment-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       postId: post.id,
       userId: currentUserId,
       text: text.trim(),
@@ -222,20 +253,49 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
       replies: [],
     };
 
-    const updatedPosts = allPosts.map(p => {
-      if (p.id === post.id) {
-        let updatedComments;
-        if (parentId) {
-          updatedComments = addCommentToThread(p.comments, parentId, newComment);
-        } else {
-          updatedComments = [...p.comments, newComment];
+    setAllPosts(prevPosts => {
+      return prevPosts.map(p => {
+        if (p.id === post.id) {
+          let updatedComments;
+          if (parentId) {
+            updatedComments = addCommentToThread(p.comments, parentId, newComment);
+          } else {
+            updatedComments = [...p.comments, newComment];
+          }
+          const updatedPostResult = { ...p, comments: updatedComments };
+
+          // Notify post author for new comment or reply
+          if (p.userId !== currentUserId) {
+            createAndAddNotification(setNotifications, {
+              recipientUserId: p.userId,
+              actorUserId: currentUserId,
+              type: parentId ? 'reply' : 'comment',
+              postId: p.id,
+              commentId: newComment.id, 
+              postMediaUrl: p.mediaUrl,
+            });
+          }
+
+          // Notify parent comment author for a reply
+          if (parentId) {
+            const parentComment = p.comments.find(c => c.id === parentId) || 
+                                  p.comments.flatMap(c => c.replies || []).find(r => r.id === parentId);
+            if (parentComment && parentComment.userId !== currentUserId && parentComment.userId !== p.userId) {
+              createAndAddNotification(setNotifications, {
+                recipientUserId: parentComment.userId,
+                actorUserId: currentUserId,
+                type: 'reply',
+                postId: p.id,
+                commentId: parentId, // The comment being replied to
+                postMediaUrl: p.mediaUrl,
+              });
+            }
+          }
+          return updatedPostResult;
         }
-        const updatedPostResult = { ...p, comments: updatedComments };
-        return updatedPostResult;
-      }
-      return p;
+        return p;
+      });
     });
-    setAllPosts(updatedPosts);
     if (!parentId) setNewCommentText('');
     toast({ title: "Komentar ditambahkan!", description: "Komentar Anda telah diposting." });
   };

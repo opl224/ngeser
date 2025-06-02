@@ -1,9 +1,11 @@
 
-import type { User, Post, Comment } from './types';
+import type { User, Post, Comment, Notification } from './types';
 
 export const initialUsers: User[] = [];
 
 export const initialPosts: Post[] = [];
+
+export const initialNotifications: Notification[] = [];
 
 // Updated to return string | null, and read from localStorage
 export const getCurrentUserId = (): string | null => {
@@ -12,4 +14,3 @@ export const getCurrentUserId = (): string | null => {
   }
   return null; 
 };
-

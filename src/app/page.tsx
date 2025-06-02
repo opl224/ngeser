@@ -2,10 +2,10 @@
 "use client";
 
 import { PostCard } from '@/components/PostCard';
-import type { Post, Comment as CommentType, User } from '@/lib/types';
-import { initialPosts, initialUsers, getCurrentUserId } from '@/lib/data';
+import type { Post, Comment as CommentType, User, Notification } from '@/lib/types';
+import { initialPosts, initialUsers, initialNotifications, getCurrentUserId } from '@/lib/data';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo, useRef, Dispatch, SetStateAction } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowUp, Send } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -25,11 +25,30 @@ interface UserWithStoryCount extends User {
   latestStoryTimestamp: string;
 }
 
+// Helper function for creating notifications
+function createAndAddNotification(
+  setNotifications: Dispatch<SetStateAction<Notification[]>>,
+  newNotificationData: Omit<Notification, 'id' | 'timestamp' | 'isRead'>
+) {
+  if (newNotificationData.actorUserId === newNotificationData.recipientUserId) {
+    return; // Don't notify self
+  }
+  const notification: Notification = {
+    ...newNotificationData,
+    id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    timestamp: new Date().toISOString(),
+    isRead: false,
+  };
+  setNotifications(prev => [notification, ...prev]);
+}
+
+
 export default function FeedPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [posts, setPosts] = useLocalStorageState<Post[]>('posts', initialPosts);
   const [users, setUsers] = useLocalStorageState<User[]>('users', initialUsers); 
+  const [notifications, setNotifications] = useLocalStorageState<Notification[]>('notifications', initialNotifications);
   const [currentUserId, setCurrentUserIdState] = useState<string | null>(null);
   const [authStatus, setAuthStatus] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -73,6 +92,10 @@ export default function FeedPage() {
       const storedUsers = localStorage.getItem('users');
       if (storedUsers === null) { 
         localStorage.setItem('users', JSON.stringify(initialUsers));
+      }
+      const storedNotifications = localStorage.getItem('notifications');
+      if (storedNotifications === null) {
+        localStorage.setItem('notifications', JSON.stringify(initialNotifications));
       }
     }
   }, []); 
@@ -181,7 +204,7 @@ export default function FeedPage() {
       }, interval);
     }
     return () => clearInterval(timer);
-  }, [isStoryModalOpen, storyModalContent, currentStoryIndex, currentUserStories]);
+  }, [isStoryModalOpen, storyModalContent, currentStoryIndex, currentUserStories]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
   const handleLikePost = (postId: string) => {
@@ -189,9 +212,20 @@ export default function FeedPage() {
     setPosts(prevPosts =>
       prevPosts.map(post => {
         if (post.id === postId) {
-          const likes = post.likes.includes(currentUserId)
+          const isAlreadyLiked = post.likes.includes(currentUserId);
+          const likes = isAlreadyLiked
             ? post.likes.filter(uid => uid !== currentUserId)
             : [...post.likes, currentUserId];
+          
+          if (!isAlreadyLiked && post.userId !== currentUserId) {
+             createAndAddNotification(setNotifications, {
+                recipientUserId: post.userId,
+                actorUserId: currentUserId,
+                type: 'like',
+                postId: post.id,
+                postMediaUrl: post.mediaUrl,
+            });
+          }
           return { ...post, likes };
         }
         return post;
@@ -202,7 +236,7 @@ export default function FeedPage() {
   const handleAddComment = (postId: string, text: string) => {
     if (!currentUserId) return;
     const newComment: CommentType = {
-      id: `comment-${Date.now()}`,
+      id: `comment-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       postId,
       userId: currentUserId,
       text,
@@ -210,11 +244,23 @@ export default function FeedPage() {
       replies: [],
     };
     setPosts(prevPosts =>
-      prevPosts.map(post =>
-        post.id === postId
-          ? { ...post, comments: [...post.comments, newComment] }
-          : post
-      )
+      prevPosts.map(post => {
+        if (post.id === postId) {
+           const updatedPost = { ...post, comments: [...post.comments, newComment] };
+            if (post.userId !== currentUserId) {
+                createAndAddNotification(setNotifications, {
+                    recipientUserId: post.userId,
+                    actorUserId: currentUserId,
+                    type: 'comment',
+                    postId: post.id,
+                    commentId: newComment.id,
+                    postMediaUrl: post.mediaUrl,
+                });
+            }
+          return updatedPost;
+        }
+        return post;
+      })
     );
     toast({ title: "Komentar Ditambahkan", description: "Komentar Anda telah diposting."});
   };
@@ -506,4 +552,3 @@ export default function FeedPage() {
     </div>
   );
 }
-

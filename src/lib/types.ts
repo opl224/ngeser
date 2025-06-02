@@ -45,3 +45,18 @@ export type SuggestHashtagsInput = {
 export type SuggestHashtagsOutput = {
   hashtags: string[];
 };
+
+// Notifikasi
+export type NotificationType = 'like' | 'comment' | 'reply' | 'follow';
+
+export interface Notification {
+  id: string;
+  recipientUserId: string; // User who receives the notification
+  actorUserId: string;     // User who performed the action (e.g., who liked, who commented)
+  type: NotificationType;
+  postId?: string;          // For like, comment, reply on a post
+  commentId?: string;       // For reply to a comment (the parent comment ID)
+  postMediaUrl?: string;    // Optional: for quick preview in notification UI
+  timestamp: string;
+  isRead: boolean;
+}

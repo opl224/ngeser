@@ -1,15 +1,15 @@
 
 "use client";
 
-import { useState, useEffect, ChangeEvent, useMemo } from 'react';
-import type { User, Post, Comment as CommentType } from '@/lib/types';
+import { useState, useEffect, ChangeEvent, useMemo, Dispatch, SetStateAction } from 'react';
+import type { User, Post, Comment as CommentType, Notification } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from './PostCard';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
-import { initialUsers, initialPosts, getCurrentUserId } from '@/lib/data';
+import { initialUsers, initialPosts, initialNotifications, getCurrentUserId } from '@/lib/data';
 import { Settings, UserPlus, UserCheck, Edit3, LogOut, Trash2, Image as ImageIcon, Save, Bookmark } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
@@ -48,11 +48,30 @@ interface UserProfileDisplayProps {
   userId: string;
 }
 
+// Helper function for creating notifications
+function createAndAddNotification(
+  setNotifications: Dispatch<SetStateAction<Notification[]>>,
+  newNotificationData: Omit<Notification, 'id' | 'timestamp' | 'isRead'>
+) {
+  if (newNotificationData.actorUserId === newNotificationData.recipientUserId) {
+    return; // Don't notify self
+  }
+  const notification: Notification = {
+    ...newNotificationData,
+    id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    timestamp: new Date().toISOString(),
+    isRead: false,
+  };
+  setNotifications(prev => [notification, ...prev]);
+}
+
+
 export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const [profileUser, setProfileUser] = useState<User | null>(null);
   
   const [allUsers, setAllUsers] = useLocalStorageState<User[]>('users', initialUsers);
   const [allPosts, setAllPosts] = useLocalStorageState<Post[]>('posts', initialPosts);
+  const [notifications, setNotifications] = useLocalStorageState<Notification[]>('notifications', initialNotifications); // eslint-disable-line @typescript-eslint/no-unused-vars
   
   const [currentSessionUserId, setCurrentSessionUserId] = useState<string | null>(null);
   const { toast } = useToast();
@@ -134,18 +153,37 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             title: "Mulai Mengikuti",
             description: `Anda sekarang mengikuti ${profileUser.username}.`
         });
+        // Create notification for the followed user
+        createAndAddNotification(setNotifications, {
+            recipientUserId: profileUser.id,
+            actorUserId: currentSessionUserId,
+            type: 'follow',
+        });
     }
   };
 
   const handleLikePost = (postId: string) => {
     if (!currentSessionUserId) return;
+    let likedPost: Post | undefined;
     setAllPosts(prevPosts =>
       prevPosts.map(post => {
         if (post.id === postId) {
-          const likes = post.likes.includes(currentSessionUserId)
+          const isAlreadyLiked = post.likes.includes(currentSessionUserId);
+          const likes = isAlreadyLiked
             ? post.likes.filter(uid => uid !== currentSessionUserId)
             : [...post.likes, currentSessionUserId];
-          return { ...post, likes };
+          
+          likedPost = { ...post, likes };
+          if (!isAlreadyLiked && post.userId !== currentSessionUserId) {
+             createAndAddNotification(setNotifications, {
+                recipientUserId: post.userId,
+                actorUserId: currentSessionUserId,
+                type: 'like',
+                postId: post.id,
+                postMediaUrl: post.mediaUrl,
+            });
+          }
+          return likedPost;
         }
         return post;
       })
@@ -155,7 +193,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const handleAddComment = (postId: string, text: string) => {
     if (!currentSessionUserId) return;
     const newComment: CommentType = {
-      id: `comment-${Date.now()}`,
+      id: `comment-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       postId,
       userId: currentSessionUserId,
       text,
@@ -163,12 +201,25 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       parentId: null,
       replies: [],
     };
+    let commentedPost: Post | undefined;
     setAllPosts(prevPosts =>
-      prevPosts.map(post =>
-        post.id === postId
-          ? { ...post, comments: [...post.comments, newComment] }
-          : post
-      )
+      prevPosts.map(post => {
+        if (post.id === postId) {
+          commentedPost = { ...post, comments: [...post.comments, newComment] };
+           if (post.userId !== currentSessionUserId) {
+                createAndAddNotification(setNotifications, {
+                    recipientUserId: post.userId,
+                    actorUserId: currentSessionUserId,
+                    type: 'comment',
+                    postId: post.id,
+                    commentId: newComment.id,
+                    postMediaUrl: post.mediaUrl,
+                });
+            }
+          return commentedPost;
+        }
+        return post;
+      })
     );
     toast({ title: "Komentar Ditambahkan", description: "Komentar Anda telah diposting."});
   };
@@ -214,10 +265,11 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   };
 
   const handleLogoutAndSaveData = () => {
-    if (typeof window !== 'undefined') {
+     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('users', JSON.stringify(allUsers));
         localStorage.setItem('posts', JSON.stringify(allPosts));
+        localStorage.setItem('notifications', JSON.stringify(notifications));
       } catch (error) {
         console.error("Error saving data to localStorage on logout:", error);
         toast({
@@ -225,8 +277,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           description: "Gagal menyimpan data Anda sebelum keluar.",
           variant: "destructive",
         });
-        // Optionally, we might not want to proceed with logout if saving fails.
-        // For now, we'll proceed but show an error.
       }
 
       window.dispatchEvent(new CustomEvent('authChange'));
@@ -242,11 +292,13 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const handleLogoutAndDeleteAllData = () => {
     setAllPosts([]); 
     setAllUsers(initialUsers.map(u => ({...u, followers:[], following:[], savedPosts:[]}))); 
+    setNotifications([]);
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('authChange'));
       localStorage.removeItem('currentUserId');
       localStorage.setItem('posts', '[]'); 
       localStorage.setItem('users', JSON.stringify(initialUsers.map(u => ({...u, followers:[], following:[], savedPosts:[]})))); 
+      localStorage.setItem('notifications', '[]');
     }
     toast({
       title: "Data Dihapus & Berhasil Keluar",
@@ -572,4 +624,3 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
-
