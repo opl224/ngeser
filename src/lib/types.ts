@@ -76,7 +76,9 @@ export interface Conversation {
   id: string;
   participantIds: string[]; // Array of user IDs in the conversation
   participants?: User[]; // Optional: populated for display
+  messages: Message[]; // Array of messages in the conversation
   lastMessage?: Message; // The last message sent in the conversation
-  timestamp: string; // Timestamp of the last activity or creation
+  timestamp: string; // Timestamp of the last activity (usually last message)
   unreadCount?: Record<string, number>; // Optional: unread count per user ID
 }
+

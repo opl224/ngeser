@@ -390,12 +390,8 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const allProfilePosts = [...userStories, ...userPosts].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   const handleSendMessage = () => {
-    // Placeholder for navigation or opening DM modal
-    toast({
-        title: "Fitur Pesan",
-        description: "Fitur pesan langsung sedang dalam pengembangan."
-    });
-    // router.push(`/dm/${profileUser.id}`); // Example navigation
+    if (!profileUser) return;
+    router.push(`/dm?userId=${profileUser.id}`);
   };
 
 
@@ -651,3 +647,4 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
+
