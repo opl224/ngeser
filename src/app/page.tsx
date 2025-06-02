@@ -15,9 +15,8 @@ import { StoryAvatarReel } from '@/components/StoryAvatarReel';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import Image from 'next/image';
-import { formatDistanceToNow } from 'date-fns';
-import { id as localeID } from 'date-fns/locale';
 import { Textarea } from '@/components/ui/textarea';
+import { formatTimestamp } from '@/lib/utils';
 
 
 interface UserWithStoryCount extends User {
@@ -477,7 +476,7 @@ export default function FeedPage() {
                   </Avatar>
                   <span className="font-semibold text-xs">{storyModalContent.user.username}</span>
                   <span className="text-xs text-gray-300 ml-1">
-                    {formatDistanceToNow(new Date(storyModalContent.post.timestamp), { addSuffix: true, locale: localeID })}
+                    {formatTimestamp(storyModalContent.post.timestamp)}
                   </span>
                 </div>
               </DialogHeader>

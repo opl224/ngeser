@@ -13,8 +13,6 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Separator } from '@/components/ui/separator';
 import { Heart, MessageCircle, Share2, MoreHorizontal, Send, PlayCircle, CornerUpLeft, Edit, Trash2, Link2, Eye, Bookmark, GalleryVerticalEnd } from 'lucide-react';
 import Link from 'next/link';
-import { formatDistanceToNow } from 'date-fns';
-import { id as localeID } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import {
@@ -42,7 +40,7 @@ import {
   DialogHeader as DialogHead,
   DialogTitle as DialogTitl,
 } from "@/components/ui/dialog";
-import { cn } from '@/lib/utils';
+import { cn, formatTimestamp } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
 // Helper function for creating notifications
@@ -151,7 +149,7 @@ function CommentItem({ comment, allUsers, currentUserId, onReply, level = 0 }: C
             ) : (
               <span className="font-headline text-sm font-semibold">Pengguna tidak dikenal</span>
             )}
-            <span className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(comment.timestamp), { addSuffix: true, locale: localeID })}</span>
+            <span className="text-xs text-muted-foreground">{formatTimestamp(comment.timestamp)}</span>
           </div>
           <p className="text-sm font-body mt-1 text-foreground/90">{comment.text}</p>
           {currentUserId && (
@@ -460,7 +458,7 @@ export default function LatestPostPage() {
               <div>
                 <CardTitle className="text-base font-headline group-hover:text-primary transition-colors">{author.username}</CardTitle>
                 <p className="text-xs text-muted-foreground">
-                  {formatDistanceToNow(new Date(post.timestamp), { addSuffix: true, locale: localeID })}
+                  {formatTimestamp(post.timestamp)}
                 </p>
               </div>
             </Link>

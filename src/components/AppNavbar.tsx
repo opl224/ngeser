@@ -6,7 +6,7 @@ import { Home, PlusSquare, User, Film, LogIn, Search as SearchIconLucide, Bell, 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { usePathname, useRouter } from 'next/navigation';
-import { cn } from '@/lib/utils';
+import { cn, formatTimestamp } from '@/lib/utils';
 import { useEffect, useState, FormEvent, useMemo } from 'react';
 import { getCurrentUserId, initialNotifications, initialUsers } from '@/lib/data';
 import {
@@ -20,8 +20,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { Notification, User as UserType } from '@/lib/types';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
-import { formatDistanceToNow } from 'date-fns';
-import { id as localeID } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from "@/hooks/use-toast";
 
@@ -272,7 +270,7 @@ export function AppNavbar() {
                                 {message}
                               </p>
                               <p className="text-xs text-muted-foreground mt-0.5">
-                                {isClient && formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true, locale: localeID })}
+                                {isClient && formatTimestamp(notification.timestamp)}
                               </p>
                             </div>
                             <Button

@@ -14,8 +14,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Separator } from '@/components/ui/separator';
 import { Heart, MessageCircle, Share2, MoreHorizontal, Send, PlayCircle, CornerUpLeft, Edit, Trash2, Link2, Eye, Bookmark, GalleryVerticalEnd } from 'lucide-react';
 import Link from 'next/link';
-import { formatDistanceToNow } from 'date-fns';
-import { id as localeID } from 'date-fns/locale';
 import { useToast } from "@/hooks/use-toast";
 import React from 'react';
 import {
@@ -43,7 +41,7 @@ import {
   DialogDescription as DialogDesc,
   DialogFooter as DialogFoot,
 } from "@/components/ui/dialog";
-import { cn } from '@/lib/utils';
+import { cn, formatTimestamp } from '@/lib/utils';
 import { Badge } from './ui/badge';
 
 
@@ -155,7 +153,7 @@ function CommentItem({ comment, allUsers, currentUserId, onReply, level = 0 }: C
         <div className="flex-1 bg-muted/30 p-3 rounded-lg">
           <div className="flex items-center justify-between">
             <Link href={`/profile/${author?.id}`} className="font-headline text-sm font-semibold hover:underline">{author?.username}</Link>
-            <span className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(comment.timestamp), { addSuffix: true, locale: localeID })}</span>
+            <span className="text-xs text-muted-foreground">{formatTimestamp(comment.timestamp)}</span>
           </div>
           <p className="text-sm font-body mt-1 text-foreground/90">{comment.text}</p>
           {currentUserId && (
@@ -465,7 +463,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
               <div>
                 <CardTitle className="text-base font-headline group-hover:text-primary transition-colors">{author.username}</CardTitle>
                 <p className="text-xs text-muted-foreground">
-                  {formatDistanceToNow(new Date(post.timestamp), { addSuffix: true, locale: localeID })}
+                  {formatTimestamp(post.timestamp)}
                 </p>
               </div>
             </Link>

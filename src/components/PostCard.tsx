@@ -9,8 +9,6 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Separator } from '@/components/ui/separator';
 import { Heart, MessageCircle, Share2, MoreHorizontal, PlayCircle, Edit, Trash2, Link2, Eye, Bookmark, GalleryVerticalEnd } from 'lucide-react';
 import Link from 'next/link';
-import { formatDistanceToNow } from 'date-fns';
-import { id as localeID } from 'date-fns/locale';
 import { useState, useEffect } from 'react';
 import { Textarea } from './ui/textarea';
 import { initialUsers, getCurrentUserId } from '@/lib/data';
@@ -41,7 +39,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from '@/lib/utils';
+import { cn, formatTimestamp } from '@/lib/utils';
 import { Badge } from './ui/badge';
 
 
@@ -173,7 +171,7 @@ export function PostCard({
               <div>
                 <CardTitle className="text-base font-headline group-hover:text-primary transition-colors">{author.username}</CardTitle>
                 <p className="text-xs text-muted-foreground">
-                  {formatDistanceToNow(new Date(post.timestamp), { addSuffix: true, locale: localeID })}
+                  {formatTimestamp(post.timestamp)}
                 </p>
               </div>
             </Link>
@@ -303,7 +301,7 @@ export function PostCard({
                     <div className="flex-1">
                       <span className="font-semibold font-headline text-foreground/90">{commentAuthor?.username}</span>
                       <p className="text-foreground/80 font-body">{comment.text}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{formatDistanceToNow(new Date(comment.timestamp), { addSuffix: true, locale: localeID })}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{formatTimestamp(comment.timestamp)}</p>
                     </div>
                   </div>
                  );
