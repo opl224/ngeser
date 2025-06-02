@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import Image from 'next/image';
 import { Textarea } from '@/components/ui/textarea';
-import { formatTimestamp } from '@/lib/utils';
+import { formatTimestamp, cn } from '@/lib/utils';
 
 
 interface UserWithStoryCount extends User {
@@ -175,7 +175,7 @@ export default function FeedPage() {
     } else if (direction === 'prev' && newIndex < 0) {
       // At the beginning, do nothing
     }
-  }, [currentUserStories, currentStoryIndex, storyModalContent, setIsStoryModalOpen, setCurrentStoryIndex, setStoryModalContent, setStoryProgress, setStoryCommentInputVisible, setStoryCommentText]);
+  }, [currentUserStories, currentStoryIndex, storyModalContent]);
 
 
   // Effect to reset states when story modal closes
@@ -199,11 +199,12 @@ export default function FeedPage() {
   useEffect(() => {
     let imageTimer: NodeJS.Timeout | undefined;
     if (isStoryModalOpen && storyModalContent?.post.mediaMimeType?.startsWith('image/')) {
-      setStoryProgress(0);
-      const duration = 7000;
-      const interval = 50;
+      setStoryProgress(0); // Reset progress for the new image story
+      const duration = 7000; // 7 seconds for image stories
+      const interval = 50; // Update progress every 50ms
       const steps = duration / interval;
       let currentStep = 0;
+      
       imageTimer = setInterval(() => {
         currentStep++;
         setStoryProgress((currentStep / steps) * 100);
@@ -217,6 +218,7 @@ export default function FeedPage() {
     return () => {
       if (imageTimer) {
         clearInterval(imageTimer);
+        imageTimer = undefined;
       }
     };
   }, [isStoryModalOpen, storyModalContent?.post.id, currentStoryIndex, navigateStory]); 
@@ -225,10 +227,12 @@ export default function FeedPage() {
   useEffect(() => {
     if (isStoryModalOpen && storyModalContent?.post.mediaMimeType?.startsWith('video/') && videoRef.current) {
       setIsStoryVideoManuallyPaused(false); 
+      videoRef.current.currentTime = 0; // Reset video to start
       const playPromise = videoRef.current.play();
       if (playPromise !== undefined) {
         playPromise.catch(error => {
           // console.warn("Video story autoplay failed/blocked:", error);
+          // Autoplay was prevented, user might need to tap to play.
         });
       }
     }
@@ -242,6 +246,7 @@ export default function FeedPage() {
           videoRef.current.pause();
         }
       } else {
+        // Only resume if not manually paused and modal is open
         if (videoRef.current.paused && !isStoryVideoManuallyPaused) {
           videoRef.current.play().catch(e => console.error("Error resuming video:", e));
         }
@@ -296,6 +301,7 @@ export default function FeedPage() {
       userId: currentUserId,
       text,
       timestamp: new Date().toISOString(),
+      parentId: null,
       replies: [],
     };
     setPosts(prevPosts =>
@@ -483,7 +489,7 @@ export default function FeedPage() {
       {showScrollTop && (
         <Button
           onClick={scrollToTop}
-          className="fixed bottom-6 right-6 rounded-full p-3 h-auto shadow-lg"
+          className="fixed bottom-20 right-6 rounded-full p-3 h-auto shadow-lg sm:bottom-6" // Adjusted bottom for mobile
           variant="default"
           size="icon"
         >
@@ -492,7 +498,16 @@ export default function FeedPage() {
       )}
 
       <Dialog open={isStoryModalOpen} onOpenChange={setIsStoryModalOpen}>
-        <DialogContent className="p-0 bg-black text-white w-full h-full sm:max-w-sm sm:h-auto sm:aspect-[9/16] sm:rounded-lg flex flex-col items-center justify-center overflow-hidden">
+        <DialogContent 
+          className={cn(
+            "p-0 bg-black text-white flex flex-col items-center justify-center overflow-hidden",
+            // Mobile specific: take full width, height from top of screen to above bottom navbar (3.5rem = h-14)
+            "fixed inset-x-0 top-0 bottom-[3.5rem]", 
+            // SM and above: revert to centered modal style from base shadcn/ui DialogContent, adjust size
+            "sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2",
+            "sm:max-w-sm sm:w-full sm:h-auto sm:max-h-[90vh] sm:aspect-[9/16] sm:rounded-lg"
+          )}
+        >
           {storyModalContent && currentUserStories.length > 0 && (
             <div
               className="relative w-full h-full"
@@ -513,9 +528,9 @@ export default function FeedPage() {
                            <div className="h-full bg-white rounded-full" style={{ width: `${storyProgress}%` }}></div>
                         )}
                         {index === currentStoryIndex && storyModalContent.post.mediaMimeType?.startsWith('video/') && (
-                           <div className="h-full bg-white rounded-full w-full"></div>
+                           <div className="h-full bg-white rounded-full w-full"></div> // Video progress is handled by video player itself or can be custom later
                         )}
-                        {index < currentStoryIndex && (
+                        {index < currentStoryIndex && ( // Story already viewed
                            <div className="h-full bg-white rounded-full w-full opacity-80"></div>
                         )}
                       </div>
@@ -555,7 +570,7 @@ export default function FeedPage() {
                     alt={storyModalContent.post.caption || 'Story image'}
                     layout="fill"
                     objectFit="contain"
-                    className="rounded-md"
+                    className="rounded-md" // Ensure image itself is rounded if dialog is not on mobile
                     data-ai-hint="story content image"
                   />
                 ) : storyModalContent.post.mediaMimeType?.startsWith('video/') ? (
@@ -564,7 +579,7 @@ export default function FeedPage() {
                     ref={videoRef}
                     src={storyModalContent.post.mediaUrl} 
                     playsInline 
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-contain" // Ensure video itself is rounded if dialog is not on mobile
                     data-ai-hint="story content video"
                     onEnded={() => navigateStory('next')}
                     onClick={handleVideoClick} 
@@ -582,7 +597,7 @@ export default function FeedPage() {
             </div>
           )}
           {isStoryModalOpen && storyModalContent && storyCommentInputVisible && currentSessionUser && ( 
-            <div className="absolute bottom-0 left-0 right-0 p-3 bg-background/80 backdrop-blur-sm z-30 sm:hidden flex items-start gap-2">
+            <div className="absolute bottom-0 left-0 right-0 p-3 bg-background/80 backdrop-blur-sm z-30 flex items-start gap-2 sm:hidden"> {/* Only show on mobile based on class name */}
               <Avatar className="h-8 w-8 mt-1">
                 <AvatarImage src={currentSessionUser.avatarUrl} alt={currentSessionUser.username} data-ai-hint="user avatar small" />
                 <AvatarFallback>{currentSessionUser.username.substring(0,1).toUpperCase()}</AvatarFallback>
@@ -604,5 +619,3 @@ export default function FeedPage() {
     </div>
   );
 }
-
-    
