@@ -159,7 +159,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
   const [viewCountIncremented, setViewCountIncremented] = useState(false);
 
   useEffect(() => {
-    setViewCountIncremented(false); // Reset when postId changes
+    setViewCountIncremented(false); 
   }, [postId]);
   
   useEffect(() => {
@@ -170,15 +170,13 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
       const foundPostGlobal = allPosts.find(p => p.id === postId);
 
       if (foundPostGlobal) {
-        // Update local state for display first
         setPost(foundPostGlobal);
         if (foundPostGlobal.caption !== editedCaption && !isEditingCaption) {
            setEditedCaption(foundPostGlobal.caption);
         }
         setAuthor(users.find(u => u.id === foundPostGlobal.userId) || null);
-        setShowVideoControls(false); // Reset video controls state
+        setShowVideoControls(false); 
 
-        // Increment view count only if not already done for this instance/postId
         if (!viewCountIncremented) {
           const newViewCount = (foundPostGlobal.viewCount || 0) + 1;
           setAllPosts(prevGlobalPosts => 
@@ -186,7 +184,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
               p.id === postId ? { ...p, viewCount: newViewCount } : p
             )
           );
-          setViewCountIncremented(true); // Mark as incremented for this load
+          setViewCountIncremented(true); 
         }
       } else {
         toast({ title: "Postingan tidak ditemukan", description: "Postingan yang Anda cari tidak ada atau telah dihapus.", variant: "destructive" });
@@ -533,7 +531,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
         <CardContent>
           {currentUserId && (
             <div className="flex gap-2 mb-6 items-start">
-              <Avatar className="h-10 w-10 mt-1">
+              <Avatar className="h-10 w-10 mt-1 sm:mt-0">
                 <AvatarImage src={users.find(u=>u.id === currentUserId)?.avatarUrl} data-ai-hint="portrait person small"/>
                 <AvatarFallback>{users.find(u=>u.id === currentUserId)?.username.substring(0,1)}</AvatarFallback>
               </Avatar>
@@ -541,11 +539,20 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
                 placeholder="Tambahkan komentar publik..."
                 value={newCommentText}
                 onChange={(e) => setNewCommentText(e.target.value)}
-                className="text-sm min-h-[60px] flex-grow resize-none"
-                rows={2}
+                className={cn(
+                  "text-sm flex-grow resize-none",
+                  !newCommentText.trim() ? "min-h-[40px]" : "min-h-[60px]"
+                )}
+                rows={!newCommentText.trim() ? 1 : 2}
               />
-              <Button size="default" onClick={() => handleAddComment(newCommentText)} disabled={!newCommentText.trim()} className="self-end">
-                <Send className="h-4 w-4 mr-2"/>Kirim
+              <Button 
+                size="default" 
+                onClick={() => handleAddComment(newCommentText)} 
+                disabled={!newCommentText.trim()} 
+                className="self-end px-3 sm:px-4"
+              >
+                <Send className="h-4 w-4 sm:mr-2"/>
+                <span className="hidden sm:inline">Kirim</span>
               </Button>
             </div>
           )}

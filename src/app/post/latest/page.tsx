@@ -537,7 +537,7 @@ export default function LatestPostPage() {
         <CardContent>
           {currentUserId && (
             <div className="flex gap-2 mb-6 items-start">
-              <Avatar className="h-10 w-10 mt-1">
+              <Avatar className="h-10 w-10 mt-1 sm:mt-0">
                  <AvatarImage src={users.find(u=>u.id === currentUserId)?.avatarUrl} data-ai-hint="portrait person small"/>
                 <AvatarFallback>{users.find(u=>u.id === currentUserId)?.username.substring(0,1)}</AvatarFallback>
               </Avatar>
@@ -545,11 +545,20 @@ export default function LatestPostPage() {
                 placeholder="Tambahkan komentar publik..."
                 value={newCommentText}
                 onChange={(e) => setNewCommentText(e.target.value)}
-                className="text-sm min-h-[60px] flex-grow resize-none"
-                rows={2}
+                 className={cn(
+                  "text-sm flex-grow resize-none",
+                  !newCommentText.trim() ? "min-h-[40px]" : "min-h-[60px]"
+                )}
+                rows={!newCommentText.trim() ? 1 : 2}
               />
-              <Button size="default" onClick={() => handleAddComment(newCommentText)} disabled={!newCommentText.trim()} className="self-end">
-                <Send className="h-4 w-4 mr-2"/>Kirim
+              <Button 
+                size="default" 
+                onClick={() => handleAddComment(newCommentText)} 
+                disabled={!newCommentText.trim()} 
+                className="self-end px-3 sm:px-4"
+              >
+                <Send className="h-4 w-4 sm:mr-2"/>
+                <span className="hidden sm:inline">Kirim</span>
               </Button>
             </div>
           )}
