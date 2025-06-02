@@ -164,7 +164,7 @@ export default function DirectMessagesPage() {
 
 
   return (
-    <div className="flex flex-col md:flex-row h-[calc(100vh_-_7.5rem)] md:h-[calc(100vh_-_4rem)] overflow-hidden">
+    <div className="flex flex-col md:flex-row h-svh overflow-hidden">
       {/* Sidebar - Conversation List */}
       <div className={cn(
         "w-full md:w-1/3 md:max-w-sm border-r border-border bg-card/30 flex flex-col",
