@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from './PostCard';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialUsers, initialPosts, initialNotifications, getCurrentUserId } from '@/lib/data';
-import { Settings, UserPlus, UserCheck, Edit3, LogOut, Trash2, Image as ImageIcon, Save, Bookmark } from 'lucide-react';
+import { Settings, UserPlus, UserCheck, Edit3, LogOut, Trash2, Image as ImageIcon, Save, Bookmark, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
@@ -389,6 +389,15 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
   const allProfilePosts = [...userStories, ...userPosts].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
+  const handleSendMessage = () => {
+    // Placeholder for navigation or opening DM modal
+    toast({
+        title: "Fitur Pesan",
+        description: "Fitur pesan langsung sedang dalam pengembangan."
+    });
+    // router.push(`/dm/${profileUser.id}`); // Example navigation
+  };
+
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -461,10 +470,14 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                 </DropdownMenu>
               </div>
             ) : currentSessionUserId && ( 
-                <div className="flex w-full justify-center items-center mt-4 md:w-auto md:absolute md:top-6 md:right-6 md:mt-0">
+                <div className="flex w-full justify-center items-center gap-2 mt-4 md:w-auto md:absolute md:top-6 md:right-6 md:mt-0">
                     <Button onClick={handleFollowToggle} variant={isFollowing ? "secondary" : "default"} size="sm">
                     {isFollowing ? <UserCheck className="mr-2 h-4 w-4" /> : <UserPlus className="mr-2 h-4 w-4" />}
                     {isFollowing ? 'Mengikuti' : 'Ikuti'}
+                    </Button>
+                    <Button onClick={handleSendMessage} variant="outline" size="sm" className="px-3">
+                        <MessageSquare className="h-4 w-4 md:mr-2" />
+                        <span className="hidden md:inline">Pesan</span>
                     </Button>
                 </div>
             )}
