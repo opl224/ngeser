@@ -7,8 +7,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { useEffect, useState, FormEvent } from 'react';
-import { getCurrentUserId } from '@/lib/data';
+import { useEffect, useState, FormEvent, useMemo } from 'react';
+import { getCurrentUserId, initialNotifications, initialUsers } from '@/lib/data';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import type { Notification, User as UserType } from '@/lib/types';
+import useLocalStorageState from '@/hooks/useLocalStorageState';
+import { formatDistanceToNow } from 'date-fns';
+import { id as localeID } from 'date-fns/locale';
+import { Badge } from '@/components/ui/badge';
 
 export function AppNavbar() {
   const pathname = usePathname();
@@ -16,6 +30,9 @@ export function AppNavbar() {
   const [currentUserId, setCurrentUserIdState] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const [notifications, setNotifications] = useLocalStorageState<Notification[]>('notifications', initialNotifications);
+  const [allUsers] = useLocalStorageState<UserType[]>('users', initialUsers);
 
   useEffect(() => {
     setIsClient(true);
@@ -32,6 +49,31 @@ export function AppNavbar() {
       window.removeEventListener('authChange', updateAuthStatus);
     };
   }, []); 
+
+  const unreadNotifications = useMemo(() => {
+    if (!currentUserId) return [];
+    return notifications.filter(n => n.recipientUserId === currentUserId && !n.isRead);
+  }, [notifications, currentUserId]);
+
+  const unreadCount = unreadNotifications.length;
+
+  const sortedNotificationsForDisplay = useMemo(() => {
+    if (!currentUserId) return [];
+    return notifications
+      .filter(n => n.recipientUserId === currentUserId)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 10); // Display latest 10 notifications
+  }, [notifications, currentUserId]);
+
+  const handleOpenNotifications = (open: boolean) => {
+    if (open && unreadCount > 0 && currentUserId) {
+      setNotifications(prevNotifications =>
+        prevNotifications.map(n =>
+          n.recipientUserId === currentUserId && !n.isRead ? { ...n, isRead: true } : n
+        )
+      );
+    }
+  };
 
   const baseNavItems = [
     { href: '/', label: 'Beranda', icon: Home },
@@ -64,9 +106,6 @@ export function AppNavbar() {
             <Film className="h-7 w-7 text-primary" />
             <span className="font-headline text-2xl font-semibold text-foreground">Elegance</span>
           </Link>
-          <div className="flex items-center gap-2">
-            {/* Placeholder */}
-          </div>
         </div>
       </header>
     );
@@ -128,18 +167,101 @@ export function AppNavbar() {
             </nav>
             
             {currentUserId && (
-                <Button
+              <DropdownMenu onOpenChange={handleOpenNotifications}>
+                <DropdownMenuTrigger asChild>
+                  <Button
                     variant="ghost"
                     size="icon"
                     aria-label="Notifikasi"
-                    className="text-muted-foreground hover:text-foreground"
-                    // onClick={() => router.push('/notifications')} // Akan ditambahkan nanti
-                >
+                    className="relative text-muted-foreground hover:text-foreground"
+                  >
                     <Bell className="h-5 w-5" />
-                </Button>
+                    {isClient && unreadCount > 0 && (
+                      <Badge
+                        variant="destructive"
+                        className="absolute -top-1 -right-1 h-4 w-4 min-w-min p-0.5 text-xs flex items-center justify-center rounded-full pointer-events-none"
+                      >
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </Badge>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80 md:w-96 max-h-[70vh] overflow-y-auto">
+                  <DropdownMenuLabel className="font-headline">Notifikasi</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {sortedNotificationsForDisplay.length > 0 ? (
+                    sortedNotificationsForDisplay.map(notification => {
+                      const actor = allUsers.find(u => u.id === notification.actorUserId);
+                      let message = "";
+                      let linkHref = "#";
+                      let avatarSrc = actor?.avatarUrl;
+                      let avatarFallback = actor?.username?.substring(0,1).toUpperCase() || 'N';
+
+                      switch (notification.type) {
+                        case 'like':
+                          message = `${actor?.username || 'Seseorang'} menyukai postingan Anda.`;
+                          linkHref = notification.postId ? `/post/${notification.postId}` : '/';
+                          if (!actor?.avatarUrl && notification.postMediaUrl) avatarSrc = notification.postMediaUrl;
+                          break;
+                        case 'comment':
+                          message = `${actor?.username || 'Seseorang'} mengomentari postingan Anda.`;
+                          linkHref = notification.postId ? `/post/${notification.postId}` : '/';
+                           if (!actor?.avatarUrl && notification.postMediaUrl) avatarSrc = notification.postMediaUrl;
+                          break;
+                        case 'reply':
+                          message = `${actor?.username || 'Seseorang'} membalas komentar Anda.`;
+                          linkHref = notification.postId ? `/post/${notification.postId}` : '/';
+                           if (!actor?.avatarUrl && notification.postMediaUrl) avatarSrc = notification.postMediaUrl;
+                          break;
+                        case 'follow':
+                          message = `${actor?.username || 'Seseorang'} mulai mengikuti Anda.`;
+                          linkHref = actor ? `/profile/${actor.id}` : '/';
+                          break;
+                        default:
+                          message = "Notifikasi baru.";
+                      }
+
+                      return (
+                        <DropdownMenuItem key={notification.id} asChild className={`cursor-pointer ${!notification.isRead && isClient ? 'bg-primary/10 hover:!bg-primary/20' : 'hover:!bg-accent'}`}>
+                          <Link href={linkHref} className="flex items-start gap-3 p-2 w-full">
+                            <Avatar className="h-8 w-8 mt-0.5 flex-shrink-0">
+                              <AvatarImage src={avatarSrc} alt={actor?.username || 'Notifikasi'} data-ai-hint="notification actor person"/>
+                              <AvatarFallback>{avatarFallback}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs text-foreground/90 leading-tight whitespace-normal break-words">
+                                {message}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {isClient && formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true, locale: localeID })}
+                              </p>
+                            </div>
+                          </Link>
+                        </DropdownMenuItem>
+                      );
+                    })
+                  ) : (
+                    <DropdownMenuItem disabled className="text-center text-muted-foreground p-3">
+                      Tidak ada notifikasi.
+                    </DropdownMenuItem>
+                  )}
+                  {/* Placeholder for "View All Notifications" link if needed in future */}
+                  {/* {sortedNotificationsForDisplay.length > 0 && (
+                    <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                            <Link href="/notifications" className="justify-center text-sm text-primary hover:underline w-full block text-center">
+                                Lihat Semua Notifikasi
+                            </Link>
+                        </DropdownMenuItem>
+                    </>
+                  )} */}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
         </div>
       </div>
     </header>
   );
 }
+
