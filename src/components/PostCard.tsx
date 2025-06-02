@@ -312,7 +312,6 @@ export function PostCard({
                   <Link 
                     href={`/post/${post.id}`} 
                     className="text-xs text-primary hover:underline font-medium"
-                    onClick={(e) => e.stopPropagation()}
                   >
                       Lihat semua {post.comments.length} komentar
                   </Link>
