@@ -25,7 +25,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased min-h-screen flex flex-col bg-background">
         <AppNavbar />
-        <main className="flex-grow container mx-auto px-4 py-8 pb-20 sm:pb-8"> {/* Add padding-bottom for mobile to avoid overlap */}
+        <main className="flex-grow container mx-auto px-4 pt-16 pb-20 sm:pb-8"> {/* Adjusted pt-* and ensured pb-* are correct */}
           {children}
         </main>
         <BottomNavbar /> {/* Add BottomNavbar here */}
