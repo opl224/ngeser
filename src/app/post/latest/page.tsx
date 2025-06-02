@@ -155,43 +155,47 @@ export default function LatestPostPage() {
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
   const [showVideoControls, setShowVideoControls] = useState(false);
 
+  const [processedPostIdForViewCount, setProcessedPostIdForViewCount] = useState<string | null>(null);
+
   useEffect(() => {
     const CUID = getCurrentUserId();
     setCurrentUserIdState(CUID);
+    setIsLoading(true);
 
-    if (allPosts.length > 0) {
-      const sortedPosts = [...allPosts].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      const latestPost = sortedPosts[0];
+    const feedPosts = allPosts.filter(p => p.type !== 'story');
+    if (feedPosts.length > 0) {
+      const sortedPosts = [...feedPosts].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      const latestPostFromData = sortedPosts[0];
 
-      if (latestPost) {
-        if (!post || post.id !== latestPost.id || (post && post.viewCount === latestPost.viewCount)) {
-          const updatedViewCountPost = { ...latestPost, viewCount: (latestPost.viewCount || 0) + 1 };
-          setAllPosts(prevAllPosts => prevAllPosts.map(p => p.id === latestPost.id ? updatedViewCountPost : p));
-          setPost(updatedViewCountPost);
-          setEditedCaption(updatedViewCountPost.caption);
-        } else if (post && post.id === latestPost.id) {
-            setEditedCaption(latestPost.caption);
+      if (latestPostFromData) {
+        setPost(latestPostFromData);
+         if (latestPostFromData.caption !== editedCaption && !isEditingCaption) {
+           setEditedCaption(latestPostFromData.caption);
         }
-        setShowVideoControls(false); 
+        setAuthor(users.find(u => u.id === latestPostFromData.userId) || null);
+        setShowVideoControls(false);
 
-        const foundAuthor = users.find(u => u.id === (post || latestPost).userId);
-        setAuthor(foundAuthor || null);
+        if (latestPostFromData.id !== processedPostIdForViewCount) {
+          const newViewCount = (latestPostFromData.viewCount || 0) + 1;
+          setAllPosts(prevAllPosts =>
+            prevAllPosts.map(p =>
+              p.id === latestPostFromData.id ? { ...p, viewCount: newViewCount } : p
+            )
+          );
+          setProcessedPostIdForViewCount(latestPostFromData.id);
+        }
+      } else {
+        setPost(null);
+        setAuthor(null);
+        setProcessedPostIdForViewCount(null); 
       }
+    } else {
+      setPost(null);
+      setAuthor(null);
+      setProcessedPostIdForViewCount(null); 
     }
     setIsLoading(false);
-  }, [users, router, setAllPosts, allPosts, post]); // Ensure allPosts is a dependency for reactivity to its changes.
-
-   useEffect(() => {
-    if (allPosts.length > 0) {
-        const sortedPosts = [...allPosts].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-        const latestPostFromAllPosts = sortedPosts[0];
-
-        if (latestPostFromAllPosts && JSON.stringify(latestPostFromAllPosts) !== JSON.stringify(post)) {
-            setPost(latestPostFromAllPosts);
-            setEditedCaption(latestPostFromAllPosts.caption);
-        }
-    }
-  }, [allPosts, post]);
+  }, [allPosts, users, processedPostIdForViewCount, setCurrentUserIdState, setAllPosts, setIsLoading, editedCaption, isEditingCaption]);
 
 
   const currentUser = useMemo(() => {
@@ -261,7 +265,6 @@ export default function LatestPostPage() {
           }
           const updatedPostResult = { ...p, comments: updatedComments };
 
-          // Notify post author for new comment or reply
           if (p.userId !== currentUserId) {
             createAndAddNotification(setNotifications, {
               recipientUserId: p.userId,
@@ -273,7 +276,6 @@ export default function LatestPostPage() {
             });
           }
 
-          // Notify parent comment author for a reply
           if (parentId) {
             const parentComment = p.comments.find(c => c.id === parentId) || 
                                   p.comments.flatMap(c => c.replies || []).find(r => r.id === parentId);
@@ -283,7 +285,7 @@ export default function LatestPostPage() {
                 actorUserId: currentUserId,
                 type: 'reply',
                 postId: p.id,
-                commentId: parentId, // The comment being replied to
+                commentId: parentId, 
                 postMediaUrl: p.mediaUrl,
               });
             }
@@ -302,10 +304,11 @@ export default function LatestPostPage() {
       setIsEditingCaption(false);
       return;
     }
-    const updatedPosts = allPosts.map(p =>
-      p.id === post.id ? { ...p, caption: editedCaption.trim() } : p
+    setAllPosts(prevPosts => 
+      prevPosts.map(p =>
+        p.id === post.id ? { ...p, caption: editedCaption.trim() } : p
+      )
     );
-    setAllPosts(updatedPosts);
     setIsEditingCaption(false);
     toast({ title: "Keterangan Diperbarui", description: "Keterangan postingan telah diperbarui." });
   };
@@ -626,3 +629,5 @@ export default function LatestPostPage() {
     </>
   );
 }
+
+    

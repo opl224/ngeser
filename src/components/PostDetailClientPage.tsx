@@ -146,7 +146,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
   const [notifications, setNotifications] = useLocalStorageState<Notification[]>('notifications', initialNotifications);
   const [currentUserId, setCurrentUserIdState] = useState<string | null>(null);
 
-  const [post, setPost] = useState<Post | null>(null);
+  const [post, setPost] = useState<Post | null>(null); 
   const [author, setAuthor] = useState<User | null>(null);
   const [newCommentText, setNewCommentText] = useState('');
 
@@ -156,45 +156,42 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
   const [showVideoControls, setShowVideoControls] = useState(false);
 
+  const [viewCountIncremented, setViewCountIncremented] = useState(false);
 
+  useEffect(() => {
+    setViewCountIncremented(false);
+  }, [postId]);
+  
   useEffect(() => {
     const CUID = getCurrentUserId();
     setCurrentUserIdState(CUID);
+
     if (postId) {
-      const foundPost = allPosts.find(p => p.id === postId);
-      if (foundPost) {
-        if (!post || post.id !== foundPost.id || (post && post.viewCount === foundPost.viewCount) ) {
-            const postToUpdate = { ...foundPost };
-            if (typeof postToUpdate.viewCount !== 'number' || isNaN(postToUpdate.viewCount)) {
-              postToUpdate.viewCount = 0;
-            }
-            postToUpdate.viewCount += 1;
+      const foundPostGlobal = allPosts.find(p => p.id === postId);
 
-            setPost(postToUpdate);
-            setAllPosts(prevAllPosts => prevAllPosts.map(p => p.id === postId ? postToUpdate : p));
-            setEditedCaption(postToUpdate.caption);
-        } else if (post && post.id === foundPost.id) {
-            setEditedCaption(foundPost.caption);
+      if (foundPostGlobal) {
+        setPost(foundPostGlobal);
+        if (foundPostGlobal.caption !== editedCaption && !isEditingCaption) {
+           setEditedCaption(foundPostGlobal.caption);
         }
-        setShowVideoControls(false); 
+        setAuthor(users.find(u => u.id === foundPostGlobal.userId) || null);
+        setShowVideoControls(false);
 
-        const foundAuthor = users.find(u => u.id === (post || foundPost).userId);
-        setAuthor(foundAuthor || null);
+        if (!viewCountIncremented) {
+          const newViewCount = (foundPostGlobal.viewCount || 0) + 1;
+          setAllPosts(prevGlobalPosts =>
+            prevGlobalPosts.map(p =>
+              p.id === postId ? { ...p, viewCount: newViewCount } : p
+            )
+          );
+          setViewCountIncremented(true);
+        }
       } else {
-         router.push('/');
+        toast({ title: "Postingan tidak ditemukan", description: "Postingan yang Anda cari tidak ada atau telah dihapus.", variant: "destructive" });
+        router.push('/');
       }
     }
-  }, [postId, users, router, setAllPosts, allPosts, post]); 
-
-  useEffect(() => {
-    if (postId) {
-        const currentVersionOfPostInAllPosts = allPosts.find(p => p.id === postId);
-        if (currentVersionOfPostInAllPosts && JSON.stringify(currentVersionOfPostInAllPosts) !== JSON.stringify(post)) {
-            setPost(currentVersionOfPostInAllPosts);
-            setEditedCaption(currentVersionOfPostInAllPosts.caption);
-        }
-    }
-  }, [allPosts, postId, post]);
+  }, [postId, allPosts, users, viewCountIncremented, setCurrentUserIdState, setAllPosts, router, toast, editedCaption, isEditingCaption]);
 
 
   const currentUser = useMemo(() => {
@@ -264,7 +261,6 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
           }
           const updatedPostResult = { ...p, comments: updatedComments };
 
-          // Notify post author for new comment or reply
           if (p.userId !== currentUserId) {
             createAndAddNotification(setNotifications, {
               recipientUserId: p.userId,
@@ -276,7 +272,6 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
             });
           }
 
-          // Notify parent comment author for a reply
           if (parentId) {
             const parentComment = p.comments.find(c => c.id === parentId) || 
                                   p.comments.flatMap(c => c.replies || []).find(r => r.id === parentId);
@@ -286,7 +281,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
                 actorUserId: currentUserId,
                 type: 'reply',
                 postId: p.id,
-                commentId: parentId, // The comment being replied to
+                commentId: parentId, 
                 postMediaUrl: p.mediaUrl,
               });
             }
@@ -305,10 +300,11 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
       setIsEditingCaption(false);
       return;
     }
-    const updatedPosts = allPosts.map(p =>
-      p.id === post.id ? { ...p, caption: editedCaption.trim() } : p
+    setAllPosts(prevPosts => 
+      prevPosts.map(p =>
+        p.id === post.id ? { ...p, caption: editedCaption.trim() } : p
+      )
     );
-    setAllPosts(updatedPosts);
     setIsEditingCaption(false);
     toast({ title: "Keterangan Diperbarui", description: "Keterangan postingan telah diperbarui." });
   };
@@ -375,7 +371,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
         setShowVideoControls(true);
     } else if (post.type === 'video' || post.type === 'reel') {
         setShowVideoControls(true);
-    } else { // photo or image story
+    } else { 
         setIsMediaModalOpen(true);
     }
   };
@@ -627,3 +623,5 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
     </>
   );
 }
+
+    
