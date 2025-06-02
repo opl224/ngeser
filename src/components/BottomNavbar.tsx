@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Search, PlusSquare, User, LogIn } from 'lucide-react';
+import { Home, Search, PlusSquare, User, LogIn, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 import { getCurrentUserId } from '@/lib/data';
@@ -43,11 +43,13 @@ export function BottomNavbar() {
         { href: '/', label: 'Beranda', icon: Home },
         { href: '/search', label: 'Cari', icon: Search },
         { href: '/upload', label: 'Unggah', icon: PlusSquare },
+        { href: '/dm', label: 'Pesan', icon: MessageSquare },
         { href: '/profile', label: 'Profil', icon: User },
       ]
     : [
         { href: '/', label: 'Beranda', icon: Home },
         { href: '/search', label: 'Cari', icon: Search },
+        // { href: '/dm', label: 'Pesan', icon: MessageSquare }, // DM might be auth-only for simplicity
         { href: '/login', label: 'Masuk', icon: LogIn },
       ];
 
@@ -55,7 +57,7 @@ export function BottomNavbar() {
     <nav className="fixed bottom-0 left-0 right-0 z-40 block border-t bg-background/95 p-1 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:hidden">
       <div className="flex justify-around items-center h-14">
         {navItemsConfig.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive = pathname === item.href || (item.href === '/dm' && pathname.startsWith('/dm'));
           // For upload, make it slightly more prominent or differentiate if needed, e.g., by a larger icon or different style
           const isUpload = item.label === 'Unggah';
           return (

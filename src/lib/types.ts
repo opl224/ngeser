@@ -13,11 +13,11 @@ export interface Comment {
   id: string;
   postId: string;
   userId: string;
-  user?: User; 
+  user?: User;
   text: string;
-  timestamp: string; 
+  timestamp: string;
   parentId?: string | null;
-  replies?: Comment[]; 
+  replies?: Comment[];
 }
 
 export interface Post {
@@ -25,14 +25,14 @@ export interface Post {
   userId: string;
   user?: User;
   type: 'photo' | 'video' | 'reel' | 'story';
-  mediaUrl: string; 
+  mediaUrl: string;
   mediaMimeType?: string; // Untuk menyimpan tipe MIME asli dari media yang diunggah
   caption: string; // Diubah dari description ke caption
   hashtags: string[];
-  mentions: string[]; 
-  likes: string[]; 
+  mentions: string[];
+  likes: string[];
   comments: Comment[];
-  timestamp: string; 
+  timestamp: string;
   shareCount: number;
   viewCount: number;
 }
@@ -59,4 +59,24 @@ export interface Notification {
   postMediaUrl?: string;    // Optional: for quick preview in notification UI
   timestamp: string;
   isRead: boolean;
+}
+
+// Direct Messages
+export interface Message {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  sender?: User; // Optional: populated for display
+  text: string;
+  timestamp: string;
+  isRead?: boolean; // Optional: can be used to track read status by recipient
+}
+
+export interface Conversation {
+  id: string;
+  participantIds: string[]; // Array of user IDs in the conversation
+  participants?: User[]; // Optional: populated for display
+  lastMessage?: Message; // The last message sent in the conversation
+  timestamp: string; // Timestamp of the last activity or creation
+  unreadCount?: Record<string, number>; // Optional: unread count per user ID
 }
