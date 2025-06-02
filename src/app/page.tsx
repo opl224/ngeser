@@ -58,12 +58,15 @@ export default function FeedPage() {
   const [currentUserStories, setCurrentUserStories] = useState<Post[]>([]);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
 
-  // For story comment swipe
+  // For story comment swipe and video control
   const [storyCommentInputVisible, setStoryCommentInputVisible] = useState(false);
   const [storyCommentText, setStoryCommentText] = useState('');
   const touchStartY = useRef<number | null>(null);
   const touchCurrentY = useRef<number | null>(null);
   const SWIPE_THRESHOLD = 50; // pixels
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isStoryVideoManuallyPaused, setIsStoryVideoManuallyPaused] = useState(false);
+
 
   const currentSessionUser = useMemo(() => {
     if (!currentUserId || !users) return null;
@@ -165,46 +168,96 @@ export default function FeedPage() {
         };
       });
       setStoryProgress(0); 
-      setStoryCommentInputVisible(false); // Hide comment input when story changes
+      setStoryCommentInputVisible(false); 
       setStoryCommentText("");
+      // setIsStoryVideoManuallyPaused(false); // Handled by specific video effect
     } else if (direction === 'next' && newIndex >= currentUserStories.length) {
-      setIsStoryModalOpen(false); // This will trigger the useEffect to reset states
+      setIsStoryModalOpen(false); 
     } else if (direction === 'prev' && newIndex < 0) {
       // At the beginning, do nothing
     }
   };
   
+  // Effect to reset states when story modal closes or user changes
   useEffect(() => {
     if (!isStoryModalOpen) {
       setCurrentUserStories([]);
       setCurrentStoryIndex(0);
       setStoryCommentInputVisible(false); 
       setStoryCommentText(""); 
+      setIsStoryVideoManuallyPaused(false);
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.src = ""; // Clear src to stop loading/buffering
+      }
     }
   }, [isStoryModalOpen]);
 
 
+  // Effect for Image Story Progress Timer
   useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (isStoryModalOpen && storyModalContent && currentUserStories.length > 0 && currentStoryIndex < currentUserStories.length && currentUserStories[currentStoryIndex]?.mediaMimeType?.startsWith('image/')) {
-      setStoryProgress(0); 
-      const duration = 7000; 
-      const interval = 50; 
+    let imageTimer: NodeJS.Timeout | undefined;
+    if (isStoryModalOpen && storyModalContent?.post.mediaMimeType?.startsWith('image/')) {
+      setStoryProgress(0);
+      const duration = 7000;
+      const interval = 50;
       const steps = duration / interval;
       let currentStep = 0;
-      
-      timer = setInterval(() => {
+      imageTimer = setInterval(() => {
         currentStep++;
         setStoryProgress((currentStep / steps) * 100);
         if (currentStep >= steps) {
-          clearInterval(timer);
-          navigateStory('next'); 
+          clearInterval(imageTimer!);
+          navigateStory('next');
         }
       }, interval);
     }
-    return () => clearInterval(timer);
-  }, [isStoryModalOpen, storyModalContent, currentStoryIndex, currentUserStories]); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => {
+      if (imageTimer) clearInterval(imageTimer);
+    };
+  }, [isStoryModalOpen, storyModalContent?.post.id, currentStoryIndex]); // storyModalContent.post.id ensures it reruns for new image
 
+  // Effect for Video Story Autoplay/Reset on Story Change
+  useEffect(() => {
+    if (isStoryModalOpen && storyModalContent?.post.mediaMimeType?.startsWith('video/') && videoRef.current) {
+      setIsStoryVideoManuallyPaused(false); // Reset manual pause for a new story
+      const playPromise = videoRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          // console.warn("Video story autoplay failed/blocked:", error);
+        });
+      }
+    }
+  }, [isStoryModalOpen, storyModalContent?.post.id, storyModalContent?.post.mediaUrl]); // Key dependencies for new video
+
+  // Effect to Pause/Resume Video based on storyCommentInputVisible
+  useEffect(() => {
+    if (isStoryModalOpen && storyModalContent?.post.mediaMimeType?.startsWith('video/') && videoRef.current) {
+      if (storyCommentInputVisible) {
+        if (!videoRef.current.paused) {
+          videoRef.current.pause();
+        }
+      } else {
+        // Comment input is hidden. Resume video ONLY IF it wasn't manually paused by the user.
+        if (videoRef.current.paused && !isStoryVideoManuallyPaused) {
+          videoRef.current.play().catch(e => console.error("Error resuming video:", e));
+        }
+      }
+    }
+  }, [storyCommentInputVisible, isStoryModalOpen, storyModalContent?.post.mediaMimeType, isStoryVideoManuallyPaused]);
+
+
+  const handleVideoClick = () => {
+    if (videoRef.current && storyModalContent?.post.mediaMimeType?.startsWith('video/')) {
+      if (videoRef.current.paused) {
+        videoRef.current.play().catch(e => console.error("Error playing video on tap:", e));
+        setIsStoryVideoManuallyPaused(false);
+      } else {
+        videoRef.current.pause();
+        setIsStoryVideoManuallyPaused(true);
+      }
+    }
+  };
 
   const handleLikePost = (postId: string) => {
     if (!currentUserId) return;
@@ -326,25 +379,22 @@ export default function FeedPage() {
       setStoryProgress(0);
       setStoryCommentInputVisible(false);
       setStoryCommentText("");
+      setIsStoryVideoManuallyPaused(false);
     } else {
       toast({ title: "Tidak ada cerita", description: "Tidak ada cerita aktif dari pengguna ini untuk ditampilkan.", variant: "default" });
     }
   };
 
   const handleTouchStartStory = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (storyModalContent?.post.mediaMimeType?.startsWith('image/')) {
+    if (storyModalContent?.post.mediaMimeType?.startsWith('image/')) { // Only for images now, video tap handled by onClick
       touchStartY.current = e.touches[0].clientY;
-      touchCurrentY.current = e.touches[0].clientY; // Initialize currentY
+      touchCurrentY.current = e.touches[0].clientY; 
     }
   };
 
   const handleTouchMoveStory = (e: React.TouchEvent<HTMLDivElement>) => {
     if (touchStartY.current === null || !storyModalContent?.post.mediaMimeType?.startsWith('image/')) return;
     touchCurrentY.current = e.touches[0].clientY;
-    // Optional: Prevent scroll if swipe is significant, but be careful not to break other interactions
-    // if (Math.abs(touchStartY.current - e.touches[0].clientY) > 10) {
-    //   e.preventDefault();
-    // }
   };
 
   const handleTouchEndStory = (e: React.TouchEvent<HTMLDivElement>) => {
@@ -443,9 +493,9 @@ export default function FeedPage() {
           {storyModalContent && currentUserStories.length > 0 && (
             <div
               className="relative w-full h-full"
-              onTouchStart={handleTouchStartStory}
-              onTouchMove={handleTouchMoveStory}
-              onTouchEnd={handleTouchEndStory}
+              onTouchStart={handleTouchStartStory} // Only for images now
+              onTouchMove={handleTouchMoveStory}   // Only for images now
+              onTouchEnd={handleTouchEndStory}     // Only for images now
             >
               <DialogHeader className="absolute top-0 left-0 right-0 px-3 pt-4 pb-3 z-20 bg-gradient-to-b from-black/60 to-transparent">
                  <DialogTitle className="sr-only">
@@ -460,6 +510,7 @@ export default function FeedPage() {
                            <div className="h-full bg-white rounded-full" style={{ width: `${storyProgress}%`, transition: 'width 0.05s linear' }}></div>
                         )}
                         {index === currentStoryIndex && storyModalContent.post.mediaMimeType?.startsWith('video/') && (
+                           // Video progress can be handled by the video element's own UI if controls are shown, or custom if needed
                            <div className="h-full bg-white rounded-full w-full"></div> 
                         )}
                         {index < currentStoryIndex && ( 
@@ -507,14 +558,16 @@ export default function FeedPage() {
                   />
                 ) : storyModalContent.post.mediaMimeType?.startsWith('video/') ? (
                   <video 
-                    key={storyModalContent.post.id}
-                    src={storyModalContent.post.mediaUrl} 
-                    controls 
-                    autoPlay 
-                    playsInline
+                    key={storyModalContent.post.id} // Key is important for re-mounting on story change
+                    ref={videoRef}
+                    src={storyModalContent.post.mediaUrl} // Src is directly set
+                    playsInline // Important for mobile
                     className="w-full h-full object-contain"
                     data-ai-hint="story content video"
                     onEnded={() => navigateStory('next')} 
+                    onClick={handleVideoClick} // For tap to play/pause
+                    // controls // Remove default controls, we manage them
+                    // autoPlay // Remove autoplay, manage programmatically
                   />
                 ) : (
                   <p className="text-center">Format media tidak didukung.</p>
@@ -528,7 +581,7 @@ export default function FeedPage() {
               )}
             </div>
           )}
-          {isStoryModalOpen && storyModalContent && storyCommentInputVisible && currentSessionUser && storyModalContent.post.mediaMimeType?.startsWith('image/') && (
+          {isStoryModalOpen && storyModalContent && storyCommentInputVisible && currentSessionUser && ( // Show comment input for both image and video
             <div className="absolute bottom-0 left-0 right-0 p-3 bg-background/80 backdrop-blur-sm z-30 sm:hidden flex items-start gap-2">
               <Avatar className="h-8 w-8 mt-1">
                 <AvatarImage src={currentSessionUser.avatarUrl} alt={currentSessionUser.username} data-ai-hint="user avatar small" />
@@ -551,3 +604,4 @@ export default function FeedPage() {
     </div>
   );
 }
+
