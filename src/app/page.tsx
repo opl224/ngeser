@@ -5,7 +5,7 @@ import { PostCard } from '@/components/PostCard';
 import type { Post, Comment as CommentType, User, Notification } from '@/lib/types';
 import { initialPosts, initialUsers, initialNotifications, getCurrentUserId } from '@/lib/data';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
-import { useEffect, useState, useMemo, useRef, Dispatch, SetStateAction } from 'react';
+import { useEffect, useState, useMemo, useRef, Dispatch, SetStateAction, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowUp, Send } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -145,7 +145,7 @@ export default function FeedPage() {
   }, [posts, users]);
 
 
-  const navigateStory = (direction: 'next' | 'prev') => {
+  const navigateStory = useCallback((direction: 'next' | 'prev') => {
     if (!storyModalContent || currentUserStories.length === 0) {
       setIsStoryModalOpen(false);
       return;
@@ -175,9 +175,10 @@ export default function FeedPage() {
     } else if (direction === 'prev' && newIndex < 0) {
       // At the beginning, do nothing
     }
-  };
+  }, [currentUserStories, currentStoryIndex, storyModalContent, setIsStoryModalOpen, setCurrentStoryIndex, setStoryModalContent, setStoryProgress, setStoryCommentInputVisible, setStoryCommentText]);
 
-  // Effect to reset states when story modal closes or user changes
+
+  // Effect to reset states when story modal closes
   useEffect(() => {
     if (!isStoryModalOpen) {
       setCurrentUserStories([]);
@@ -189,6 +190,7 @@ export default function FeedPage() {
         videoRef.current.pause();
         videoRef.current.src = ""; 
       }
+      setStoryProgress(0); 
     }
   }, [isStoryModalOpen]);
 
@@ -207,14 +209,17 @@ export default function FeedPage() {
         setStoryProgress((currentStep / steps) * 100);
         if (currentStep >= steps) {
           clearInterval(imageTimer!);
+          imageTimer = undefined;
           navigateStory('next');
         }
       }, interval);
     }
     return () => {
-      if (imageTimer) clearInterval(imageTimer);
+      if (imageTimer) {
+        clearInterval(imageTimer);
+      }
     };
-  }, [isStoryModalOpen, storyModalContent?.post.id, currentStoryIndex]); 
+  }, [isStoryModalOpen, storyModalContent?.post.id, currentStoryIndex, navigateStory]); 
 
   // Effect for Video Story Autoplay/Reset on Story Change
   useEffect(() => {
@@ -402,12 +407,11 @@ export default function FeedPage() {
 
     const deltaY = touchStartY.current - touchCurrentY.current;
 
-    if (deltaY > SWIPE_THRESHOLD) { // Swiped up
+    if (deltaY > SWIPE_THRESHOLD) { 
       setStoryCommentInputVisible(true);
-    } else if (deltaY < -SWIPE_THRESHOLD && storyCommentInputVisible) { // Swiped down and comment input is visible
+    } else if (deltaY < -SWIPE_THRESHOLD && storyCommentInputVisible) { 
       setStoryCommentInputVisible(false);
     }
-
 
     touchStartY.current = null;
     touchCurrentY.current = null;
@@ -506,7 +510,7 @@ export default function FeedPage() {
                     {currentUserStories.map((_, index) => (
                       <div key={index} className="flex-1 bg-white/30 rounded-full overflow-hidden">
                         {index === currentStoryIndex && storyModalContent.post.mediaMimeType?.startsWith('image/') && (
-                           <div className="h-full bg-white rounded-full" style={{ width: `${storyProgress}%`, transition: 'width 0.05s linear' }}></div>
+                           <div className="h-full bg-white rounded-full" style={{ width: `${storyProgress}%` }}></div>
                         )}
                         {index === currentStoryIndex && storyModalContent.post.mediaMimeType?.startsWith('video/') && (
                            <div className="h-full bg-white rounded-full w-full"></div>
