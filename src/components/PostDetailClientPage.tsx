@@ -435,7 +435,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
 
   if (!post || !author) {
     return (
-      <div className="container mx-auto max-w-2xl py-8 text-center">
+      <div className="w-full max-w-2xl mx-auto py-8 text-center">
         <p className="font-headline text-xl">Memuat postingan...</p>
       </div>
     );
@@ -453,7 +453,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
 
   return (
     <>
-    <div className="container mx-auto max-w-2xl py-8">
+    <div className="w-full max-w-2xl mx-auto py-8">
       <Card className="w-full shadow-lg rounded-xl overflow-hidden bg-card">
         <CardHeader className="flex flex-row items-center justify-between p-4">
           <div className="flex items-center gap-3">
@@ -689,4 +689,6 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
     </>
   );
 }
+    
+
     
