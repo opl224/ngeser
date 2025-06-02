@@ -170,7 +170,6 @@ export default function FeedPage() {
       setStoryProgress(0);
       setStoryCommentInputVisible(false);
       setStoryCommentText("");
-      // setIsStoryVideoManuallyPaused(false); // Handled by specific video effect
     } else if (direction === 'next' && newIndex >= currentUserStories.length) {
       setIsStoryModalOpen(false);
     } else if (direction === 'prev' && newIndex < 0) {
@@ -188,7 +187,7 @@ export default function FeedPage() {
       setIsStoryVideoManuallyPaused(false);
       if (videoRef.current) {
         videoRef.current.pause();
-        videoRef.current.src = ""; // Clear src to stop loading/buffering
+        videoRef.current.src = ""; 
       }
     }
   }, [isStoryModalOpen]);
@@ -215,12 +214,12 @@ export default function FeedPage() {
     return () => {
       if (imageTimer) clearInterval(imageTimer);
     };
-  }, [isStoryModalOpen, storyModalContent?.post.id, currentStoryIndex]); // storyModalContent.post.id ensures it reruns for new image
+  }, [isStoryModalOpen, storyModalContent?.post.id, currentStoryIndex]); 
 
   // Effect for Video Story Autoplay/Reset on Story Change
   useEffect(() => {
     if (isStoryModalOpen && storyModalContent?.post.mediaMimeType?.startsWith('video/') && videoRef.current) {
-      setIsStoryVideoManuallyPaused(false); // Reset manual pause for a new story
+      setIsStoryVideoManuallyPaused(false); 
       const playPromise = videoRef.current.play();
       if (playPromise !== undefined) {
         playPromise.catch(error => {
@@ -228,7 +227,7 @@ export default function FeedPage() {
         });
       }
     }
-  }, [isStoryModalOpen, storyModalContent?.post.id, storyModalContent?.post.mediaUrl]); // Key dependencies for new video
+  }, [isStoryModalOpen, storyModalContent?.post.id, storyModalContent?.post.mediaUrl]); 
 
   // Effect to Pause/Resume Video based on storyCommentInputVisible
   useEffect(() => {
@@ -238,7 +237,6 @@ export default function FeedPage() {
           videoRef.current.pause();
         }
       } else {
-        // Comment input is hidden. Resume video ONLY IF it wasn't manually paused by the user.
         if (videoRef.current.paused && !isStoryVideoManuallyPaused) {
           videoRef.current.play().catch(e => console.error("Error resuming video:", e));
         }
@@ -406,7 +404,10 @@ export default function FeedPage() {
 
     if (deltaY > SWIPE_THRESHOLD) { // Swiped up
       setStoryCommentInputVisible(true);
+    } else if (deltaY < -SWIPE_THRESHOLD && storyCommentInputVisible) { // Swiped down and comment input is visible
+      setStoryCommentInputVisible(false);
     }
+
 
     touchStartY.current = null;
     touchCurrentY.current = null;
@@ -508,7 +509,6 @@ export default function FeedPage() {
                            <div className="h-full bg-white rounded-full" style={{ width: `${storyProgress}%`, transition: 'width 0.05s linear' }}></div>
                         )}
                         {index === currentStoryIndex && storyModalContent.post.mediaMimeType?.startsWith('video/') && (
-                           // Video progress can be handled by the video element's own UI if controls are shown, or custom if needed
                            <div className="h-full bg-white rounded-full w-full"></div>
                         )}
                         {index < currentStoryIndex && (
@@ -556,16 +556,14 @@ export default function FeedPage() {
                   />
                 ) : storyModalContent.post.mediaMimeType?.startsWith('video/') ? (
                   <video
-                    key={storyModalContent.post.id} // Key is important for re-mounting on story change
+                    key={storyModalContent.post.id} 
                     ref={videoRef}
-                    src={storyModalContent.post.mediaUrl} // Src is directly set
-                    playsInline // Important for mobile
+                    src={storyModalContent.post.mediaUrl} 
+                    playsInline 
                     className="w-full h-full object-contain"
                     data-ai-hint="story content video"
                     onEnded={() => navigateStory('next')}
-                    onClick={handleVideoClick} // For tap to play/pause
-                    // controls // Remove default controls, we manage them
-                    // autoPlay // Remove autoplay, manage programmatically
+                    onClick={handleVideoClick} 
                   />
                 ) : (
                   <p className="text-center">Format media tidak didukung.</p>
@@ -579,7 +577,7 @@ export default function FeedPage() {
               )}
             </div>
           )}
-          {isStoryModalOpen && storyModalContent && storyCommentInputVisible && currentSessionUser && ( // Show comment input for both image and video
+          {isStoryModalOpen && storyModalContent && storyCommentInputVisible && currentSessionUser && ( 
             <div className="absolute bottom-0 left-0 right-0 p-3 bg-background/80 backdrop-blur-sm z-30 sm:hidden flex items-start gap-2">
               <Avatar className="h-8 w-8 mt-1">
                 <AvatarImage src={currentSessionUser.avatarUrl} alt={currentSessionUser.username} data-ai-hint="user avatar small" />
@@ -602,3 +600,5 @@ export default function FeedPage() {
     </div>
   );
 }
+
+    
