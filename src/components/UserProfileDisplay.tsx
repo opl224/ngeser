@@ -71,7 +71,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   
   const [allUsers, setAllUsers] = useLocalStorageState<User[]>('users', initialUsers);
   const [allPosts, setAllPosts] = useLocalStorageState<Post[]>('posts', initialPosts);
-  const [notifications, setNotifications] = useLocalStorageState<Notification[]>('notifications', initialNotifications); // eslint-disable-line @typescript-eslint/no-unused-vars
+  const [notifications, setNotifications] = useLocalStorageState<Notification[]>('notifications', initialNotifications); 
   
   const [currentSessionUserId, setCurrentSessionUserId] = useState<string | null>(null);
   const { toast } = useToast();
@@ -395,10 +395,23 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       <AlertDialog>
         <Card className="mb-8 shadow-lg rounded-xl overflow-hidden">
           <CardHeader className="p-6 bg-card flex flex-col md:flex-row items-center gap-6 relative">
-            <Avatar className="h-28 w-28 md:h-36 md:w-36 border-4 border-primary shadow-md">
-              <AvatarImage src={profileUser.avatarUrl} alt={profileUser.username} data-ai-hint="portrait person large" />
-              <AvatarFallback className="text-4xl font-headline">{profileUser.username.substring(0, 2).toUpperCase()}</AvatarFallback>
-            </Avatar>
+            <div className="relative">
+              <Avatar className="h-28 w-28 md:h-36 md:w-36 border-4 border-primary shadow-md">
+                <AvatarImage src={profileUser.avatarUrl} alt={profileUser.username} data-ai-hint="portrait person large" />
+                <AvatarFallback className="text-4xl font-headline">{profileUser.username.substring(0, 2).toUpperCase()}</AvatarFallback>
+              </Avatar>
+              {isCurrentUserProfile && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleOpenEditModal}
+                  className="absolute -bottom-2 -right-2 h-9 w-9 rounded-full p-2 bg-background border-2 border-primary/70 shadow-md md:hidden hover:bg-accent"
+                  aria-label="Edit Profil"
+                >
+                  <Edit3 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
             <div className="flex-1 text-center md:text-left">
               <CardTitle className="font-headline text-3xl md:text-4xl text-foreground">{profileUser.username}</CardTitle>
               {profileUser.bio && <p className="text-muted-foreground mt-2 font-body text-sm md:text-base">{profileUser.bio}</p>}
@@ -414,6 +427,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                   variant="outline"
                   size="sm"
                   onClick={handleOpenEditModal}
+                  className="hidden md:inline-flex"
                 >
                   <Edit3 className="h-4 w-4 md:mr-2" />
                   <span className="hidden md:inline">Edit Profil</span>
