@@ -215,6 +215,20 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
   const handleLogoutAndSaveData = () => {
     if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('users', JSON.stringify(allUsers));
+        localStorage.setItem('posts', JSON.stringify(allPosts));
+      } catch (error) {
+        console.error("Error saving data to localStorage on logout:", error);
+        toast({
+          title: "Kesalahan Penyimpanan",
+          description: "Gagal menyimpan data Anda sebelum keluar.",
+          variant: "destructive",
+        });
+        // Optionally, we might not want to proceed with logout if saving fails.
+        // For now, we'll proceed but show an error.
+      }
+
       window.dispatchEvent(new CustomEvent('authChange'));
       localStorage.removeItem('currentUserId');
     }
