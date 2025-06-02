@@ -64,12 +64,67 @@ function createAndAddNotification(
   setNotifications(prev => [notification, ...prev]);
 }
 
+// Helper to find any comment (root or nested) by its ID
+function findComment(comments: CommentType[], targetId: string): CommentType | null {
+  for (const comment of comments) {
+    if (comment.id === targetId) return comment;
+    if (comment.replies && comment.replies.length > 0) {
+      const foundInReplies = findComment(comment.replies, targetId);
+      if (foundInReplies) return foundInReplies;
+    }
+  }
+  return null;
+}
+
+// Helper to find the root parent ID of a comment thread
+function getRootParentId(allRootComments: CommentType[], commentIdToFindRootFor: string): string {
+  let safety = 0;
+  const maxDepth = 100; // Safety break for excessively deep (or circular) structures
+
+  let currentComment = findComment(allRootComments, commentIdToFindRootFor);
+
+  if (!currentComment) {
+    // Fallback: if the comment itself is not found, treat it as if it's a root for itself.
+    // This shouldn't happen with valid data.
+    return commentIdToFindRootFor;
+  }
+
+  // If the comment being replied to is already a root comment, its ID is the root parent ID.
+  if (currentComment.parentId === null) {
+    return currentComment.id;
+  }
+
+  // Otherwise, traverse up to find the ultimate root parent.
+  let rootCandidateId = currentComment.parentId; 
+  
+  while(safety < maxDepth) {
+    const parentOfCandidate = findComment(allRootComments, rootCandidateId);
+    if (!parentOfCandidate || parentOfCandidate.parentId === null) {
+      // Found the root comment, or parentOfCandidate is itself a root.
+      break;
+    }
+    rootCandidateId = parentOfCandidate.parentId;
+    safety++;
+  }
+  return rootCandidateId;
+}
+
+// Helper to add a reply to the correct root comment's replies array
+const addReplyToRootComment = (rootComments: CommentType[], rootCommentId: string, newReply: CommentType): CommentType[] => {
+  return rootComments.map(comment => {
+    if (comment.id === rootCommentId) {
+      return { ...comment, replies: [...(comment.replies || []), newReply] };
+    }
+    return comment;
+  });
+};
+
 
 interface CommentItemProps {
   comment: CommentType;
   allUsers: User[];
   currentUserId: string | null;
-  onReply: (commentId: string, text: string) => void;
+  onReply: (commentId: string, text: string) => void; // commentId is the ID of the comment being replied to
   level?: number;
 }
 
@@ -80,7 +135,7 @@ function CommentItem({ comment, allUsers, currentUserId, onReply, level = 0 }: C
 
   const handleReplySubmit = () => {
     if (replyText.trim() && currentUserId) {
-      onReply(comment.id, replyText.trim());
+      onReply(comment.id, replyText.trim()); // Pass ID of the comment being replied to
       setReplyText('');
       setShowReplyForm(false);
     }
@@ -122,7 +177,8 @@ function CommentItem({ comment, allUsers, currentUserId, onReply, level = 0 }: C
           <Button size="sm" onClick={handleReplySubmit} disabled={!replyText.trim()}><Send className="h-4 w-4"/></Button>
         </div>
       )}
-      {comment.replies && comment.replies.length > 0 && (
+      {/* Render replies if they exist. With new logic, only level 0 comments will have replies. */}
+      {comment.replies && comment.replies.length > 0 && level === 0 && (
         <div className="mt-2">
           {comment.replies.map(reply => (
             <CommentItem key={reply.id} comment={reply} allUsers={allUsers} currentUserId={currentUserId} onReply={onReply} level={level + 1} />
@@ -225,19 +281,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
     });
   };
 
-  const addCommentToThread = (comments: CommentType[], parentId: string, newReply: CommentType): CommentType[] => {
-    return comments.map(comment => {
-      if (comment.id === parentId) {
-        return { ...comment, replies: [...(comment.replies || []), newReply] };
-      }
-      if (comment.replies && comment.replies.length > 0) {
-        return { ...comment, replies: addCommentToThread(comment.replies, parentId, newReply) };
-      }
-      return comment;
-    });
-  };
-
-  const handleAddComment = (text: string, parentId?: string) => {
+  const handleAddComment = (text: string, replyToCommentId?: string) => {
     if (!post || !currentUserId || !text.trim()) return;
 
     const newComment: CommentType = {
@@ -246,52 +290,64 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
       userId: currentUserId,
       text: text.trim(),
       timestamp: new Date().toISOString(),
-      parentId: parentId || null,
-      replies: [],
+      parentId: null, // Will be set below
+      replies: [], // New comments (even replies) won't have sub-replies initially
     };
 
     setAllPosts(prevPosts => {
       return prevPosts.map(p => {
         if (p.id === post.id) {
           let updatedComments;
-          if (parentId) {
-            updatedComments = addCommentToThread(p.comments, parentId, newComment);
-          } else {
-            updatedComments = [...p.comments, newComment];
-          }
-          const updatedPostResult = { ...p, comments: updatedComments };
-
-          if (p.userId !== currentUserId) {
-            createAndAddNotification(setNotifications, {
-              recipientUserId: p.userId,
-              actorUserId: currentUserId,
-              type: parentId ? 'reply' : 'comment',
-              postId: p.id,
-              commentId: newComment.id, 
-              postMediaUrl: p.mediaUrl,
-            });
-          }
-
-          if (parentId) {
-            const parentComment = p.comments.find(c => c.id === parentId) || 
-                                  p.comments.flatMap(c => c.replies || []).find(r => r.id === parentId);
-            if (parentComment && parentComment.userId !== currentUserId && parentComment.userId !== p.userId) {
+          if (replyToCommentId) { // This is a reply action
+            const structuralParentId = getRootParentId(p.comments, replyToCommentId);
+            newComment.parentId = structuralParentId; // Reply is structurally child of the root comment
+            updatedComments = addReplyToRootComment(p.comments, structuralParentId, newComment);
+            
+            // Notify post author (if not self)
+            if (p.userId !== currentUserId) {
               createAndAddNotification(setNotifications, {
-                recipientUserId: parentComment.userId,
+                recipientUserId: p.userId,
                 actorUserId: currentUserId,
-                type: 'reply',
+                type: 'comment', // Or 'reply' - for post author, any sub-activity is like a comment
                 postId: p.id,
-                commentId: parentId, 
+                commentId: newComment.id,
                 postMediaUrl: p.mediaUrl,
               });
             }
+            // Notify author of the comment that was directly replied to
+            const directlyRepliedToComment = findComment(p.comments, replyToCommentId);
+            if (directlyRepliedToComment && directlyRepliedToComment.userId !== currentUserId && directlyRepliedToComment.userId !== p.userId) {
+              createAndAddNotification(setNotifications, {
+                recipientUserId: directlyRepliedToComment.userId,
+                actorUserId: currentUserId,
+                type: 'reply',
+                postId: p.id,
+                commentId: replyToCommentId, // ID of the comment that received the direct reply
+                postMediaUrl: p.mediaUrl,
+              });
+            }
+          } else { // This is a new top-level comment
+            newComment.parentId = null;
+            updatedComments = [...p.comments, newComment];
+            // Notify post author (if not self)
+             if (p.userId !== currentUserId) {
+                createAndAddNotification(setNotifications, {
+                    recipientUserId: p.userId,
+                    actorUserId: currentUserId,
+                    type: 'comment',
+                    postId: p.id,
+                    commentId: newComment.id, 
+                    postMediaUrl: p.mediaUrl,
+                });
+            }
           }
-          return updatedPostResult;
+          return { ...p, comments: updatedComments };
         }
         return p;
       });
     });
-    if (!parentId) setNewCommentText('');
+
+    if (!replyToCommentId) setNewCommentText(''); // Clear main input only if it was a top-level comment
     toast({ title: "Komentar ditambahkan!", description: "Komentar Anda telah diposting." });
   };
 
@@ -388,7 +444,8 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
   const isOwner = currentUserId === post.userId;
   const isLiked = currentUserId ? post.likes.includes(currentUserId) : false;
   const isSavedByCurrentUser = (currentUser?.savedPosts || []).includes(post.id);
-  const sortedRootComments = [...post.comments.filter(c => !c.parentId)].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  // Filter for top-level comments only for the main list
+  const sortedRootComments = [...post.comments.filter(c => c.parentId === null)].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   
   const isVideoContent = post.type === 'video' || post.type === 'reel' || (post.type === 'story' && post.mediaMimeType?.startsWith('video/'));
   const isImageContent = post.type === 'photo' || (post.type === 'story' && post.mediaMimeType?.startsWith('image/'));
@@ -560,7 +617,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
           {sortedRootComments.length > 0 ? (
             <div className="space-y-4">
               {sortedRootComments.map(comment => (
-                <CommentItem key={comment.id} comment={comment} allUsers={users} currentUserId={currentUserId} onReply={(parentId, text) => handleAddComment(text, parentId)} />
+                <CommentItem key={comment.id} comment={comment} allUsers={users} currentUserId={currentUserId} onReply={(replyToCmtId, text) => handleAddComment(text, replyToCmtId)} level={0} />
               ))}
             </div>
           ) : (
@@ -632,5 +689,4 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
     </>
   );
 }
-
     
