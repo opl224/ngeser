@@ -126,9 +126,7 @@ export function AppNavbar() {
           ))}
         </nav>
          
-         <div className="sm:hidden w-10 h-10"> 
-           {/* Placeholder div to maintain layout balance on mobile if needed, now empty as search icon is removed */}
-         </div>
+         {/* Removed the placeholder div that was here: <div className="sm:hidden w-10 h-10"></div> */}
 
       </div>
     </header>
