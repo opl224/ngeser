@@ -46,7 +46,7 @@ export default function FeedPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [posts, setPosts] = useLocalStorageState<Post[]>('posts', initialPosts);
-  const [users, setUsers] = useLocalStorageState<User[]>('users', initialUsers); 
+  const [users, setUsers] = useLocalStorageState<User[]>('users', initialUsers);
   const [notifications, setNotifications] = useLocalStorageState<Notification[]>('notifications', initialNotifications);
   const [currentUserId, setCurrentUserIdState] = useState<string | null>(null);
   const [authStatus, setAuthStatus] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
@@ -84,15 +84,15 @@ export default function FeedPage() {
       setAuthStatus('authenticated');
     }
   }, [router]);
-  
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedPosts = localStorage.getItem('posts');
-      if (storedPosts === null) { 
+      if (storedPosts === null) {
         localStorage.setItem('posts', JSON.stringify(initialPosts));
       }
       const storedUsers = localStorage.getItem('users');
-      if (storedUsers === null) { 
+      if (storedUsers === null) {
         localStorage.setItem('users', JSON.stringify(initialUsers));
       }
       const storedNotifications = localStorage.getItem('notifications');
@@ -100,8 +100,8 @@ export default function FeedPage() {
         localStorage.setItem('notifications', JSON.stringify(initialNotifications));
       }
     }
-  }, []); 
-  
+  }, []);
+
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 300) {
@@ -133,14 +133,14 @@ export default function FeedPage() {
     const usersFound = Object.keys(userStoryData)
         .map(userId => {
             const user = users.find(u => u.id === userId);
-            return user ? { 
-                ...user, 
+            return user ? {
+                ...user,
                 storyCount: userStoryData[userId].count,
-                latestStoryTimestamp: userStoryData[userId].latestTimestamp 
+                latestStoryTimestamp: userStoryData[userId].latestTimestamp
             } : null;
         })
         .filter(Boolean) as UserWithStoryCount[];
-    
+
     return usersFound.sort((a, b) => new Date(b.latestStoryTimestamp).getTime() - new Date(a.latestStoryTimestamp).getTime());
   }, [posts, users]);
 
@@ -167,24 +167,24 @@ export default function FeedPage() {
           post: currentUserStories[newIndex],
         };
       });
-      setStoryProgress(0); 
-      setStoryCommentInputVisible(false); 
+      setStoryProgress(0);
+      setStoryCommentInputVisible(false);
       setStoryCommentText("");
       // setIsStoryVideoManuallyPaused(false); // Handled by specific video effect
     } else if (direction === 'next' && newIndex >= currentUserStories.length) {
-      setIsStoryModalOpen(false); 
+      setIsStoryModalOpen(false);
     } else if (direction === 'prev' && newIndex < 0) {
       // At the beginning, do nothing
     }
   };
-  
+
   // Effect to reset states when story modal closes or user changes
   useEffect(() => {
     if (!isStoryModalOpen) {
       setCurrentUserStories([]);
       setCurrentStoryIndex(0);
-      setStoryCommentInputVisible(false); 
-      setStoryCommentText(""); 
+      setStoryCommentInputVisible(false);
+      setStoryCommentText("");
       setIsStoryVideoManuallyPaused(false);
       if (videoRef.current) {
         videoRef.current.pause();
@@ -268,7 +268,7 @@ export default function FeedPage() {
           const likes = isAlreadyLiked
             ? post.likes.filter(uid => uid !== currentUserId)
             : [...post.likes, currentUserId];
-          
+
           if (!isAlreadyLiked && post.userId !== currentUserId) {
              createAndAddNotification(setNotifications, {
                 recipientUserId: post.userId,
@@ -332,7 +332,7 @@ export default function FeedPage() {
   const handleToggleSavePost = (postId: string) => {
     if (!currentUserId) return;
     let toastInfoParcel: { title: string; description: string } | null = null;
-  
+
     setUsers(prevUsers => {
       const newUsers = prevUsers.map(user => {
         if (user.id === currentUserId) {
@@ -341,7 +341,7 @@ export default function FeedPage() {
           const newSavedPosts = isSaved
             ? currentSavedPosts.filter(id => id !== postId)
             : [...currentSavedPosts, postId];
-          
+
           if (isSaved) {
             toastInfoParcel = { title: "Postingan Dihapus", description: "Postingan telah dihapus dari daftar simpanan Anda." };
           } else {
@@ -353,7 +353,7 @@ export default function FeedPage() {
       });
       return newUsers;
     });
-  
+
     if (toastInfoParcel) {
       toast(toastInfoParcel);
     }
@@ -366,11 +366,11 @@ export default function FeedPage() {
   const handleStoryAvatarClick = (userId: string) => {
     const userWithStoryData = usersWithStories.find(u => u.id === userId);
     if (!userWithStoryData) return;
-  
+
     const userAllStories = posts
       .filter(p => p.userId === userId && p.type === 'story')
-      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()); 
-    
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
     if (userAllStories.length > 0) {
       setCurrentUserStories(userAllStories);
       setCurrentStoryIndex(0);
@@ -386,19 +386,17 @@ export default function FeedPage() {
   };
 
   const handleTouchStartStory = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (storyModalContent?.post.mediaMimeType?.startsWith('image/')) { // Only for images now, video tap handled by onClick
-      touchStartY.current = e.touches[0].clientY;
-      touchCurrentY.current = e.touches[0].clientY; 
-    }
+    touchStartY.current = e.touches[0].clientY;
+    touchCurrentY.current = e.touches[0].clientY;
   };
 
   const handleTouchMoveStory = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (touchStartY.current === null || !storyModalContent?.post.mediaMimeType?.startsWith('image/')) return;
+    if (touchStartY.current === null) return;
     touchCurrentY.current = e.touches[0].clientY;
   };
 
   const handleTouchEndStory = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (touchStartY.current === null || touchCurrentY.current === null || !storyModalContent?.post.mediaMimeType?.startsWith('image/')) {
+    if (touchStartY.current === null || touchCurrentY.current === null) {
       touchStartY.current = null;
       touchCurrentY.current = null;
       return;
@@ -416,9 +414,9 @@ export default function FeedPage() {
 
   const handlePostStoryComment = () => {
     if (!storyCommentText.trim() || !storyModalContent || !currentUserId) return;
-    
+
     handleAddComment(storyModalContent.post.id, storyCommentText.trim());
-    
+
     setStoryCommentText('');
     setStoryCommentInputVisible(false);
   };
@@ -451,16 +449,16 @@ export default function FeedPage() {
   return (
     <div className="w-full max-w-2xl mx-auto">
       {usersWithStories.length > 0 && <StoryAvatarReel usersWithStories={usersWithStories} onAvatarClick={handleStoryAvatarClick} />}
-      
+
       <h1 className="font-headline text-3xl text-foreground mb-8 text-center mt-6">Beranda Anda</h1>
       {sortedPosts.length > 0 ? (
         <div className="space-y-8">
           {sortedPosts.map(post => {
             const isSavedByCurrentUser = (currentUser?.savedPosts || []).includes(post.id);
             return (
-              <PostCard 
-                key={post.id} 
-                post={post} 
+              <PostCard
+                key={post.id}
+                post={post}
                 onLikePost={handleLikePost}
                 onAddComment={handleAddComment}
                 onUpdatePostCaption={handleUpdatePostCaption}
@@ -481,7 +479,7 @@ export default function FeedPage() {
         <Button
           onClick={scrollToTop}
           className="fixed bottom-6 right-6 rounded-full p-3 h-auto shadow-lg"
-          variant="default" 
+          variant="default"
           size="icon"
         >
           <ArrowUp className="h-6 w-6" />
@@ -493,27 +491,27 @@ export default function FeedPage() {
           {storyModalContent && currentUserStories.length > 0 && (
             <div
               className="relative w-full h-full"
-              onTouchStart={handleTouchStartStory} // Only for images now
-              onTouchMove={handleTouchMoveStory}   // Only for images now
-              onTouchEnd={handleTouchEndStory}     // Only for images now
+              onTouchStart={handleTouchStartStory}
+              onTouchMove={handleTouchMoveStory}
+              onTouchEnd={handleTouchEndStory}
             >
               <DialogHeader className="absolute top-0 left-0 right-0 px-3 pt-4 pb-3 z-20 bg-gradient-to-b from-black/60 to-transparent">
                  <DialogTitle className="sr-only">
                   Cerita oleh {storyModalContent.user.username}
                 </DialogTitle>
-                
+
                 {currentUserStories.length > 0 && (
                   <div className="flex space-x-1 mb-2 h-1 w-full">
                     {currentUserStories.map((_, index) => (
                       <div key={index} className="flex-1 bg-white/30 rounded-full overflow-hidden">
-                        {index === currentStoryIndex && storyModalContent.post.mediaMimeType?.startsWith('image/') && ( 
+                        {index === currentStoryIndex && storyModalContent.post.mediaMimeType?.startsWith('image/') && (
                            <div className="h-full bg-white rounded-full" style={{ width: `${storyProgress}%`, transition: 'width 0.05s linear' }}></div>
                         )}
                         {index === currentStoryIndex && storyModalContent.post.mediaMimeType?.startsWith('video/') && (
                            // Video progress can be handled by the video element's own UI if controls are shown, or custom if needed
-                           <div className="h-full bg-white rounded-full w-full"></div> 
+                           <div className="h-full bg-white rounded-full w-full"></div>
                         )}
-                        {index < currentStoryIndex && ( 
+                        {index < currentStoryIndex && (
                            <div className="h-full bg-white rounded-full w-full opacity-80"></div>
                         )}
                       </div>
@@ -531,7 +529,7 @@ export default function FeedPage() {
                   </span>
                 </div>
               </DialogHeader>
-              
+
               <div className="w-full h-full flex items-center justify-center relative">
                 <div
                   className="absolute left-0 top-0 h-full w-1/3 z-10 cursor-pointer"
@@ -547,24 +545,24 @@ export default function FeedPage() {
                 />
 
                 {storyModalContent.post.mediaMimeType?.startsWith('image/') ? (
-                  <Image 
+                  <Image
                     key={storyModalContent.post.id}
-                    src={storyModalContent.post.mediaUrl} 
-                    alt={storyModalContent.post.caption || 'Story image'} 
-                    layout="fill" 
+                    src={storyModalContent.post.mediaUrl}
+                    alt={storyModalContent.post.caption || 'Story image'}
+                    layout="fill"
                     objectFit="contain"
                     className="rounded-md"
                     data-ai-hint="story content image"
                   />
                 ) : storyModalContent.post.mediaMimeType?.startsWith('video/') ? (
-                  <video 
+                  <video
                     key={storyModalContent.post.id} // Key is important for re-mounting on story change
                     ref={videoRef}
                     src={storyModalContent.post.mediaUrl} // Src is directly set
                     playsInline // Important for mobile
                     className="w-full h-full object-contain"
                     data-ai-hint="story content video"
-                    onEnded={() => navigateStory('next')} 
+                    onEnded={() => navigateStory('next')}
                     onClick={handleVideoClick} // For tap to play/pause
                     // controls // Remove default controls, we manage them
                     // autoPlay // Remove autoplay, manage programmatically
@@ -573,7 +571,7 @@ export default function FeedPage() {
                   <p className="text-center">Format media tidak didukung.</p>
                 )}
               </div>
-              
+
               {storyModalContent.post.caption && !storyCommentInputVisible && (
                 <div className="absolute bottom-0 left-0 right-0 p-3 z-20 bg-gradient-to-t from-black/60 to-transparent">
                   <p className="text-xs text-white text-center">{storyModalContent.post.caption}</p>
@@ -604,4 +602,3 @@ export default function FeedPage() {
     </div>
   );
 }
-
