@@ -5,9 +5,9 @@ import { PostCard } from '@/components/PostCard';
 import type { Post, Comment as CommentType, User } from '@/lib/types';
 import { initialPosts, initialUsers, getCurrentUserId } from '@/lib/data';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowUp } from 'lucide-react';
+import { ArrowUp, Send } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
@@ -17,7 +17,8 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';
 import { id as localeID } from 'date-fns/locale';
-// Progress component is not used directly in this file for story progress, manual divs are used.
+import { Textarea } from '@/components/ui/textarea';
+
 
 interface UserWithStoryCount extends User {
   storyCount: number;
@@ -38,6 +39,19 @@ export default function FeedPage() {
   const [storyProgress, setStoryProgress] = useState(0);
   const [currentUserStories, setCurrentUserStories] = useState<Post[]>([]);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
+
+  // For story comment swipe
+  const [storyCommentInputVisible, setStoryCommentInputVisible] = useState(false);
+  const [storyCommentText, setStoryCommentText] = useState('');
+  const touchStartY = useRef<number | null>(null);
+  const touchCurrentY = useRef<number | null>(null);
+  const SWIPE_THRESHOLD = 50; // pixels
+
+  const currentSessionUser = useMemo(() => {
+    if (!currentUserId || !users) return null;
+    return users.find(u => u.id === currentUserId);
+  }, [currentUserId, users]);
+
 
   useEffect(() => {
     const id = getCurrentUserId();
@@ -129,17 +143,24 @@ export default function FeedPage() {
         };
       });
       setStoryProgress(0); 
+      setStoryCommentInputVisible(false); // Hide comment input when story changes
+      setStoryCommentText("");
     } else if (direction === 'next' && newIndex >= currentUserStories.length) {
-      setIsStoryModalOpen(false);
-      setCurrentUserStories([]);
-      setCurrentStoryIndex(0);
+      setIsStoryModalOpen(false); // This will trigger the useEffect to reset states
     } else if (direction === 'prev' && newIndex < 0) {
-      // At the beginning, do nothing or optionally close
-       // setIsStoryModalOpen(false); 
-       // setCurrentUserStories([]);
-       // setCurrentStoryIndex(0);
+      // At the beginning, do nothing
     }
   };
+  
+  useEffect(() => {
+    if (!isStoryModalOpen) {
+      setCurrentUserStories([]);
+      setCurrentStoryIndex(0);
+      setStoryCommentInputVisible(false); 
+      setStoryCommentText(""); 
+    }
+  }, [isStoryModalOpen]);
+
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -155,7 +176,7 @@ export default function FeedPage() {
         setStoryProgress((currentStep / steps) * 100);
         if (currentStep >= steps) {
           clearInterval(timer);
-          navigateStory('next'); // Auto-advance
+          navigateStory('next'); 
         }
       }, interval);
     }
@@ -250,7 +271,7 @@ export default function FeedPage() {
   
     const userAllStories = posts
       .filter(p => p.userId === userId && p.type === 'story')
-      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()); // Sort oldest to newest for sequential playback
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()); 
     
     if (userAllStories.length > 0) {
       setCurrentUserStories(userAllStories);
@@ -258,9 +279,53 @@ export default function FeedPage() {
       setStoryModalContent({ user: userWithStoryData, post: userAllStories[0], storyCount: userAllStories.length });
       setIsStoryModalOpen(true);
       setStoryProgress(0);
+      setStoryCommentInputVisible(false);
+      setStoryCommentText("");
     } else {
       toast({ title: "Tidak ada cerita", description: "Tidak ada cerita aktif dari pengguna ini untuk ditampilkan.", variant: "default" });
     }
+  };
+
+  const handleTouchStartStory = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (storyModalContent?.post.mediaMimeType?.startsWith('image/')) {
+      touchStartY.current = e.touches[0].clientY;
+      touchCurrentY.current = e.touches[0].clientY; // Initialize currentY
+    }
+  };
+
+  const handleTouchMoveStory = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (touchStartY.current === null || !storyModalContent?.post.mediaMimeType?.startsWith('image/')) return;
+    touchCurrentY.current = e.touches[0].clientY;
+    // Optional: Prevent scroll if swipe is significant, but be careful not to break other interactions
+    // if (Math.abs(touchStartY.current - e.touches[0].clientY) > 10) {
+    //   e.preventDefault();
+    // }
+  };
+
+  const handleTouchEndStory = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (touchStartY.current === null || touchCurrentY.current === null || !storyModalContent?.post.mediaMimeType?.startsWith('image/')) {
+      touchStartY.current = null;
+      touchCurrentY.current = null;
+      return;
+    }
+
+    const deltaY = touchStartY.current - touchCurrentY.current;
+
+    if (deltaY > SWIPE_THRESHOLD) { // Swiped up
+      setStoryCommentInputVisible(true);
+    }
+
+    touchStartY.current = null;
+    touchCurrentY.current = null;
+  };
+
+  const handlePostStoryComment = () => {
+    if (!storyCommentText.trim() || !storyModalContent || !currentUserId) return;
+    
+    handleAddComment(storyModalContent.post.id, storyCommentText.trim());
+    
+    setStoryCommentText('');
+    setStoryCommentInputVisible(false);
   };
 
 
@@ -328,16 +393,15 @@ export default function FeedPage() {
         </Button>
       )}
 
-      <Dialog open={isStoryModalOpen} onOpenChange={(isOpen) => {
-        setIsStoryModalOpen(isOpen);
-        if (!isOpen) {
-          setCurrentUserStories([]);
-          setCurrentStoryIndex(0);
-        }
-      }}>
+      <Dialog open={isStoryModalOpen} onOpenChange={setIsStoryModalOpen}>
         <DialogContent className="p-0 bg-black text-white w-full h-full sm:max-w-sm sm:h-auto sm:aspect-[9/16] sm:rounded-lg flex flex-col items-center justify-center overflow-hidden">
           {storyModalContent && currentUserStories.length > 0 && (
-            <div className="relative w-full h-full">
+            <div
+              className="relative w-full h-full"
+              onTouchStart={handleTouchStartStory}
+              onTouchMove={handleTouchMoveStory}
+              onTouchEnd={handleTouchEndStory}
+            >
               <DialogHeader className="absolute top-0 left-0 right-0 px-3 pt-4 pb-3 z-20 bg-gradient-to-b from-black/60 to-transparent">
                  <DialogTitle className="sr-only">
                   Cerita oleh {storyModalContent.user.username}
@@ -353,10 +417,9 @@ export default function FeedPage() {
                         {index === currentStoryIndex && storyModalContent.post.mediaMimeType?.startsWith('video/') && (
                            <div className="h-full bg-white rounded-full w-full"></div> 
                         )}
-                        {index < currentStoryIndex && ( // Viewed stories
+                        {index < currentStoryIndex && ( 
                            <div className="h-full bg-white rounded-full w-full opacity-80"></div>
                         )}
-                        {/* Upcoming stories (index > currentStoryIndex) will be just bg-white/30 from parent */}
                       </div>
                     ))}
                   </div>
@@ -374,7 +437,6 @@ export default function FeedPage() {
               </DialogHeader>
               
               <div className="w-full h-full flex items-center justify-center relative">
-                {/* Navigation Overlays */}
                 <div
                   className="absolute left-0 top-0 h-full w-1/3 z-10 cursor-pointer"
                   onClick={() => navigateStory('prev')}
@@ -388,7 +450,6 @@ export default function FeedPage() {
                   aria-label="Cerita Berikutnya"
                 />
 
-                {/* Media content */}
                 {storyModalContent.post.mediaMimeType?.startsWith('image/') ? (
                   <Image 
                     key={storyModalContent.post.id}
@@ -408,18 +469,36 @@ export default function FeedPage() {
                     playsInline
                     className="w-full h-full object-contain"
                     data-ai-hint="story content video"
-                    onEnded={() => navigateStory('next')} // Auto-advance video
+                    onEnded={() => navigateStory('next')} 
                   />
                 ) : (
                   <p className="text-center">Format media tidak didukung.</p>
                 )}
               </div>
               
-              {storyModalContent.post.caption && (
+              {storyModalContent.post.caption && !storyCommentInputVisible && (
                 <div className="absolute bottom-0 left-0 right-0 p-3 z-20 bg-gradient-to-t from-black/60 to-transparent">
                   <p className="text-xs text-white text-center">{storyModalContent.post.caption}</p>
                 </div>
               )}
+            </div>
+          )}
+          {isStoryModalOpen && storyModalContent && storyCommentInputVisible && currentSessionUser && storyModalContent.post.mediaMimeType?.startsWith('image/') && (
+            <div className="absolute bottom-0 left-0 right-0 p-3 bg-background/80 backdrop-blur-sm z-30 sm:hidden flex items-start gap-2">
+              <Avatar className="h-8 w-8 mt-1">
+                <AvatarImage src={currentSessionUser.avatarUrl} alt={currentSessionUser.username} data-ai-hint="user avatar small" />
+                <AvatarFallback>{currentSessionUser.username.substring(0,1).toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <Textarea
+                placeholder={`Balas cerita ${storyModalContent?.user.username}...`}
+                value={storyCommentText}
+                onChange={(e) => setStoryCommentText(e.target.value)}
+                className="text-sm min-h-[40px] flex-grow resize-none bg-white/20 text-white placeholder:text-gray-300 border-gray-400 focus:border-white"
+                rows={1}
+              />
+              <Button size="icon" onClick={handlePostStoryComment} disabled={!storyCommentText.trim()} className="h-10 w-10 bg-primary hover:bg-primary/80">
+                <Send className="h-4 w-4"/>
+              </Button>
             </div>
           )}
         </DialogContent>
