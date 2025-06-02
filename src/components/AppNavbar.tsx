@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { Home, PlusSquare, User, Film, LogIn, Search as SearchIconLucide } from 'lucide-react';
+import { Home, PlusSquare, User, Film, LogIn, Search as SearchIconLucide, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { usePathname, useRouter } from 'next/navigation';
@@ -107,27 +107,38 @@ export function AppNavbar() {
           </form>
         </div>
         
-        <nav className="items-center gap-1 sm:gap-0 flex-shrink-0 hidden sm:flex">
-          {allNavItems.map((item) => (
-            <Button
-              key={item.label}
-              variant="ghost"
-              asChild
-              className={cn(
-                "text-sm font-medium px-2 sm:px-3", 
-                pathname === item.href ? "text-primary hover:text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Link href={item.href} className="flex items-center gap-2"> 
-                <item.icon className="h-5 w-5" />
-                <span className="inline">{item.label}</span> 
-              </Link>
-            </Button>
-          ))}
-        </nav>
-         
-         {/* Removed the placeholder div that was here: <div className="sm:hidden w-10 h-10"></div> */}
-
+        <div className="flex items-center gap-x-1 sm:gap-x-2">
+            <nav className="items-center gap-1 sm:gap-0 flex-shrink-0 hidden sm:flex">
+            {allNavItems.map((item) => (
+                <Button
+                key={item.label}
+                variant="ghost"
+                asChild
+                className={cn(
+                    "text-sm font-medium px-2 sm:px-3", 
+                    pathname === item.href ? "text-primary hover:text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground"
+                )}
+                >
+                <Link href={item.href} className="flex items-center gap-2"> 
+                    <item.icon className="h-5 w-5" />
+                    <span className="inline">{item.label}</span> 
+                </Link>
+                </Button>
+            ))}
+            </nav>
+            
+            {currentUserId && (
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Notifikasi"
+                    className="text-muted-foreground hover:text-foreground"
+                    // onClick={() => router.push('/notifications')} // Akan ditambahkan nanti
+                >
+                    <Bell className="h-5 w-5" />
+                </Button>
+            )}
+        </div>
       </div>
     </header>
   );
