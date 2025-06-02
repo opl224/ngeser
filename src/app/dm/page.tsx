@@ -170,12 +170,6 @@ export default function DirectMessagesPage() {
         "w-full md:w-1/3 md:max-w-sm border-r border-border bg-card/30 flex flex-col",
         isMobileViewAndViewingMessages ? "hidden md:flex" : "flex"
       )}>
-        <CardHeader className="p-4 border-b border-border">
-          <CardTitle className="font-headline text-xl flex items-center gap-2">
-            <MessageSquare className="h-6 w-6 text-primary" />
-            Pesan Langsung
-          </CardTitle>
-        </CardHeader>
         <ScrollArea className="flex-1">
           {displayedConversations.length > 0 ? (
             displayedConversations.map(convo => (
@@ -255,7 +249,7 @@ export default function DirectMessagesPage() {
               })}
               <div ref={messagesEndRef} />
             </ScrollArea>
-            <form onSubmit={handleSendMessage} className="p-3 border-t border-border bg-card/50 flex items-center gap-2 sticky bottom-0">
+            <form onSubmit={handleSendMessage} className="p-3 border-t border-border bg-card/50 flex items-center gap-2 sticky bottom-0 z-10">
               <Input
                 type="text"
                 placeholder="Ketik pesan..."
