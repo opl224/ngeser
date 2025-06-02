@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import type { User } from '@/lib/types';
-import { initialUsers, getCurrentUserId } from '@/lib/data'; // initialUsers will be empty
+import { initialUsers, getCurrentUserId } from '@/lib/data'; 
 import { useToast } from "@/hooks/use-toast";
 import { Film, LogIn } from 'lucide-react';
 
@@ -39,7 +39,9 @@ export default function LoginPage() {
     }
     setIsLoading(true);
 
-    let targetUser = users.find(u => u.username.toLowerCase() === username.trim().toLowerCase());
+    // Ensure users is an array before calling find
+    const currentUsers = Array.isArray(users) ? users : [];
+    let targetUser = currentUsers.find(u => u.username.toLowerCase() === username.trim().toLowerCase());
 
     if (targetUser) {
       // User found
@@ -51,7 +53,7 @@ export default function LoginPage() {
         description: "Anda telah berhasil masuk.",
       });
     } else {
-      // Create new user
+      // Create new user because an existing one was not found
       const newUserId = `user-${Date.now()}`;
       const newUser: User = {
         id: newUserId,
@@ -63,10 +65,15 @@ export default function LoginPage() {
         savedPosts: [], 
       };
       
-      // For a new user, ensure they start with a clean slate.
-      // Set users to only the new user.
-      setUsers([newUser]); 
-      // Explicitly clear posts from localStorage.
+      // Add the new user to the existing list of users (or start a new list if it was empty/invalid)
+      // This prevents overwriting all existing users if a find operation fails.
+      setUsers(prevUsers => {
+        const existingUsers = Array.isArray(prevUsers) ? prevUsers : [];
+        return [...existingUsers, newUser];
+      }); 
+      
+      // Explicitly clear posts from localStorage for this new user session.
+      // This aligns with "bersihkan data dummy" for posts.
       if (typeof window !== 'undefined') {
         localStorage.setItem('posts', JSON.stringify([])); 
       }
