@@ -23,6 +23,8 @@ export default function RootLayout({
 }>) {
   const pathname = usePathname();
   const isDMPage = pathname === '/dm';
+  const isReelsPage = pathname === '/reels';
+  const hideNavbars = isDMPage || isReelsPage;
 
   return (
     <html lang="id" suppressHydrationWarning>
@@ -35,14 +37,14 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased min-h-screen flex flex-col bg-background">
-        {!isDMPage && <AppNavbar />}
+        {!hideNavbars && <AppNavbar />}
         <main className={cn(
           "flex-grow",
-          isDMPage ? "" : "container mx-auto px-4 pt-16 pb-20 sm:pb-8"
+          hideNavbars ? "" : "container mx-auto px-4 pt-16 pb-20 sm:pb-8"
         )}>
           {children}
         </main>
-        {!isDMPage && <BottomNavbar />}
+        {!hideNavbars && <BottomNavbar />}
         <Toaster />
       </body>
     </html>
