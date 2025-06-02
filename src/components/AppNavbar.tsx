@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { Home, PlusSquare, User, Film, LogIn, Search as SearchIconLucide, Bell } from 'lucide-react';
+import { Home, PlusSquare, User, Film, LogIn, Search as SearchIconLucide, Bell, Trash2, X as XIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { usePathname, useRouter } from 'next/navigation';
@@ -23,10 +23,12 @@ import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { formatDistanceToNow } from 'date-fns';
 import { id as localeID } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from "@/hooks/use-toast";
 
 export function AppNavbar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { toast } = useToast();
   const [currentUserId, setCurrentUserIdState] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -51,19 +53,19 @@ export function AppNavbar() {
   }, []); 
 
   const unreadNotifications = useMemo(() => {
-    if (!currentUserId) return [];
+    if (!currentUserId || !isClient) return [];
     return notifications.filter(n => n.recipientUserId === currentUserId && !n.isRead);
-  }, [notifications, currentUserId]);
+  }, [notifications, currentUserId, isClient]);
 
   const unreadCount = unreadNotifications.length;
 
   const sortedNotificationsForDisplay = useMemo(() => {
-    if (!currentUserId) return [];
+    if (!currentUserId || !isClient) return [];
     return notifications
       .filter(n => n.recipientUserId === currentUserId)
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, 10); // Display latest 10 notifications
-  }, [notifications, currentUserId]);
+      .slice(0, 10); 
+  }, [notifications, currentUserId, isClient]);
 
   const handleOpenNotifications = (open: boolean) => {
     if (open && unreadCount > 0 && currentUserId) {
@@ -73,6 +75,25 @@ export function AppNavbar() {
         )
       );
     }
+  };
+
+  const handleClearAllNotifications = () => {
+    if (!currentUserId) return;
+    setNotifications(prevNotifications =>
+      prevNotifications.filter(n => n.recipientUserId !== currentUserId)
+    );
+    toast({
+      title: "Notifikasi Dihapus",
+      description: "Semua notifikasi Anda telah dihapus.",
+    });
+  };
+
+  const handleDeleteNotification = (notificationId: string) => {
+    setNotifications(prevNotifications =>
+      prevNotifications.filter(n => n.id !== notificationId)
+    );
+    // Optional: toast for single delete, can be too noisy.
+    // toast({ title: "Notifikasi dihapus." });
   };
 
   const baseNavItems = [
@@ -187,7 +208,25 @@ export function AppNavbar() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-80 md:w-96 max-h-[70vh] overflow-y-auto">
-                  <DropdownMenuLabel className="font-headline">Notifikasi</DropdownMenuLabel>
+                  <DropdownMenuLabel className="font-headline">
+                    <div className="flex items-center justify-between">
+                      <span>Notifikasi</span>
+                      {sortedNotificationsForDisplay.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent dropdown from closing
+                            handleClearAllNotifications();
+                          }}
+                          aria-label="Hapus semua notifikasi"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {sortedNotificationsForDisplay.length > 0 ? (
                     sortedNotificationsForDisplay.map(notification => {
@@ -222,8 +261,8 @@ export function AppNavbar() {
                       }
 
                       return (
-                        <DropdownMenuItem key={notification.id} asChild className={`cursor-pointer ${!notification.isRead && isClient ? 'bg-primary/10 hover:!bg-primary/20' : 'hover:!bg-accent'}`}>
-                          <Link href={linkHref} className="flex items-start gap-3 p-2 w-full">
+                        <DropdownMenuItem key={notification.id} asChild className={cn("cursor-pointer group/notif-item", !notification.isRead && isClient ? 'bg-primary/10 hover:!bg-primary/20' : 'hover:!bg-accent/80')}>
+                          <Link href={linkHref} className="flex items-start gap-3 p-2 w-full relative">
                             <Avatar className="h-8 w-8 mt-0.5 flex-shrink-0">
                               <AvatarImage src={avatarSrc} alt={actor?.username || 'Notifikasi'} data-ai-hint="notification actor person"/>
                               <AvatarFallback>{avatarFallback}</AvatarFallback>
@@ -236,6 +275,19 @@ export function AppNavbar() {
                                 {isClient && formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true, locale: localeID })}
                               </p>
                             </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 absolute top-1 right-1 text-muted-foreground hover:text-destructive opacity-0 group-hover/notif-item:opacity-100 focus:opacity-100 transition-opacity"
+                              onClick={(e) => {
+                                e.preventDefault(); 
+                                e.stopPropagation(); 
+                                handleDeleteNotification(notification.id);
+                              }}
+                              aria-label="Hapus notifikasi ini"
+                            >
+                              <XIcon className="h-4 w-4" />
+                            </Button>
                           </Link>
                         </DropdownMenuItem>
                       );
@@ -245,17 +297,6 @@ export function AppNavbar() {
                       Tidak ada notifikasi.
                     </DropdownMenuItem>
                   )}
-                  {/* Placeholder for "View All Notifications" link if needed in future */}
-                  {/* {sortedNotificationsForDisplay.length > 0 && (
-                    <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem asChild>
-                            <Link href="/notifications" className="justify-center text-sm text-primary hover:underline w-full block text-center">
-                                Lihat Semua Notifikasi
-                            </Link>
-                        </DropdownMenuItem>
-                    </>
-                  )} */}
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
@@ -264,4 +305,3 @@ export function AppNavbar() {
     </header>
   );
 }
-
