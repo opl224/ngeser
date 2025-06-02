@@ -159,7 +159,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
   const [viewCountIncremented, setViewCountIncremented] = useState(false);
 
   useEffect(() => {
-    setViewCountIncremented(false);
+    setViewCountIncremented(false); // Reset when postId changes
   }, [postId]);
   
   useEffect(() => {
@@ -170,28 +170,30 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
       const foundPostGlobal = allPosts.find(p => p.id === postId);
 
       if (foundPostGlobal) {
+        // Update local state for display first
         setPost(foundPostGlobal);
         if (foundPostGlobal.caption !== editedCaption && !isEditingCaption) {
            setEditedCaption(foundPostGlobal.caption);
         }
         setAuthor(users.find(u => u.id === foundPostGlobal.userId) || null);
-        setShowVideoControls(false);
+        setShowVideoControls(false); // Reset video controls state
 
+        // Increment view count only if not already done for this instance/postId
         if (!viewCountIncremented) {
           const newViewCount = (foundPostGlobal.viewCount || 0) + 1;
-          setAllPosts(prevGlobalPosts =>
+          setAllPosts(prevGlobalPosts => 
             prevGlobalPosts.map(p =>
               p.id === postId ? { ...p, viewCount: newViewCount } : p
             )
           );
-          setViewCountIncremented(true);
+          setViewCountIncremented(true); // Mark as incremented for this load
         }
       } else {
         toast({ title: "Postingan tidak ditemukan", description: "Postingan yang Anda cari tidak ada atau telah dihapus.", variant: "destructive" });
         router.push('/');
       }
     }
-  }, [postId, allPosts, users, viewCountIncremented, setCurrentUserIdState, setAllPosts, router, toast, editedCaption, isEditingCaption]);
+  }, [postId, allPosts, users, viewCountIncremented, editedCaption, isEditingCaption, router, toast, setAllPosts, setCurrentUserIdState]);
 
 
   const currentUser = useMemo(() => {
