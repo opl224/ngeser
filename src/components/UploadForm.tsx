@@ -152,15 +152,15 @@ export function UploadForm() {
                   <RadioGroupItem value="reel" id="r-reel" />
                   <Label htmlFor="r-reel" className="flex items-center gap-1.5"><Film className="h-4 w-4"/> Reel</Label>
                 </div>
-                {mediaType === 'reel' && (
-                  <p className="text-xs text-muted-foreground mt-1 ml-6">maks 1 menit.</p>
-                )}
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="story" id="r-story" />
                 <Label htmlFor="r-story" className="flex items-center gap-1.5"><GalleryVerticalEnd className="h-4 w-4"/> Cerita</Label>
               </div>
             </RadioGroup>
+                {mediaType === 'reel' && (
+                  <p className="text-xs text-muted-foreground mt-1 ml-6">Durasi video maks 1 menit.</p>
+                )}
           </div>
 
           <div>

@@ -266,7 +266,7 @@ export function ReelCard({
 
         <button
             onClick={(e) => { e.stopPropagation(); toggleMute(); }}
-            className="absolute top-4 right-4 z-20 p-2 bg-black/40 rounded-full text-white md:hover:bg-black/60 transition-opacity opacity-0 md:group-hover/reel:opacity-100 focus-visible:opacity-100"
+            className="absolute top-4 right-4 z-20 p-2 bg-black/40 rounded-full text-white md:hover:bg-black/60 transition-opacity"
             aria-label={isMuted ? "Suarakan video" : "Bisukan video"}
         >
             {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
