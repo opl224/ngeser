@@ -70,6 +70,7 @@ export function AppNavbar() {
 
   const unreadNotifications = useMemo(() => {
     if (!currentUserId || !isClient) return [];
+    // Only count as unread if it's not a 'follow_request_handled' or if it is, its isRead is false (though we set it to true)
     return notifications.filter(n => n.recipientUserId === currentUserId && !n.isRead && n.type !== 'follow_request_handled');
   }, [notifications, currentUserId, isClient]);
 
@@ -87,7 +88,9 @@ export function AppNavbar() {
     if (open && unreadCount > 0 && currentUserId) {
       setNotifications(prevNotifications =>
         prevNotifications.map(n =>
-          n.recipientUserId === currentUserId && !n.isRead ? { ...n, isRead: true } : n
+          // Mark as read if it's for the current user, is unread, and is NOT a follow_request_handled
+          // (follow_request_handled are marked read upon actioning)
+          (n.recipientUserId === currentUserId && !n.isRead && n.type !== 'follow_request_handled') ? { ...n, isRead: true } : n
         )
       );
     }
@@ -150,7 +153,7 @@ export function AppNavbar() {
         type: 'follow_accepted' 
     });
     
-    toast({ title: "Permintaan Diterima", description: `Anda sekarang mengikuti ${requesterUser?.username || 'pengguna tersebut'}.` });
+    toast({ title: "Permintaan Diterima", description: `Kamu sekarang mengizinkan ${requesterUser?.username || 'pengguna tersebut'} untuk mengikutimu.` });
   };
 
   const handleDeclineFollowRequest = (requesterId: string, notificationId: string) => {
@@ -366,10 +369,11 @@ export function AppNavbar() {
                             break;
                           case 'follow_request_handled':
                             if (notification.processedState === 'accepted') {
-                                message = `Anda menerima permintaan mengikuti dari ${actor?.username || 'Seseorang'}.`;
+                                message = `Kamu menerima permintaan mengikuti dari ${actor?.username || 'Seseorang'}.`;
                             } else if (notification.processedState === 'declined') {
-                                message = `Anda menolak permintaan mengikuti dari ${actor?.username || 'Seseorang'}.`;
+                                message = `Kamu menolak permintaan mengikuti dari ${actor?.username || 'Seseorang'}.`;
                             } else {
+                                // Fallback, should ideally not be reached if processedState is always set
                                 message = `Permintaan mengikuti dari ${actor?.username || 'Seseorang'} telah diproses.`;
                             }
                             linkHref = actor ? `/profile/${actor.id}` : '/';
@@ -446,3 +450,4 @@ export function AppNavbar() {
     </header>
   );
 }
+
