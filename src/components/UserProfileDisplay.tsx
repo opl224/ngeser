@@ -44,6 +44,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { cn } from '@/lib/utils';
+import type React from 'react';
 
 
 interface UserProfileDisplayProps {
@@ -55,7 +56,7 @@ function createAndAddNotification(
   newNotificationData: Omit<Notification, 'id' | 'timestamp' | 'isRead'>
 ) {
   if (newNotificationData.actorUserId === newNotificationData.recipientUserId) {
-    return; 
+    return;
   }
   const notification: Notification = {
     ...newNotificationData,
@@ -69,11 +70,11 @@ function createAndAddNotification(
 
 export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const [profileUser, setProfileUser] = useState<User | null>(null);
-  
+
   const [allUsers, setAllUsers] = useLocalStorageState<User[]>('users', initialUsers);
   const [allPosts, setAllPosts] = useLocalStorageState<Post[]>('posts', initialPosts);
-  const [notifications, setNotifications] = useLocalStorageState<Notification[]>('notifications', initialNotifications); 
-  
+  const [notifications, setNotifications] = useLocalStorageState<Notification[]>('notifications', initialNotifications);
+
   const [currentSessionUserId, setCurrentSessionUserId] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
@@ -114,7 +115,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const userPosts = useMemo(() => allPosts
     .filter(p => p.userId === userId && p.type !== 'story')
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()), [allPosts, userId]);
-  
+
   const userStories = useMemo(() => allPosts
     .filter(p => p.userId === userId && p.type === 'story')
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()), [allPosts, userId]);
@@ -123,7 +124,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const currentSessionUser = useMemo(() => {
     return allUsers.find(u => u.id === currentSessionUserId);
   }, [allUsers, currentSessionUserId]);
-  
+
   const savedPostsForCurrentUser = useMemo(() => {
     if (!currentSessionUser) return [];
     return allPosts.filter(post => (currentSessionUser.savedPosts || []).includes(post.id))
@@ -141,7 +142,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     const hasSentRequest = CUIDUser.sentFollowRequests.includes(profileUser.id);
 
     if (profileUser.accountType === 'public') {
-      // Direct follow/unfollow for public accounts
       setAllUsers(prevUsers => prevUsers.map(u => {
         if (u.id === currentSessionUserId) {
           return { ...u, following: isAlreadyFollowing ? u.following.filter(id => id !== profileUser.id) : [...u.following, profileUser.id] };
@@ -194,7 +194,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           const likes = isAlreadyLiked
             ? post.likes.filter(uid => uid !== currentSessionUserId)
             : [...post.likes, currentSessionUserId];
-          
+
           if (!isAlreadyLiked && post.userId !== currentSessionUserId) {
              createAndAddNotification(setNotifications, {
                 recipientUserId: post.userId,
@@ -242,7 +242,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     );
     toast({ title: "Komentar Ditambahkan", description: "Komentar Anda telah diposting."});
   };
-  
+
   const handleUpdatePostCaptionOnProfile = (postId: string, newCaption: string) => {
     setAllPosts(prevPosts =>
       prevPosts.map(post =>
@@ -267,7 +267,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           const newSavedPosts = isSaved
             ? currentSavedPosts.filter(id => id !== postId)
             : [...currentSavedPosts, postId];
-          
+
           if (isSaved) {
             toastInfo = { title: "Postingan Dihapus dari Simpanan", description: "Postingan telah dihapus dari daftar simpanan Anda." };
           } else {
@@ -309,14 +309,14 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   };
 
   const handleLogoutAndDeleteAllData = () => {
-    setAllPosts([]); 
-    setAllUsers(initialUsers.map(u => ({...u, followers:[], following:[], savedPosts:[], accountType: 'public', pendingFollowRequests: [], sentFollowRequests: [] }))); 
+    setAllPosts([]);
+    setAllUsers(initialUsers.map(u => ({...u, followers:[], following:[], savedPosts:[], accountType: 'public', pendingFollowRequests: [], sentFollowRequests: [] })));
     setNotifications([]);
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('authChange'));
       localStorage.removeItem('currentUserId');
-      localStorage.setItem('posts', '[]'); 
-      localStorage.setItem('users', JSON.stringify(initialUsers.map(u => ({...u, followers:[], following:[], savedPosts:[], accountType: 'public', pendingFollowRequests: [], sentFollowRequests: [] })))); 
+      localStorage.setItem('posts', '[]');
+      localStorage.setItem('users', JSON.stringify(initialUsers.map(u => ({...u, followers:[], following:[], savedPosts:[], accountType: 'public', pendingFollowRequests: [], sentFollowRequests: [] }))));
       localStorage.setItem('notifications', '[]');
     }
     toast({
@@ -332,7 +332,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       setEditedUsername(profileUser.username);
       setEditedAvatarPreview(profileUser.avatarUrl);
       setEditedAccountType(profileUser.accountType || 'public');
-      setEditedAvatarFile(null); 
+      setEditedAvatarFile(null);
       setIsEditModalOpen(true);
     }
   };
@@ -377,7 +377,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         }
     }
 
-    setAllUsers(prevUsers => 
+    setAllUsers(prevUsers =>
       prevUsers.map(user => {
         if (user.id === currentSessionUserId) {
           return {
@@ -405,15 +405,16 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
   const isCurrentUserProfile = currentSessionUserId === profileUser.id;
   const isRequested = currentSessionUser?.sentFollowRequests?.includes(profileUser.id) || false;
-  
+
   let followButtonText = "Ikuti";
-  let followButtonIcon = UserPlus;
+  let FollowButtonIconComponent: React.ElementType = UserPlus;
+
   if (isCurrentUserFollowingProfile) {
     followButtonText = "Mengikuti";
-    followButtonIcon = UserCheck;
+    FollowButtonIconComponent = UserCheck;
   } else if (isRequested) {
     followButtonText = "Diminta";
-    // No specific icon for requested, UserPlus can remain or be null
+    FollowButtonIconComponent = UserPlus; // Or a different icon for "Requested" if desired
   }
 
 
@@ -475,7 +476,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="px-2 w-9" 
+                      className="px-2 w-9"
                     >
                       <Settings className="h-5 w-5" />
                     </Button>
@@ -489,7 +490,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                     <AlertDialogTrigger asChild>
                        <DropdownMenuItem
                         className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
-                        onSelect={(e) => e.preventDefault()} 
+                        onSelect={(e) => e.preventDefault()}
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
                         Keluar & Hapus Semua Data
@@ -498,10 +499,10 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-            ) : currentSessionUserId && ( 
+            ) : currentSessionUserId && (
                 <div className="flex w-full justify-center items-center gap-2 mt-4 md:w-auto md:absolute md:top-6 md:right-6 md:mt-0">
                     <Button onClick={handleFollowToggle} variant={isCurrentUserFollowingProfile ? "secondary" : "default"} size="sm" disabled={profileUser.accountType === 'private' && !isCurrentUserFollowingProfile && isRequested && !canViewProfileContent}>
-                      <followButtonIcon.type {...followButtonIcon.props} className="mr-2 h-4 w-4" />
+                      <FollowButtonIconComponent className="mr-2 h-4 w-4" />
                       {followButtonText}
                     </Button>
                     <Button onClick={handleSendMessage} variant="outline" size="sm" className="px-3">
@@ -517,7 +518,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           <AlertDialogHeader>
             <AlertDialogTitle className="font-headline">Anda yakin?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tindakan ini akan menghapus semua data postingan dan pengguna secara permanen dari aplikasi ini di browser Anda. 
+              Tindakan ini akan menghapus semua data postingan dan pengguna secara permanen dari aplikasi ini di browser Anda.
               Data tidak dapat dipulihkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -611,11 +612,11 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                 {allProfilePosts.map(post => {
                   const isSavedByCurrentSessUser = (currentSessionUser?.savedPosts || []).includes(post.id);
                   return(
-                  <PostCard 
-                    key={post.id} 
-                    post={post} 
-                    onLikePost={handleLikePost} 
-                    onAddComment={handleAddComment} 
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    onLikePost={handleLikePost}
+                    onAddComment={handleAddComment}
                     onUpdatePostCaption={handleUpdatePostCaptionOnProfile}
                     onDeletePost={handleDeletePostOnProfile}
                     onToggleSavePost={handleToggleSavePost}
@@ -706,3 +707,5 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
+
+    

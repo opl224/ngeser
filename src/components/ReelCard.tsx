@@ -16,6 +16,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { cn, formatTimestamp } from '@/lib/utils';
 import Image from 'next/image';
+import type React from 'react';
 
 
 interface ReelCommentItemProps {
@@ -38,8 +39,8 @@ function ReelCommentItem({ comment, allUsers, currentUserId, onReply, level = 0 
       setShowReplyForm(false);
     }
   };
-  
-  const paddingClasses = ['pl-0', 'pl-3', 'pl-6', 'pl-9']; 
+
+  const paddingClasses = ['pl-0', 'pl-3', 'pl-6', 'pl-9'];
   const currentPadding = paddingClasses[level] ?? `pl-${level * 3}`;
   const replyFormPadding = paddingClasses[level + 1] ?? `pl-${(level + 1) * 3}`;
 
@@ -59,7 +60,7 @@ function ReelCommentItem({ comment, allUsers, currentUserId, onReply, level = 0 
             <span className="text-xs text-muted-foreground ml-2">{formatTimestamp(comment.timestamp)}</span>
           </div>
           <p className="text-xs font-body mt-0.5 text-foreground/90">{comment.text}</p>
-           {currentUserId && level === 0 && ( 
+           {currentUserId && level === 0 && (
             <Button variant="link" size="xs" className="mt-0.5 text-xs text-muted-foreground hover:text-primary p-0 h-auto" onClick={() => setShowReplyForm(!showReplyForm)}>
               <CornerUpLeft className="h-2.5 w-2.5 mr-1"/> Balas
             </Button>
@@ -77,7 +78,7 @@ function ReelCommentItem({ comment, allUsers, currentUserId, onReply, level = 0 
           <Button size="icon" className="h-8 w-8" onClick={handleReplySubmit} disabled={!replyText.trim()}><Send className="h-3.5 w-3.5"/></Button>
         </div>
       )}
-      {comment.replies && comment.replies.length > 0 && level === 0 && ( 
+      {comment.replies && comment.replies.length > 0 && level === 0 && (
         <div className="mt-1.5">
           {comment.replies.map(reply => (
             <ReelCommentItem key={reply.id} comment={reply} allUsers={allUsers} currentUserId={currentUserId} onReply={onReply} level={level + 1} />
@@ -126,10 +127,10 @@ export function ReelCard({
   const { toast } = useToast();
 
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true); 
+  const [isMuted, setIsMuted] = useState(true);
   const [showCommentsSheet, setShowCommentsSheet] = useState(false);
   const [newCommentText, setNewCommentText] = useState('');
-  
+
   const [isEditCaptionDialogOpen, setIsEditCaptionDialogOpen] = useState(false);
   const [editedCaption, setEditedCaption] = useState(post.caption);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -140,20 +141,20 @@ export function ReelCard({
   useEffect(() => {
     if (videoRef.current) {
       if (isCurrentlyActive) {
-        setIsPlaying(true); 
+        setIsPlaying(true);
         videoRef.current.play().catch(error => {
-          setIsPlaying(false); 
-          setIsMuted(true); 
+          setIsPlaying(false);
+          setIsMuted(true);
         });
       } else {
         videoRef.current.pause();
         setIsPlaying(false);
-        videoRef.current.currentTime = 0; 
+        videoRef.current.currentTime = 0;
       }
       videoRef.current.muted = isMuted;
     }
   }, [isCurrentlyActive, isMuted]);
-  
+
   useEffect(() => {
     if (videoRef.current) {
         videoRef.current.muted = isMuted;
@@ -178,7 +179,7 @@ export function ReelCard({
 
   const handleCommentSheetOpenChange = (open: boolean) => {
     setShowCommentsSheet(open);
-    if (!open) setNewCommentText(''); 
+    if (!open) setNewCommentText('');
   };
 
   const handlePostComment = () => {
@@ -225,7 +226,7 @@ export function ReelCard({
     }
     setIsEditCaptionDialogOpen(false);
   };
-  
+
   const handleConfirmDelete = () => {
     onDeleteReel(post.id);
     setIsDeleteDialogOpen(false);
@@ -235,12 +236,13 @@ export function ReelCard({
   const totalCommentsAndReplies = post.comments.length + post.comments.reduce((acc, curr) => acc + (curr.replies?.length || 0), 0);
 
   let followButtonText = "Ikuti";
-  let followButtonIcon = UserPlus;
+  let CurrentFollowIcon: React.ElementType = UserPlus;
   if (isFollowingAuthor) {
     followButtonText = "Mengikuti";
-    followButtonIcon = UserCheck;
+    CurrentFollowIcon = UserCheck;
   } else if (hasSentRequestToAuthor) {
     followButtonText = "Diminta";
+    CurrentFollowIcon = UserPlus; // Or a different icon for "Requested"
   }
 
 
@@ -261,8 +263,8 @@ export function ReelCard({
             <Play className="h-16 w-16 text-white/70" />
           </div>
         )}
-        
-        <button 
+
+        <button
             onClick={(e) => { e.stopPropagation(); toggleMute(); }}
             className="absolute top-4 right-4 z-20 p-2 bg-black/40 rounded-full text-white hover:bg-black/60 transition-opacity opacity-0 group-hover/reel:opacity-100 focus-visible:opacity-100"
             aria-label={isMuted ? "Suarakan video" : "Bisukan video"}
@@ -270,7 +272,7 @@ export function ReelCard({
             {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
         </button>
 
-        <div 
+        <div
           className="absolute bottom-0 left-0 right-0 p-4 pb-6 z-10 bg-gradient-to-t from-black/60 to-transparent pointer-events-auto"
           onClick={(e) => e.stopPropagation()} // Prevent video toggle when clicking overlay
         >
@@ -287,17 +289,17 @@ export function ReelCard({
             {currentUser.id !== author.id && (
               <button
                 onClick={(e) => {
-                  e.stopPropagation(); 
+                  e.stopPropagation();
                   onFollowAuthor(author.id);
                 }}
                 className={cn(
-                  "ml-2 pointer-events-auto text-xs font-semibold text-white px-2.5 py-1 rounded-md transition-colors",
-                  isFollowingAuthor 
-                    ? "bg-transparent border border-white/50 hover:bg-white/10" 
+                  "ml-2 pointer-events-auto text-xs font-semibold text-white px-2.5 py-1 rounded-md transition-colors flex items-center gap-1",
+                  isFollowingAuthor
+                    ? "bg-transparent border border-white/50 hover:bg-white/10"
                     : (hasSentRequestToAuthor ? "bg-gray-500/50 hover:bg-gray-600/50" : "bg-white/20 hover:bg-white/30")
                 )}
               >
-                <followButtonIcon.type {...followButtonIcon.props} className="h-3 w-3 mr-1 inline-block" />
+                <CurrentFollowIcon className="h-3 w-3 inline-block" />
                 {followButtonText}
               </button>
             )}
@@ -322,11 +324,11 @@ export function ReelCard({
             <MessageCircle className="h-7 w-7" />
             <span className="text-xs font-medium mt-0.5">{totalCommentsAndReplies}</span>
           </button>
-          <button 
+          <button
             onClick={(e) => { e.stopPropagation(); handleShare(); }}
             className="flex flex-col items-center text-white p-2 rounded-full hover:bg-white/10 active:scale-95 transition-transform disabled:opacity-50"
             aria-label="Bagikan reel"
-            disabled 
+            disabled
           >
             <Share2 className="h-7 w-7"/>
           </button>
@@ -337,10 +339,10 @@ export function ReelCard({
           >
             <Bookmark className={cn("h-7 w-7", isSavedByCurrentUser && "fill-white")} />
           </button>
-          
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button 
+              <button
                 onClick={(e) => e.stopPropagation()}
                 className="flex flex-col items-center text-white p-2 rounded-full hover:bg-white/10 active:scale-95 transition-transform"
                 aria-label="Opsi lainnya"
@@ -388,12 +390,12 @@ export function ReelCard({
             {sortedRootComments.length > 0 ? (
               <div className="space-y-3">
                 {sortedRootComments.map(comment => (
-                  <ReelCommentItem 
-                    key={comment.id} 
-                    comment={comment} 
-                    allUsers={allUsers} 
-                    currentUserId={currentUser.id} 
-                    onReply={(replyToCmtId, text) => onAddCommentToReel(post.id, text, replyToCmtId)} 
+                  <ReelCommentItem
+                    key={comment.id}
+                    comment={comment}
+                    allUsers={allUsers}
+                    currentUserId={currentUser.id}
+                    onReply={(replyToCmtId, text) => onAddCommentToReel(post.id, text, replyToCmtId)}
                     level={0}
                   />
                 ))}
@@ -468,3 +470,5 @@ export function ReelCard({
     </>
   );
 }
+
+    
