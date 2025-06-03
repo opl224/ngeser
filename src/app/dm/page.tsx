@@ -67,7 +67,7 @@ export default function DirectMessagesPage() {
         setSelectedConversationId(newConversationId);
       }
       // Clean the URL parameter after processing
-      router.replace(pathname, undefined);
+      router.replace(pathname, { scroll: false });
     }
   }, [authStatus, currentUserId, searchParams, conversations, setConversations, router, pathname]);
 
@@ -170,15 +170,13 @@ export default function DirectMessagesPage() {
         "w-full md:w-1/3 md:max-w-sm border-r border-border bg-card/30 flex flex-col",
         isMobileViewAndViewingMessages ? "hidden md:flex" : "flex"
       )}>
-        {/* Header for empty conversation list */}
-        {displayedConversations.length === 0 && (
-          <div className="p-3 border-b border-border flex items-center gap-2 sticky top-0 bg-card/30 z-10">
-            <Button variant="ghost" size="icon" onClick={() => router.back()} aria-label="Kembali">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <span className="font-headline text-md font-semibold text-foreground">Pesan</span>
-          </div>
-        )}
+        {/* Header for conversation list */}
+        <div className="p-3 border-b border-border flex items-center gap-2 sticky top-0 bg-card/30 z-10">
+          <Button variant="ghost" size="icon" onClick={() => router.back()} aria-label="Kembali">
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <span className="font-headline text-md font-semibold text-foreground">Pesan</span>
+        </div>
         <ScrollArea className="flex-1">
           {displayedConversations.length > 0 ? (
             displayedConversations.map(convo => (
