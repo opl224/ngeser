@@ -18,6 +18,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuPortal,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   DropdownMenuSub,
@@ -25,7 +26,6 @@ import {
   DropdownMenuSubContent,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
-  DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
@@ -50,6 +50,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area"; // Added ScrollArea import
 import { cn } from '@/lib/utils';
 import type React from 'react';
 import { useTheme } from 'next-themes';
@@ -91,6 +92,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const [isPrivacySettingsModalOpen, setIsPrivacySettingsModalOpen] = useState(false);
 
   const [editedUsername, setEditedUsername] = useState('');
+  const [editedFullName, setEditedFullName] = useState(''); // Added for full name
   const [editedBio, setEditedBio] = useState('');
   const [editedAvatarFile, setEditedAvatarFile] = useState<File | null>(null);
   const [editedAvatarPreview, setEditedAvatarPreview] = useState<string | null>(null);
@@ -104,6 +106,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     setProfileUser(foundUser || null); 
     if (foundUser) {
       setEditedUsername(foundUser.username);
+      setEditedFullName(foundUser.fullName || ''); // Initialize full name
       setEditedBio(foundUser.bio || '');
       setEditedAvatarPreview(foundUser.avatarUrl);
       setEditedAccountType(foundUser.accountType || 'public');
@@ -366,6 +369,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const handleOpenEditProfileModal = () => {
     if (profileUser) {
       setEditedUsername(profileUser.username);
+      setEditedFullName(profileUser.fullName || '');
       setEditedBio(profileUser.bio || '');
       setEditedAvatarPreview(profileUser.avatarUrl);
       setEditedAvatarFile(null); 
@@ -397,28 +401,13 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   };
 
   const handleSaveChanges = () => {
-    if (!profileUser || !currentSessionUserId || !editedUsername.trim()) {
+    if (!profileUser || !currentSessionUserId || !editedFullName.trim()) {
       toast({
         title: "Gagal Menyimpan",
-        description: "Nama pengguna tidak boleh kosong.",
+        description: "Nama lengkap tidak boleh kosong.",
         variant: "destructive",
       });
       return;
-    }
-
-    const trimmedNewUsername = editedUsername.trim();
-    if (trimmedNewUsername.toLowerCase() !== profileUser.username.toLowerCase()) {
-        const usernameExists = allUsers.some(
-        (user) => user.id !== currentSessionUserId && user.username.toLowerCase() === trimmedNewUsername.toLowerCase()
-        );
-        if (usernameExists) {
-        toast({
-            title: "Nama Pengguna Sudah Ada",
-            description: "Nama pengguna ini sudah digunakan. Silakan pilih yang lain.",
-            variant: "destructive",
-        });
-        return;
-        }
     }
 
     setAllUsers(prevUsers =>
@@ -426,11 +415,10 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         if (user.id === currentSessionUserId) {
           return {
             ...user,
-            username: editedUsername.trim(), // Username is editable
-            // fullName remains unchanged by this dialog as per request
+            username: user.username, // Username is not changed
+            fullName: editedFullName.trim(), // FullName is now editable
             bio: editedBio.trim(),
             avatarUrl: editedAvatarPreview || user.avatarUrl,
-            
           };
         }
         return user;
@@ -593,6 +581,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                 <CardTitle className="font-headline text-3xl md:text-4xl text-foreground">{profileUser.username}</CardTitle>
                 {profileUser.accountType === 'private' && !isCurrentUserProfile && !isCurrentUserFollowingProfile && <Lock className="h-6 w-6 text-muted-foreground" />}
               </div>
+              {profileUser.fullName && <p className="text-foreground/90 mt-1 font-medium text-lg">{profileUser.fullName}</p>}
               {profileUser.bio && <p className="text-muted-foreground mt-2 font-body text-sm md:text-base">{profileUser.bio}</p>}
               <div className="flex justify-center md:justify-start gap-4 mt-4 text-sm">
                 <div><span className="font-semibold">{canViewProfileContent ? allProfilePosts.length : "-"}</span> Postingan</div>
@@ -606,13 +595,14 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                     variant="outline"
                     size="sm"
                     onClick={handleOpenEditProfileModal}
+                    className="md:hover:bg-accent md:hover:text-accent-foreground"
                   >
                     <Edit3 className="h-4 w-4 md:mr-2" />
                     <span className="hidden md:inline">Edit Profil</span>
                   </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="px-2 w-9">
+                      <Button variant="ghost" size="sm" className="px-2 w-9 md:hover:bg-accent md:hover:text-accent-foreground">
                         <Settings className="h-5 w-5" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -667,72 +657,74 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               <Edit3 className="h-6 w-6 text-primary"/>Edit Profil
             </DialogTitle>
             <DialogDescription>
-              Perbarui informasi profil Anda. Email dan Nama Lengkap tidak dapat diubah di sini.
+              Perbarui informasi profil Anda. Email dan Nama Pengguna tidak dapat diubah di sini.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-6 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="profile-email" className="font-medium">Email</Label>
-              <Input
-                id="profile-email"
-                value={profileUser?.email || ''}
-                readOnly
-                className="mt-1 bg-muted/50 cursor-not-allowed"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="profile-fullname" className="font-medium">Nama Lengkap</Label>
-              <Input
-                id="profile-fullname"
-                value={profileUser?.fullName || ''}
-                readOnly
-                className="mt-1 bg-muted/50 cursor-not-allowed"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-username" className="font-medium">Nama Pengguna (Username)</Label>
-              <Input
-                id="edit-username"
-                value={editedUsername}
-                onChange={(e) => setEditedUsername(e.target.value)}
-                className="mt-1"
-                placeholder="Masukkan nama pengguna baru"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-bio" className="font-medium">Bio</Label>
-              <Textarea
-                id="edit-bio"
-                value={editedBio}
-                onChange={(e) => setEditedBio(e.target.value)}
-                className="mt-1 min-h-[80px]"
-                placeholder="Tulis sesuatu tentang diri Anda..."
-                rows={3}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-avatar" className="font-medium">Gambar Profil</Label>
-              <Input
-                id="edit-avatar"
-                type="file"
-                accept="image/*"
-                onChange={handleAvatarFileChange}
-                className="mt-1 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary md:hover:file:bg-primary/20"
-              />
-            </div>
-            {editedAvatarPreview && (
+          <ScrollArea className="max-h-[70vh] -mx-6 px-6">
+            <div className="grid gap-6 py-4 pr-2"> {/* Added pr-2 for scrollbar space */}
               <div className="space-y-2">
-                <Label className="font-medium">Pratinjau Avatar</Label>
-                <div className="mt-2 flex justify-center">
-                  <Avatar className="h-32 w-32 border-2 border-primary/50">
-                    <AvatarImage src={editedAvatarPreview} alt="Pratinjau avatar baru" data-ai-hint="portrait person preview"/>
-                    <AvatarFallback className="text-3xl">{editedUsername.substring(0,2).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                </div>
+                <Label htmlFor="profile-email" className="font-medium">Email</Label>
+                <Input
+                  id="profile-email"
+                  value={profileUser?.email || ''}
+                  readOnly
+                  className="mt-1 bg-muted/50 cursor-not-allowed"
+                />
               </div>
-            )}
-          </div>
-          <DialogFooter>
+              <div className="space-y-2">
+                <Label htmlFor="profile-username" className="font-medium">Nama Pengguna (Username)</Label>
+                <Input
+                  id="profile-username"
+                  value={editedUsername} 
+                  readOnly
+                  className="mt-1 bg-muted/50 cursor-not-allowed"
+                />
+              </div>
+               <div className="space-y-2">
+                <Label htmlFor="edit-fullname" className="font-medium">Nama Lengkap</Label>
+                <Input
+                  id="edit-fullname"
+                  value={editedFullName}
+                  onChange={(e) => setEditedFullName(e.target.value)}
+                  className="mt-1"
+                  placeholder="Masukkan nama lengkap Anda"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-bio" className="font-medium">Bio</Label>
+                <Textarea
+                  id="edit-bio"
+                  value={editedBio}
+                  onChange={(e) => setEditedBio(e.target.value)}
+                  className="mt-1 min-h-[80px]"
+                  placeholder="Tulis sesuatu tentang diri Anda..."
+                  rows={3}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-avatar" className="font-medium">Gambar Profil</Label>
+                <Input
+                  id="edit-avatar"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarFileChange}
+                  className="mt-1 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary md:hover:file:bg-primary/20"
+                />
+              </div>
+              {editedAvatarPreview && (
+                <div className="space-y-2">
+                  <Label className="font-medium">Pratinjau Avatar</Label>
+                  <div className="mt-2 flex justify-center">
+                    <Avatar className="h-32 w-32 border-2 border-primary/50">
+                      <AvatarImage src={editedAvatarPreview} alt="Pratinjau avatar baru" data-ai-hint="portrait person preview"/>
+                      <AvatarFallback className="text-3xl">{editedUsername.substring(0,2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                  </div>
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+          <DialogFooter className="mt-2 pt-4 border-t">
             <Button variant="outline" onClick={() => setIsEditProfileModalOpen(false)} className="md:hover:bg-accent md:hover:text-accent-foreground">Batal</Button>
             <Button onClick={handleSaveChanges} className="md:hover:bg-primary/90"><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
           </DialogFooter>
@@ -885,3 +877,4 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
+
