@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from './PostCard';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialUsers, initialPosts, initialNotifications, getCurrentUserId } from '@/lib/data';
-import { Settings, UserPlus, UserCheck, Edit3, LogOut, Trash2, ImageIcon as ImageIconLucide, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, ShieldQuestion, Moon, Sun, Laptop, LayoutGrid, Video, CheckCircle2 } from 'lucide-react';
+import { Settings, UserPlus, UserCheck, Edit3, LogOut, Trash2, ImageIcon as ImageIconLucide, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, ShieldQuestion, Moon, Sun, Laptop, LayoutGrid, Video, BadgeCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
@@ -604,7 +604,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                 {profileUser.fullName && 
                   <div className="flex items-center gap-2">
                     <CardTitle className="font-headline text-3xl md:text-4xl text-foreground">{profileUser.fullName}</CardTitle>
-                    {profileUser.isVerified && <CheckCircle2 className="h-6 w-6 md:h-7 md:w-7 text-primary" />}
+                    {profileUser.isVerified && <BadgeCheck className="h-6 w-6 md:h-7 md:w-7 text-primary" />}
                   </div>
                 }
                 <div className="flex items-center gap-1 text-muted-foreground mt-0.5">
@@ -799,7 +799,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                   onCheckedChange={setEditedIsVerified}
                 />
                 <Label htmlFor="account-verified-switch" className="text-sm flex items-center gap-1.5 cursor-pointer">
-                  {editedIsVerified ? <CheckCircle2 className="h-4 w-4 text-primary"/> : <CheckCircle2 className="h-4 w-4 text-muted"/>}
+                  {editedIsVerified ? <BadgeCheck className="h-4 w-4 text-primary"/> : <BadgeCheck className="h-4 w-4 text-muted"/>}
                   {editedIsVerified ? 'Akun Terverifikasi' : 'Akun Belum Terverifikasi'}
                 </Label>
               </div>
@@ -931,7 +931,7 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
               </Avatar>
               <div className="flex items-center gap-1.5">
                 <span className="font-medium font-headline text-foreground md:group-hover:text-primary">{user.username}</span>
-                {user.isVerified && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                {user.isVerified && <BadgeCheck className="h-4 w-4 text-primary" />}
               </div>
             </Link>
           );

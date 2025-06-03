@@ -44,14 +44,6 @@ export interface Post {
   viewCount: number;
 }
 
-export type SuggestHashtagsInput = {
-  description: string;
-};
-
-export type SuggestHashtagsOutput = {
-  hashtags: string[];
-};
-
 export type NotificationType =
   | 'like'
   | 'comment'

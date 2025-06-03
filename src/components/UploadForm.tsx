@@ -9,11 +9,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { SuggestedHashtagsClient } from './SuggestedHashtagsClient';
 import type { Post, User } from '@/lib/types';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialPosts, initialUsers, getCurrentUserId } from '@/lib/data';
-import { UploadCloud, Image as ImageIcon, Film, GalleryVerticalEnd } from 'lucide-react';
+import { UploadCloud, Image as ImageIcon, Film, GalleryVerticalEnd, Loader2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -83,11 +82,6 @@ export function UploadForm() {
     }
   };
 
-  const handleHashtagsSuggested = (suggested: string[]) => {
-    const newHashtags = [...new Set([...hashtags.split(',').map(h => h.trim()).filter(Boolean), ...suggested])];
-    setHashtags(newHashtags.join(', '));
-  };
-
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!currentUserId) {
@@ -142,7 +136,6 @@ export function UploadForm() {
               defaultValue="photo"
               onValueChange={(value: 'photo' | 'reel' | 'story') => {
                 setMediaType(value);
-                // Reset file jika jenis media berubah untuk memicu validasi ulang jika diperlukan
                 setMediaFile(null);
                 setMediaPreview(null);
                 const fileInput = document.getElementById('mediaFile') as HTMLInputElement;
@@ -160,7 +153,7 @@ export function UploadForm() {
                   <Label htmlFor="r-reel" className="flex items-center gap-1.5"><Film className="h-4 w-4"/> Reel</Label>
                 </div>
                 {mediaType === 'reel' && (
-                  <p className="text-xs text-muted-foreground mt-1 ml-6">Durasi video maks. 1 menit.</p>
+                  <p className="text-xs text-muted-foreground mt-1 ml-6">maks 1 menit.</p>
                 )}
               </div>
               <div className="flex items-center space-x-2">
@@ -217,8 +210,6 @@ export function UploadForm() {
             />
           </div>
           
-          <SuggestedHashtagsClient onHashtagsSuggested={handleHashtagsSuggested} initialDescription={caption} />
-
           <div>
             <Label htmlFor="mentions" className="font-medium">Sebutan</Label>
             <Input
