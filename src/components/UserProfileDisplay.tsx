@@ -53,7 +53,7 @@ interface UserProfileDisplayProps {
 }
 
 function createAndAddNotification(
-  setNotifications: Dispatch<SetStateAction<Notification[]>>,
+  setNotificationsGlobal: Dispatch<SetStateAction<Notification[]>>,
   newNotificationData: Omit<Notification, 'id' | 'timestamp' | 'isRead'>
 ) {
   if (newNotificationData.actorUserId === newNotificationData.recipientUserId) {
@@ -65,7 +65,7 @@ function createAndAddNotification(
     timestamp: new Date().toISOString(),
     isRead: false,
   };
-  setNotifications(prev => [notification, ...prev]);
+  setNotificationsGlobal(prev => [notification, ...prev]);
 }
 
 
@@ -149,8 +149,8 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       return;
     }
 
-    const CUIDUser = allUsers.find(u => u.id === currentSessionUserId); // Re-fetch from allUsers for latest state
-    const targetProfileUser = allUsers.find(u => u.id === profileUser.id); // Re-fetch for latest state
+    const CUIDUser = allUsers.find(u => u.id === currentSessionUserId);
+    const targetProfileUser = allUsers.find(u => u.id === profileUser.id);
 
     if (!CUIDUser || !targetProfileUser) {
       toast({ title: "Kesalahan Data Pengguna", description: "Tidak dapat memverifikasi data pengguna untuk melanjutkan.", variant: "destructive" });
@@ -160,48 +160,28 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     const isAlreadyFollowing = (CUIDUser.following || []).includes(targetProfileUser.id);
     const hasSentRequest = (CUIDUser.sentFollowRequests || []).includes(targetProfileUser.id);
 
-    if (targetProfileUser.accountType === 'public') {
+    if (isAlreadyFollowing) { // UNFOLLOW action
       setAllUsers(prevUsers => prevUsers.map(u => {
-        if (u.id === currentSessionUserId) {
-          const newFollowing = isAlreadyFollowing ? (u.following || []).filter(id => id !== targetProfileUser.id) : [...new Set([...(u.following || []), targetProfileUser.id])];
-          return { ...u, following: newFollowing };
-        }
-        if (u.id === targetProfileUser.id) {
-          const newFollowers = isAlreadyFollowing ? (u.followers || []).filter(id => id !== currentSessionUserId) : [...new Set([...(u.followers || []), currentSessionUserId])];
-          return { ...u, followers: newFollowers };
-        }
+        if (u.id === currentSessionUserId) return { ...u, following: (u.following || []).filter(id => id !== targetProfileUser.id) };
+        if (u.id === targetProfileUser.id) return { ...u, followers: (u.followers || []).filter(id => id !== currentSessionUserId) };
         return u;
       }));
-      if (isAlreadyFollowing) {
-        toast({ title: "Berhenti Mengikuti", description: `Anda tidak lagi mengikuti ${targetProfileUser.username}.` });
-      } else {
-        toast({ title: "Mulai Mengikuti", description: `Anda sekarang mengikuti ${targetProfileUser.username}.` });
-        createAndAddNotification(setNotifications, { recipientUserId: targetProfileUser.id, actorUserId: currentSessionUserId, type: 'follow' });
-      }
-    } else { // Private account
-      if (isAlreadyFollowing) { // Unfollow
-        setAllUsers(prevUsers => prevUsers.map(u => {
-          if (u.id === currentSessionUserId) return { ...u, following: (u.following || []).filter(id => id !== targetProfileUser.id) };
-          if (u.id === targetProfileUser.id) return { ...u, followers: (u.followers || []).filter(id => id !== currentSessionUserId) };
-          return u;
-        }));
-        toast({ title: "Berhenti Mengikuti", description: `Anda tidak lagi mengikuti ${targetProfileUser.username}.` });
-      } else if (hasSentRequest) { // Cancel request
-        setAllUsers(prevUsers => prevUsers.map(u => {
-          if (u.id === currentSessionUserId) return { ...u, sentFollowRequests: (u.sentFollowRequests || []).filter(id => id !== targetProfileUser.id) };
-          if (u.id === targetProfileUser.id) return { ...u, pendingFollowRequests: (u.pendingFollowRequests || []).filter(reqId => reqId !== currentSessionUserId) };
-          return u;
-        }));
-        toast({ title: "Permintaan Dibatalkan", description: `Permintaan mengikuti ${targetProfileUser.username} dibatalkan.` });
-      } else { // Send request
-        setAllUsers(prevUsers => prevUsers.map(u => {
-          if (u.id === currentSessionUserId) return { ...u, sentFollowRequests: [...new Set([...(u.sentFollowRequests || []), targetProfileUser.id])] };
-          if (u.id === targetProfileUser.id) return { ...u, pendingFollowRequests: [...new Set([...(u.pendingFollowRequests || []), currentSessionUserId])] };
-          return u;
-        }));
-        toast({ title: "Permintaan Terkirim", description: `Permintaan mengikuti ${targetProfileUser.username} telah dikirim.` });
-        createAndAddNotification(setNotifications, { recipientUserId: targetProfileUser.id, actorUserId: currentSessionUserId, type: 'follow_request' });
-      }
+      toast({ title: "Berhenti Mengikuti", description: `Anda tidak lagi mengikuti ${targetProfileUser.username}.` });
+    } else if (hasSentRequest) { // CANCEL REQUEST action (if button were enabled)
+      setAllUsers(prevUsers => prevUsers.map(u => {
+        if (u.id === currentSessionUserId) return { ...u, sentFollowRequests: (u.sentFollowRequests || []).filter(id => id !== targetProfileUser.id) };
+        if (u.id === targetProfileUser.id) return { ...u, pendingFollowRequests: (u.pendingFollowRequests || []).filter(reqId => reqId !== currentSessionUserId) };
+        return u;
+      }));
+      toast({ title: "Permintaan Dibatalkan", description: `Permintaan mengikuti ${targetProfileUser.username} dibatalkan.` });
+    } else { // SEND REQUEST action (new default for "follow" if not already following/requested)
+      setAllUsers(prevUsers => prevUsers.map(u => {
+        if (u.id === currentSessionUserId) return { ...u, sentFollowRequests: [...new Set([...(u.sentFollowRequests || []), targetProfileUser.id])] };
+        if (u.id === targetProfileUser.id) return { ...u, pendingFollowRequests: [...new Set([...(u.pendingFollowRequests || []), currentSessionUserId])] };
+        return u;
+      }));
+      toast({ title: "Permintaan Terkirim", description: `Permintaan mengikuti ${targetProfileUser.username} telah dikirim.` });
+      createAndAddNotification(setNotifications, { recipientUserId: targetProfileUser.id, actorUserId: currentSessionUserId, type: 'follow_request' });
     }
   };
 
@@ -463,7 +443,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   if (isCurrentUserFollowingProfile) {
     followButtonText = "Mengikuti";
     FollowButtonIconComponent = UserCheck;
-  } else if (isRequestedByCSUtoPU && profileUser.accountType === 'private') {
+  } else if (isRequestedByCSUtoPU) { // No longer check profileUser.accountType here
     followButtonText = "Diminta";
     FollowButtonIconComponent = UserPlus;
   } else if (isProfileUserFollowingCSU && !isCurrentUserFollowingProfile) {
@@ -474,7 +454,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     FollowButtonIconComponent = UserPlus;
   }
 
-  const isFollowButtonDisabled = profileUser.accountType === 'private' && isRequestedByCSUtoPU && !isCurrentUserFollowingProfile;
+  const isFollowButtonDisabled = isRequestedByCSUtoPU && !isCurrentUserFollowingProfile;
 
 
   const allProfilePosts = [...userStories, ...userPosts].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
