@@ -9,18 +9,39 @@ import type { User, Conversation, Message as MessageType } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, MessageSquare, Send, ArrowLeft, Users, Info } from 'lucide-react';
+import { Loader2, MessageSquare, Send, ArrowLeft, Users, Info, MoreHorizontal, Edit, Trash2, CornerUpLeft } from 'lucide-react';
 import Link from 'next/link';
 import { formatTimestamp } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
+
 
 export default function DirectMessagesPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { toast } = useToast();
 
   const [currentUserId, setCurrentUserIdState] = useState<string | null>(null);
   const [authStatus, setAuthStatus] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
@@ -31,6 +52,14 @@ export default function DirectMessagesPage() {
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [newMessageText, setNewMessageText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const newMessageInputRef = useRef<HTMLInputElement>(null);
+
+  // State for message actions
+  const [editingMessage, setEditingMessage] = useState<MessageType | null>(null);
+  const [editedText, setEditedText] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState<MessageType | null>(null);
+
 
   useEffect(() => {
     const id = getCurrentUserId();
@@ -43,7 +72,6 @@ export default function DirectMessagesPage() {
     }
   }, [router]);
 
-  // Effect to handle userId from query params to select or create conversation
   useEffect(() => {
     if (authStatus !== 'authenticated' || !currentUserId) return;
 
@@ -66,7 +94,6 @@ export default function DirectMessagesPage() {
         setConversations(prev => [...prev, newConversation]);
         setSelectedConversationId(newConversationId);
       }
-      // Clean the URL parameter after processing
       router.replace(pathname, { scroll: false });
     }
   }, [authStatus, currentUserId, searchParams, conversations, setConversations, router, pathname]);
@@ -102,7 +129,7 @@ export default function DirectMessagesPage() {
     return {
       ...convo,
       otherParticipant,
-      messages: convo.messages.sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()) // Ensure messages are sorted
+      messages: convo.messages.sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
     };
   }, [selectedConversationId, conversations, currentUserId, allUsers]);
 
@@ -141,6 +168,69 @@ export default function DirectMessagesPage() {
     }
   }, [selectedConversation?.messages.length]);
 
+  const handleStartEdit = (message: MessageType) => {
+    setEditingMessage(message);
+    setEditedText(message.text);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessage(null);
+    setEditedText('');
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingMessage || !editedText.trim()) return;
+    setConversations(prevConvos =>
+      prevConvos.map(convo => {
+        if (convo.id === editingMessage.conversationId) {
+          const updatedMessages = convo.messages.map(msg =>
+            msg.id === editingMessage.id ? { ...msg, text: editedText.trim() } : msg
+          );
+          const updatedLastMessage = convo.lastMessage?.id === editingMessage.id 
+            ? { ...convo.lastMessage, text: editedText.trim() } 
+            : convo.lastMessage;
+          return { ...convo, messages: updatedMessages, lastMessage: updatedLastMessage };
+        }
+        return convo;
+      })
+    );
+    toast({ title: "Pesan Diperbarui", description: "Pesan Anda telah berhasil diedit." });
+    handleCancelEdit();
+  };
+
+  const handleStartDelete = (message: MessageType) => {
+    setMessageToDelete(message);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!messageToDelete) return;
+    setConversations(prevConvos =>
+      prevConvos.map(convo => {
+        if (convo.id === messageToDelete.conversationId) {
+          const updatedMessages = convo.messages.filter(msg => msg.id !== messageToDelete.id);
+          // Update lastMessage if the deleted message was the last one
+          let newLastMessage = convo.lastMessage;
+          if (convo.lastMessage?.id === messageToDelete.id) {
+            newLastMessage = updatedMessages.length > 0 ? updatedMessages[updatedMessages.length - 1] : undefined;
+          }
+          return { ...convo, messages: updatedMessages, lastMessage: newLastMessage };
+        }
+        return convo;
+      })
+    );
+    toast({ title: "Pesan Dihapus", description: "Pesan telah dihapus.", variant: "destructive" });
+    setShowDeleteConfirm(false);
+    setMessageToDelete(null);
+  };
+
+  const handleReplyMessage = (message: MessageType) => {
+    if (newMessageInputRef.current) {
+      setNewMessageText(prev => `Membalas "${message.text.substring(0, 20)}${message.text.length > 20 ? '...' : ''}": \n` + prev);
+      newMessageInputRef.current.focus();
+    }
+  };
+
 
   if (authStatus === 'loading' || (authStatus === 'authenticated' && !currentUser)) {
     return (
@@ -166,7 +256,7 @@ export default function DirectMessagesPage() {
   return (
     <div className="flex flex-col md:flex-row h-svh overflow-hidden">
       {/* Sidebar - Conversation List */}
-      <div className={cn(
+       <div className={cn(
         "w-full md:w-1/3 md:max-w-sm border-r border-border bg-card/30 flex flex-col",
         isMobileViewAndViewingMessages ? "hidden md:flex" : "flex"
       )}>
@@ -176,6 +266,7 @@ export default function DirectMessagesPage() {
           </Button>
           <span className="font-headline text-md font-semibold text-foreground">Pesan</span>
         </div>
+
         <ScrollArea className="flex-1">
           {displayedConversations.length > 0 ? (
             displayedConversations.map(convo => (
@@ -203,7 +294,7 @@ export default function DirectMessagesPage() {
               </div>
             ))
           ) : (
-            <div className="p-6 text-center text-muted-foreground flex flex-col items-center justify-center h-full">
+             <div className="p-6 text-center text-muted-foreground flex flex-col items-center justify-center h-full">
               <Users className="h-12 w-12 mx-auto mb-3" />
               <p className="text-sm">Belum ada percakapan.</p>
               <p className="text-xs mt-1">Mulai percakapan dari profil pengguna.</p>
@@ -211,6 +302,7 @@ export default function DirectMessagesPage() {
           )}
         </ScrollArea>
       </div>
+
 
       {/* Main Content - Message View */}
       <div className={cn(
@@ -236,7 +328,7 @@ export default function DirectMessagesPage() {
                 const isCurrentUserSender = msg.senderId === currentUserId;
                 const sender = isCurrentUserSender ? currentUser : selectedConversation.otherParticipant;
                 return (
-                  <div key={msg.id} className={cn("flex items-end gap-2 max-w-[85%] sm:max-w-[75%] mb-3", isCurrentUserSender ? "ml-auto flex-row-reverse" : "mr-auto")}>
+                  <div key={msg.id} className={cn("group relative flex items-end gap-2 max-w-[85%] sm:max-w-[75%] mb-3", isCurrentUserSender ? "ml-auto flex-row-reverse" : "mr-auto")}>
                     {!isCurrentUserSender && (
                        <Avatar className="h-7 w-7 self-start flex-shrink-0 hidden sm:flex">
                          <AvatarImage src={sender?.avatarUrl} alt={sender?.username} data-ai-hint="message sender avatar"/>
@@ -244,12 +336,61 @@ export default function DirectMessagesPage() {
                        </Avatar>
                     )}
                     <div className={cn(
-                        "p-2.5 rounded-xl text-sm leading-relaxed shadow-sm",
+                        "p-2.5 rounded-xl text-sm leading-relaxed shadow-sm relative",
                         isCurrentUserSender ? "bg-primary text-primary-foreground rounded-br-none" : "bg-muted text-foreground rounded-bl-none"
                       )}>
-                      <p>{msg.text}</p>
+                      {editingMessage?.id === msg.id ? (
+                        <div className="space-y-2 w-64">
+                           <Textarea
+                            value={editedText}
+                            onChange={(e) => setEditedText(e.target.value)}
+                            className="min-h-[60px] text-sm bg-background/20 text-current placeholder:text-current/70"
+                            autoFocus
+                          />
+                          <div className="flex justify-end gap-2">
+                            <Button size="xs" variant="ghost" onClick={handleCancelEdit}>Batal</Button>
+                            <Button size="xs" onClick={handleSaveEdit} disabled={!editedText.trim() || editedText.trim() === editingMessage.text}>Simpan</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p>{msg.text}</p>
+                      )}
                       <p className={cn("text-xs mt-1", isCurrentUserSender ? "text-primary-foreground/70 text-right" : "text-muted-foreground/80 text-left")}>{formatTimestamp(msg.timestamp)}</p>
                     </div>
+                     <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                              "h-6 w-6 p-0.5 absolute rounded-full opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity",
+                              isCurrentUserSender ? "-left-1 top-1/2 -translate-y-1/2 translate-x-[-100%]" : "-right-1 top-1/2 -translate-y-1/2 translate-x-[100%]",
+                              "data-[state=open]:opacity-100 bg-card/50 hover:bg-card"
+                            )}
+                          >
+                            <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align={isCurrentUserSender ? "end" : "start"} sideOffset={5}>
+                          <DropdownMenuItem onClick={() => handleReplyMessage(msg)}>
+                            <CornerUpLeft className="mr-2 h-4 w-4" />
+                            Balas Pesan
+                          </DropdownMenuItem>
+                          {isCurrentUserSender && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleStartEdit(msg)}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit Pesan
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleStartDelete(msg)} className="text-destructive focus:text-destructive">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Hapus Pesan
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                   </div>
                 );
               })}
@@ -257,6 +398,7 @@ export default function DirectMessagesPage() {
             </ScrollArea>
             <form onSubmit={handleSendMessage} className="p-3 border-t border-border bg-card/50 flex items-center gap-2 sticky bottom-0 z-10">
               <Input
+                ref={newMessageInputRef}
                 type="text"
                 placeholder="Ketik pesan..."
                 value={newMessageText}
@@ -277,6 +419,24 @@ export default function DirectMessagesPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus Pesan Ini?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tindakan ini tidak dapat dibatalkan. Pesan akan dihapus secara permanen.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowDeleteConfirm(false)}>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
