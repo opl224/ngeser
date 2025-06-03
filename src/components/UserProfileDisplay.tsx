@@ -83,6 +83,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const [isPrivacySettingsModalOpen, setIsPrivacySettingsModalOpen] = useState(false);
 
   const [editedUsername, setEditedUsername] = useState('');
+  const [editedBio, setEditedBio] = useState('');
   const [editedAvatarFile, setEditedAvatarFile] = useState<File | null>(null);
   const [editedAvatarPreview, setEditedAvatarPreview] = useState<string | null>(null);
   const [editedAccountType, setEditedAccountType] = useState<'public' | 'private'>('public');
@@ -95,6 +96,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     setProfileUser(foundUser || null);
     if (foundUser) {
       setEditedUsername(foundUser.username);
+      setEditedBio(foundUser.bio || '');
       setEditedAvatarPreview(foundUser.avatarUrl);
       setEditedAccountType(foundUser.accountType || 'public');
     }
@@ -192,10 +194,10 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     setAllPosts(prevPosts =>
       prevPosts.map(post => {
         if (post.id === postId) {
-          const isAlreadyLiked = post.likes.includes(currentSessionUserId);
+          const isAlreadyLiked = (post.likes || []).includes(currentSessionUserId);
           const likes = isAlreadyLiked
-            ? post.likes.filter(uid => uid !== currentSessionUserId)
-            : [...new Set([...post.likes, currentSessionUserId])];
+            ? (post.likes || []).filter(uid => uid !== currentSessionUserId)
+            : [...new Set([...(post.likes || []), currentSessionUserId])];
 
           if (!isAlreadyLiked && post.userId !== currentSessionUserId) {
              createAndAddNotification(setNotifications, {
@@ -237,7 +239,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                     postMediaUrl: post.mediaUrl,
                 });
             }
-          return { ...post, comments: [...post.comments, newComment] };
+          return { ...post, comments: [...(post.comments || []), newComment] };
         }
         return post;
       })
@@ -332,6 +334,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const handleOpenEditProfileModal = () => {
     if (profileUser) {
       setEditedUsername(profileUser.username);
+      setEditedBio(profileUser.bio || '');
       setEditedAvatarPreview(profileUser.avatarUrl);
       setEditedAvatarFile(null);
       setIsEditProfileModalOpen(true);
@@ -391,8 +394,9 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           return {
             ...user,
             username: editedUsername.trim(),
+            bio: editedBio.trim(),
             avatarUrl: editedAvatarPreview || user.avatarUrl,
-            accountType: editedAccountType,
+            accountType: editedAccountType, // This will be updated by its own dialog
           };
         }
         return user;
@@ -404,6 +408,26 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       description: "Informasi profil Anda telah berhasil diperbarui.",
     });
     setIsEditProfileModalOpen(false);
+    // setIsPrivacySettingsModalOpen(false); // Keep this separate, one save per dialog
+  };
+  
+  const handleSavePrivacySettings = () => {
+    if (!profileUser || !currentSessionUserId) return;
+     setAllUsers(prevUsers =>
+      prevUsers.map(user => {
+        if (user.id === currentSessionUserId) {
+          return {
+            ...user,
+            accountType: editedAccountType,
+          };
+        }
+        return user;
+      })
+    );
+    toast({
+      title: "Pengaturan Privasi Diperbarui",
+      description: "Pengaturan privasi akun Anda telah disimpan.",
+    });
     setIsPrivacySettingsModalOpen(false);
   };
 
@@ -430,12 +454,37 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
   const followButtonText = isCurrentUserFollowingProfile ? "Mengikuti" : isRequested ? "Diminta" : "Ikuti";
 
+  // Component for Settings Dropdown Menu Items
+  const SettingsMenuItemsContent = () => (
+    <>
+      <DropdownMenuItem onClick={handleOpenPrivacySettingsModal} className="cursor-pointer">
+        <ShieldQuestion className="mr-2 h-4 w-4" />
+        Pengaturan Privasi
+      </DropdownMenuItem>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem onClick={handleLogoutAndSaveData} className="cursor-pointer">
+        <LogOut className="mr-2 h-4 w-4" />
+        Keluar & Simpan Data
+      </DropdownMenuItem>
+      <DropdownMenuSeparator />
+      <AlertDialogTrigger asChild>
+        <DropdownMenuItem
+          className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+          onSelect={(e) => e.preventDefault()}
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          Keluar & Hapus Semua Data
+        </DropdownMenuItem>
+      </AlertDialogTrigger>
+    </>
+  );
+
 
   return (
     <div className="max-w-4xl mx-auto">
       <AlertDialog>
         <Card className="mb-8 shadow-lg rounded-xl overflow-hidden">
-          <CardHeader className="p-6 bg-card flex flex-col md:flex-row items-center gap-6 relative">
+          <CardHeader className="relative p-6 bg-card flex flex-col md:flex-row items-center gap-6">
             <div className="relative">
               <Avatar className="h-28 w-28 md:h-36 md:w-36 border-4 border-primary shadow-md">
                 <AvatarImage src={profileUser.avatarUrl} alt={profileUser.username} data-ai-hint="portrait person large" />
@@ -466,49 +515,43 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               </div>
             </div>
             {isCurrentUserProfile ? (
-              <div className="flex w-full justify-center items-center gap-2 mt-4 md:w-auto md:absolute md:top-4 md:right-4 md:mt-0">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleOpenEditProfileModal}
-                  className="hidden md:inline-flex"
-                >
-                  <Edit3 className="h-4 w-4 md:mr-2" />
-                  <span className="hidden md:inline">Edit Profil</span>
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="px-2 w-9"
-                    >
-                      <Settings className="h-5 w-5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                     <DropdownMenuItem onClick={handleOpenPrivacySettingsModal} className="cursor-pointer">
-                        <ShieldQuestion className="mr-2 h-4 w-4" />
-                        Pengaturan Privasi
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogoutAndSaveData} className="cursor-pointer">
-                      <LogOut className="mr-2 h-4 w-4" />
-                      Keluar & Simpan Data
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <AlertDialogTrigger asChild>
-                       <DropdownMenuItem
-                        className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
-                        onSelect={(e) => e.preventDefault()}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Keluar & Hapus Semua Data
-                      </DropdownMenuItem>
-                    </AlertDialogTrigger>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+              <>
+                {/* Settings Dropdown for Mobile (Top Right of CardHeader) */}
+                <div className="absolute top-6 right-6 md:hidden">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-9 w-9">
+                        <Settings className="h-5 w-5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <SettingsMenuItemsContent />
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                {/* Edit Profile & Settings Dropdown for Desktop (Top Right of CardHeader) */}
+                <div className="hidden md:flex md:items-center md:gap-2 md:absolute md:top-6 md:right-6">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleOpenEditProfileModal}
+                  >
+                    <Edit3 className="h-4 w-4 md:mr-2" />
+                    <span className="hidden md:inline">Edit Profil</span>
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="px-2 w-9">
+                        <Settings className="h-5 w-5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <SettingsMenuItemsContent />
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </>
             ) : currentSessionUserId && (
                 <div className="flex w-full justify-center items-center gap-2 mt-4 md:w-auto md:absolute md:top-6 md:right-6 md:mt-0">
                     <Button onClick={handleFollowToggle} variant={isCurrentUserFollowingProfile ? "secondary" : "default"} size="sm" disabled={profileUser.accountType === 'private' && !isCurrentUserFollowingProfile && isRequested && !canViewProfileContent}>
@@ -549,7 +592,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               <Edit3 className="h-6 w-6 text-primary"/>Edit Profil
             </DialogTitle>
             <DialogDescription>
-              Perbarui nama pengguna dan gambar profil Anda.
+              Perbarui nama pengguna, bio, dan gambar profil Anda.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-6 py-4">
@@ -561,6 +604,17 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                 onChange={(e) => setEditedUsername(e.target.value)}
                 className="mt-1"
                 placeholder="Masukkan nama pengguna baru"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-bio" className="font-medium">Bio</Label>
+              <Textarea
+                id="edit-bio"
+                value={editedBio}
+                onChange={(e) => setEditedBio(e.target.value)}
+                className="mt-1 min-h-[80px]"
+                placeholder="Tulis sesuatu tentang diri Anda..."
+                rows={3}
               />
             </div>
             <div className="space-y-2">
@@ -624,7 +678,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsPrivacySettingsModalOpen(false)}>Batal</Button>
-            <Button onClick={handleSaveChanges}><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
+            <Button onClick={handleSavePrivacySettings}><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
