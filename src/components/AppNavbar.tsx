@@ -112,13 +112,13 @@ export function AppNavbar() {
   };
 
   const handleAcceptFollowRequest = (requesterId: string, notificationId: string) => {
-    if (!currentUserId) {
-        toast({ title: "Kesalahan", description: "Tidak dapat memproses permintaan, pengguna tidak dikenal.", variant: "destructive"});
-        return;
-    }
-    const CUIDUser = allUsers.find(u => u.id === currentUserId); 
+    const CUIDUser = allUsers.find(u => u.id === currentUserId);
     const requesterUser = allUsers.find(u => u.id === requesterId);
 
+    if (!currentUserId) {
+        toast({ title: "Kesalahan Pengguna", description: "Pengguna saat ini tidak terdefinisi.", variant: "destructive"});
+        return;
+    }
     if (!CUIDUser || !requesterUser) {
         toast({ title: "Kesalahan Data Pengguna", description: "Tidak dapat menemukan data pengguna terkait untuk memproses permintaan.", variant: "destructive"});
         setNotifications(prevNots => prevNots.map(n => {
@@ -128,7 +128,7 @@ export function AppNavbar() {
               type: 'follow_request_handled' as NotificationType,
               processedState: 'accepted', 
               isRead: true, 
-              messageOverride: `Gagal memperbarui daftar pengikut untuk ${requesterUser?.username || 'pengguna'}, tetapi permintaan ditandai diterima.`
+              messageOverride: `Gagal memproses penerimaan untuk ${requesterUser?.username || 'pengguna'} karena data tidak lengkap.`
             };
           }
           return n;
@@ -191,13 +191,13 @@ export function AppNavbar() {
   };
 
   const handleDeclineFollowRequest = (requesterId: string, notificationId: string) => {
+    const CUIDUser = allUsers.find(u => u.id === currentUserId);
+    const requesterUser = allUsers.find(u => u.id === requesterId);
+
     if (!currentUserId) {
         toast({ title: "Kesalahan", description: "Tidak dapat memproses permintaan, pengguna tidak dikenal.", variant: "destructive"});
         return;
     }
-    const CUIDUser = allUsers.find(u => u.id === currentUserId);
-    const requesterUser = allUsers.find(u => u.id === requesterId);
-
     if (!CUIDUser || !requesterUser) {
         toast({ title: "Kesalahan Data Pengguna", description: "Tidak dapat menemukan data pengguna terkait untuk memproses penolakan.", variant: "destructive"});
          setNotifications(prevNots => prevNots.map(n => {
