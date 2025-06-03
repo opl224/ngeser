@@ -112,26 +112,39 @@ export function AppNavbar() {
   };
 
   const handleAcceptFollowRequest = (requesterId: string, notificationId: string) => {
-    const CUIDUser = allUsers.find(u => u.id === currentUserId);
-    const requesterUser = allUsers.find(u => u.id === requesterId);
-
     if (!currentUserId) {
         toast({ title: "Kesalahan Pengguna", description: "Pengguna saat ini tidak terdefinisi.", variant: "destructive"});
         return;
     }
+
+    // Immediately update the UI for the clicked notification item
+    setNotifications(prevNots =>
+      prevNots.map(n => {
+        if (n.id === notificationId) {
+          return {
+            ...n,
+            type: 'follow_request_handled' as NotificationType,
+            processedState: 'accepted',
+            isRead: true,
+            // The final message will be set by the render logic based on type and processedState
+          };
+        }
+        return n;
+      })
+    );
+
+    // Proceed with data updates
+    const CUIDUser = allUsers.find(u => u.id === currentUserId);
+    const requesterUser = allUsers.find(u => u.id === requesterId);
+
     if (!CUIDUser || !requesterUser) {
         toast({ title: "Kesalahan Data Pengguna", description: "Tidak dapat menemukan data pengguna terkait untuk memproses permintaan.", variant: "destructive"});
+        // Update notification with error message if necessary
         setNotifications(prevNots => prevNots.map(n => {
-          if (n.id === notificationId) {
-            return {
-              ...n,
-              type: 'follow_request_handled' as NotificationType,
-              processedState: 'accepted', 
-              isRead: true, 
-              messageOverride: `Gagal memproses penerimaan untuk ${requesterUser?.username || 'pengguna'} karena data tidak lengkap.`
-            };
-          }
-          return n;
+            if (n.id === notificationId) { // It's already 'follow_request_handled'
+                return { ...n, messageOverride: `Gagal memproses: data pengguna ${CUIDUser ? 'pemohon' : 'Anda'} tidak lengkap.` };
+            }
+            return n;
         }));
         return;
     }
@@ -160,19 +173,6 @@ export function AppNavbar() {
       usersUpdateError = true;
     }
     
-    setNotifications(prevNots => prevNots.map(n => {
-      if (n.id === notificationId) {
-        return {
-          ...n,
-          type: 'follow_request_handled' as NotificationType,
-          processedState: 'accepted',
-          isRead: true, 
-          messageOverride: usersUpdateError ? `Permintaan dari ${requesterUser.username} diterima, tetapi ada masalah saat memperbarui daftar pengikut/mengikuti.` : undefined
-        };
-      }
-      return n;
-    }));
-    
     if (!usersUpdateError) {
       createAndAddNotification(setNotifications, { 
           recipientUserId: requesterId, 
@@ -183,31 +183,38 @@ export function AppNavbar() {
     } else {
          toast({
             title: "Kesalahan Sebagian",
-            description: `Permintaan dari ${requesterUser.username} diterima, tetapi ada masalah saat memperbarui daftar pengikut/mengikuti. Notifikasi UI diperbarui.`,
+            description: `Permintaan dari ${requesterUser.username} diterima, tetapi ada masalah saat memperbarui daftar pengikut/mengikuti.`,
             variant: "destructive",
             duration: 7000,
         });
+        setNotifications(prevNots => prevNots.map(n => {
+            if (n.id === notificationId) { // Still 'follow_request_handled'
+              return { ...n, messageOverride: `Diterima, tapi gagal memperbarui daftar pengikut/mengikuti.` };
+            }
+            return n;
+          }));
     }
   };
 
   const handleDeclineFollowRequest = (requesterId: string, notificationId: string) => {
+    if (!currentUserId) {
+        toast({ title: "Kesalahan Pengguna", description: "Pengguna saat ini tidak terdefinisi.", variant: "destructive"});
+        return;
+    }
+    
     const CUIDUser = allUsers.find(u => u.id === currentUserId);
     const requesterUser = allUsers.find(u => u.id === requesterId);
 
-    if (!currentUserId) {
-        toast({ title: "Kesalahan", description: "Tidak dapat memproses permintaan, pengguna tidak dikenal.", variant: "destructive"});
-        return;
-    }
     if (!CUIDUser || !requesterUser) {
         toast({ title: "Kesalahan Data Pengguna", description: "Tidak dapat menemukan data pengguna terkait untuk memproses penolakan.", variant: "destructive"});
-         setNotifications(prevNots => prevNots.map(n => {
+        setNotifications(prevNots => prevNots.map(n => {
           if (n.id === notificationId) {
             return {
               ...n,
               type: 'follow_request_handled' as NotificationType,
               processedState: 'declined', 
               isRead: true,
-              messageOverride: `Gagal memproses penolakan untuk ${requesterUser?.username || 'pengguna'} sepenuhnya, tetapi permintaan ditandai ditolak.`
+              messageOverride: `Gagal memproses penolakan untuk ${requesterUser?.username || 'pengguna'} karena data tidak lengkap.`
             };
           }
           return n;
@@ -232,12 +239,11 @@ export function AppNavbar() {
           type: 'follow_request_handled' as NotificationType,
           processedState: 'declined',
           isRead: true,
-          messageOverride: undefined 
         };
       }
       return n;
     }));
-    toast({ title: "Permintaan Ditolak" });
+    toast({ title: "Permintaan Ditolak", description: `Kamu menolak permintaan mengikuti dari ${requesterUser.username}.` });
   };
 
 
