@@ -381,7 +381,7 @@ export default function DirectMessagesPage() {
               </div>
             ))
           ) : (
-             <div className="p-6 text-center text-muted-foreground flex flex-col items-center justify-center h-full">
+            <div className="p-6 text-center text-muted-foreground flex flex-col items-center justify-center h-full">
               <Users className="h-12 w-12 mx-auto mb-3" />
               <p className="text-sm">Belum ada percakapan.</p>
               <p className="text-xs mt-1">Mulai percakapan dari profil pengguna.</p>
@@ -518,19 +518,7 @@ export default function DirectMessagesPage() {
                   </Button>
                 </div>
               )}
-              {editingMessage && ( 
-                <div className="bg-muted/30 p-2.5 rounded-lg mb-2 border-l-4 border-accent shadow-sm text-sm flex justify-between items-start">
-                  <div className="overflow-hidden">
-                    <p className="font-semibold text-foreground">Mengedit pesan:</p>
-                    <p className="italic truncate text-muted-foreground text-xs">
-                        "{editingMessage.text.length > 70 ? editingMessage.text.substring(0, 70) + '...' : editingMessage.text}"
-                    </p>
-                  </div>
-                  <Button variant="ghost" size="icon" onClick={cancelGlobalEdit} className="h-6 w-6 p-1 ml-2 flex-shrink-0">
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
+              
               <form onSubmit={handleSendMessage} className="flex items-center gap-2">
                 <Input
                   ref={newMessageInputRef}
@@ -575,3 +563,4 @@ export default function DirectMessagesPage() {
     </div>
   );
 }
+
