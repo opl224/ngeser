@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, useMemo, FormEvent, useRef } from 'react';
+import { Suspense, useEffect, useState, useMemo, FormEvent, useRef } from 'react'; // Added Suspense
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { getCurrentUserId, initialUsers, initialConversations } from '@/lib/data';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, MessageSquare, Send, ArrowLeft, Users, Info, MoreHorizontal, Edit, Trash2, CornerUpLeft, MoreVertical, X, Save } from 'lucide-react'; 
+import { Loader2, MessageSquare, Send, ArrowLeft, Users, Info, MoreHorizontal, Edit, Trash2, CornerUpLeft, MoreVertical, X, Save } from 'lucide-react';
 import Link from 'next/link';
 import { formatTimestamp } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
@@ -55,7 +55,7 @@ function parseOldReply(text: string): ParsedOldReply | null {
   return null;
 }
 
-export default function DirectMessagesPage() {
+function DmPageContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -72,7 +72,7 @@ export default function DirectMessagesPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const newMessageInputRef = useRef<HTMLInputElement>(null);
 
-  const [editingMessage, setEditingMessage] = useState<MessageType | null>(null); 
+  const [editingMessage, setEditingMessage] = useState<MessageType | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState<MessageType | null>(null);
   const [replyingToMessage, setReplyingToMessage] = useState<MessageType | null>(null);
@@ -112,9 +112,11 @@ export default function DirectMessagesPage() {
         setSelectedConversationId(newConversationId);
       }
       
-      const current = new URL(window.location.href);
-      current.searchParams.delete('userId');
-      window.history.replaceState({}, '', current.toString());
+      if (typeof window !== 'undefined') {
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.delete('userId');
+        window.history.replaceState({}, '', currentUrl.toString());
+      }
 
     }
   }, [authStatus, currentUserId, searchParams, conversations, setConversations, router, pathname]);
@@ -164,7 +166,6 @@ export default function DirectMessagesPage() {
           const updatedMessages = convo.messages.map(msg => {
             if (msg.id === editingMessage.id) {
               let updatedText = newMessageText.trim();
-              // If it's an old-style reply being edited, reconstruct its full text
               if (!editingMessage.replyToInfo && parseOldReply(editingMessage.text)) {
                 const oldParsed = parseOldReply(editingMessage.text)!;
                 updatedText = `> Membalas kepada ${oldParsed.repliedToUsername}: "${oldParsed.quotedTextPreview}"\n\n${newMessageText.trim()}`;
@@ -181,9 +182,9 @@ export default function DirectMessagesPage() {
                 const oldParsed = parseOldReply(editingMessage.text)!;
                 lastMsgText = `> Membalas kepada ${oldParsed.repliedToUsername}: "${oldParsed.quotedTextPreview}"\n\n${newMessageText.trim()}`;
             }
-            updatedLastMessage = { ...updatedLastMessage, text: lastMsgText };
+            updatedLastMessage = { ...updatedLastMessage, text: lastMsgText, timestamp: new Date().toISOString() };
           }
-          return { ...convo, messages: updatedMessages, lastMessage: updatedLastMessage };
+          return { ...convo, messages: updatedMessages, lastMessage: updatedLastMessage, timestamp: updatedLastMessage?.timestamp || convo.timestamp };
         }
         return convo;
       })
@@ -294,7 +295,7 @@ export default function DirectMessagesPage() {
           if (convo.lastMessage?.id === messageToDelete.id) {
             newLastMessage = updatedMessages.length > 0 ? updatedMessages[updatedMessages.length - 1] : undefined;
           }
-          return { ...convo, messages: updatedMessages, lastMessage: newLastMessage };
+          return { ...convo, messages: updatedMessages, lastMessage: newLastMessage, timestamp: newLastMessage?.timestamp || convo.timestamp };
         }
         return convo;
       })
@@ -564,3 +565,17 @@ export default function DirectMessagesPage() {
   );
 }
 
+export default function DirectMessagesPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col justify-center items-center min-h-screen bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-xl font-headline text-muted-foreground">Memuat Halaman Pesan...</p>
+      </div>
+    }>
+      <DmPageContent />
+    </Suspense>
+  );
+}
+
+    
