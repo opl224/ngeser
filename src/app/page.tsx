@@ -76,7 +76,7 @@ export default function FeedPage() {
   }, [currentUserId, users]);
 
   const usersWithStories = useMemo(() => {
-    if (!posts || !users) return [];
+    if (!posts || !users || users.length === 0) return [];
     const userStoryData: Record<string, { count: number; latestTimestamp: string }> = {};
 
     posts.forEach(post => {
@@ -90,19 +90,26 @@ export default function FeedPage() {
         }
       }
     });
+    
+    const CUID = currentSessionUser?.id;
 
     const usersFound = Object.keys(userStoryData)
         .map(userId => {
             const user = users.find(u => u.id === userId);
-            if (user && user.accountType === 'public') return user; // Only show stories from public accounts
-            if (user && user.accountType === 'private' && currentSessionUser?.following.includes(user.id)) return user; // Show if following private account
+            if (!user) return null;
+            // User can always see their own stories
+            if (user.id === CUID) return user;
+            // Public accounts' stories are visible
+            if (user.accountType === 'public') return user;
+            // Private accounts' stories are visible if CUID is following them
+            if (user.accountType === 'private' && currentSessionUser?.following.includes(user.id)) return user;
             return null;
         })
-        .filter(Boolean)
-        .map(user => ({ // Map to UserWithStoryCount, ensuring user is not null
-            ...(user as User), // Cast as User because filter(Boolean) ensures it's not null
-            storyCount: userStoryData[user!.id].count,
-            latestStoryTimestamp: userStoryData[user!.id].latestTimestamp
+        .filter((user): user is User => user !== null) // Type guard to ensure user is not null
+        .map(user => ({
+            ...user,
+            storyCount: userStoryData[user.id].count,
+            latestStoryTimestamp: userStoryData[user.id].latestTimestamp
         })) as UserWithStoryCount[];
 
     return usersFound.sort((a, b) => new Date(b.latestStoryTimestamp).getTime() - new Date(a.latestStoryTimestamp).getTime());
@@ -476,9 +483,7 @@ export default function FeedPage() {
   return (
     <div className="w-full max-w-2xl mx-auto">
       {usersWithStories.length > 0 && <StoryAvatarReel usersWithStories={usersWithStories} onAvatarClick={handleStoryAvatarClick} />}
-
-      <h1 className="font-headline text-3xl text-foreground mb-8 text-center mt-6">Beranda Anda</h1>
-      {feedPosts.length > 0 ? (
+            {feedPosts.length > 0 ? (
         <div className="space-y-8">
           {feedPosts.map(post => {
             const isSavedByCurrentUser = (currentSessionUser?.savedPosts || []).includes(post.id);
@@ -516,10 +521,9 @@ export default function FeedPage() {
       <Dialog open={isStoryModalOpen} onOpenChange={setIsStoryModalOpen}>
         <DialogContent
           className={cn(
-            "p-0 bg-black text-white flex flex-col items-center justify-center overflow-hidden",
-            "fixed inset-x-0 top-0 bottom-[3.5rem]",
-            "sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2",
-            "sm:max-w-sm sm:w-full sm:h-auto sm:max-h-[90vh] sm:aspect-[9/16] sm:rounded-lg"
+            "p-0 bg-black text-white flex flex-col items-center justify-center overflow-hidden", // Styles for the content *within* the dialog
+            "max-w-sm w-full h-auto max-h-[90vh] aspect-[9/16] rounded-lg" // Specific sizing, aspect ratio, and rounding for the story modal itself
+            // The default DialogContent from shadcn/ui already handles fixed positioning and centering.
           )}
         >
           {storyModalContent && currentUserStories.length > 0 && (
