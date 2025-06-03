@@ -114,7 +114,7 @@ export default function ReelsPage() {
         const author = allUsers.find(u => u.id === post.userId);
         if (!author) return false;
         if (author.accountType === 'public') return true;
-        if (author.accountType === 'private' && (currentUser.following.includes(author.id) || author.id === currentUser.id)) {
+        if (author.accountType === 'private' && ((currentUser.following || []).includes(author.id) || author.id === currentUser.id)) {
           return true;
         }
         return false;
@@ -131,7 +131,7 @@ export default function ReelsPage() {
           const isAlreadyLiked = post.likes.includes(currentUserId);
           const newLikes = isAlreadyLiked
             ? post.likes.filter(uid => uid !== currentUserId)
-            : [...post.likes, currentUserId];
+            : [...new Set([...post.likes, currentUserId])];
           
           if (!isAlreadyLiked && post.userId !== currentUserId) {
              createAndAddNotification(setNotifications, {
@@ -244,7 +244,7 @@ export default function ReelsPage() {
           const isSaved = currentSavedPosts.includes(postId);
           const newSavedPosts = isSaved
             ? currentSavedPosts.filter(id => id !== postId)
-            : [...currentSavedPosts, postId];
+            : [...new Set([...currentSavedPosts, postId])];
 
           if (isSaved) {
             toastInfoParcel = { title: "Reel Dihapus dari Simpanan", description: "Reel telah dihapus dari daftar simpanan Anda." };
@@ -268,13 +268,13 @@ export default function ReelsPage() {
     const authorUser = allUsers.find(u => u.id === authorId);
     if (!authorUser) return;
 
-    const isCurrentlyFollowing = currentUser.following.includes(authorId);
-    const hasSentRequest = currentUser.sentFollowRequests.includes(authorId);
+    const isCurrentlyFollowing = (currentUser.following || []).includes(authorId);
+    const hasSentRequest = (currentUser.sentFollowRequests || []).includes(authorId);
 
     if (authorUser.accountType === 'public') {
         setAllUsers(prevUsers => prevUsers.map(u => {
-            if (u.id === currentUserId) return { ...u, following: isCurrentlyFollowing ? u.following.filter(id => id !== authorId) : [...u.following, authorId] };
-            if (u.id === authorId) return { ...u, followers: isCurrentlyFollowing ? u.followers.filter(id => id !== currentUserId) : [...u.followers, currentUserId] };
+            if (u.id === currentUserId) return { ...u, following: isCurrentlyFollowing ? (u.following || []).filter(id => id !== authorId) : [...new Set([...(u.following || []), authorId])] };
+            if (u.id === authorId) return { ...u, followers: isCurrentlyFollowing ? (u.followers || []).filter(id => id !== currentUserId) : [...new Set([...(u.followers || []), currentUserId])] };
             return u;
         }));
         if (isCurrentlyFollowing) {
@@ -286,22 +286,22 @@ export default function ReelsPage() {
     } else { // Private account
         if (isCurrentlyFollowing) { // Unfollow
             setAllUsers(prevUsers => prevUsers.map(u => {
-                if (u.id === currentUserId) return { ...u, following: u.following.filter(id => id !== authorId) };
-                if (u.id === authorId) return { ...u, followers: u.followers.filter(id => id !== currentUserId) };
+                if (u.id === currentUserId) return { ...u, following: (u.following || []).filter(id => id !== authorId) };
+                if (u.id === authorId) return { ...u, followers: (u.followers || []).filter(id => id !== currentUserId) };
                 return u;
             }));
             toast({ title: "Berhenti Mengikuti", description: `Anda tidak lagi mengikuti ${authorUser.username}.` });
         } else if (hasSentRequest) { // Cancel request
             setAllUsers(prevUsers => prevUsers.map(u => {
-                if (u.id === currentUserId) return { ...u, sentFollowRequests: u.sentFollowRequests.filter(id => id !== authorId) };
-                if (u.id === authorId) return { ...u, pendingFollowRequests: u.pendingFollowRequests.filter(id => id !== currentUserId) };
+                if (u.id === currentUserId) return { ...u, sentFollowRequests: (u.sentFollowRequests || []).filter(id => id !== authorId) };
+                if (u.id === authorId) return { ...u, pendingFollowRequests: (u.pendingFollowRequests || []).filter(id => id !== currentUserId) };
                 return u;
             }));
             toast({ title: "Permintaan Dibatalkan" });
         } else { // Send request
             setAllUsers(prevUsers => prevUsers.map(u => {
-                if (u.id === currentUserId) return { ...u, sentFollowRequests: [...u.sentFollowRequests, authorId] };
-                if (u.id === authorId) return { ...u, pendingFollowRequests: [...u.pendingFollowRequests, currentUserId] };
+                if (u.id === currentUserId) return { ...u, sentFollowRequests: [...new Set([...(u.sentFollowRequests || []), authorId])] };
+                if (u.id === authorId) return { ...u, pendingFollowRequests: [...new Set([...(u.pendingFollowRequests || []), currentUserId])] };
                 return u;
             }));
             toast({ title: "Permintaan Terkirim" });
@@ -381,9 +381,9 @@ export default function ReelsPage() {
       </Button>
       {reels.map((reel, index) => {
         const author = allUsers.find(u => u.id === reel.userId);
-        const isSaved = currentUser?.savedPosts?.includes(reel.id) || false;
-        const isFollowingAuthor = currentUser?.following?.includes(reel.userId) || false;
-        const hasSentRequestToAuthor = currentUser?.sentFollowRequests?.includes(reel.userId) || false;
+        const isSaved = (currentUser?.savedPosts || []).includes(reel.id);
+        const isFollowingAuthor = (currentUser?.following || []).includes(reel.userId);
+        const hasSentRequestToAuthor = (currentUser?.sentFollowRequests || []).includes(reel.userId);
         return (
           <div
             key={reel.id}

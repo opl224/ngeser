@@ -116,14 +116,14 @@ export function AppNavbar() {
       if (user.id === currentUserId) { // Current user (recipient of request)
         return {
           ...user,
-          followers: [...(user.followers || []), requesterId],
+          followers: [...new Set([...(user.followers || []), requesterId])],
           pendingFollowRequests: (user.pendingFollowRequests || []).filter(id => id !== requesterId),
         };
       }
       if (user.id === requesterId) { // Requester
         return {
           ...user,
-          following: [...(user.following || []), currentUserId],
+          following: [...new Set([...(user.following || []), currentUserId])],
           sentFollowRequests: (user.sentFollowRequests || []).filter(id => id !== currentUserId),
         };
       }

@@ -146,10 +146,10 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     if (profileUser.accountType === 'public') {
       setAllUsers(prevUsers => prevUsers.map(u => {
         if (u.id === currentSessionUserId) {
-          return { ...u, following: isAlreadyFollowing ? (u.following || []).filter(id => id !== profileUser.id) : [...(u.following || []), profileUser.id] };
+          return { ...u, following: isAlreadyFollowing ? (u.following || []).filter(id => id !== profileUser.id) : [...new Set([...(u.following || []), profileUser.id])] };
         }
         if (u.id === profileUser.id) {
-          return { ...u, followers: isAlreadyFollowing ? (u.followers || []).filter(id => id !== currentSessionUserId) : [...(u.followers || []), currentSessionUserId] };
+          return { ...u, followers: isAlreadyFollowing ? (u.followers || []).filter(id => id !== currentSessionUserId) : [...new Set([...(u.followers || []), currentSessionUserId])] };
         }
         return u;
       }));
@@ -176,8 +176,8 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         toast({ title: "Permintaan Dibatalkan", description: `Permintaan mengikuti ${profileUser.username} dibatalkan.` });
       } else { 
         setAllUsers(prevUsers => prevUsers.map(u => {
-          if (u.id === currentSessionUserId) return { ...u, sentFollowRequests: [...(u.sentFollowRequests || []), profileUser.id] };
-          if (u.id === profileUser.id) return { ...u, pendingFollowRequests: [...(u.pendingFollowRequests || []), currentSessionUserId] };
+          if (u.id === currentSessionUserId) return { ...u, sentFollowRequests: [...new Set([...(u.sentFollowRequests || []), profileUser.id])] };
+          if (u.id === profileUser.id) return { ...u, pendingFollowRequests: [...new Set([...(u.pendingFollowRequests || []), currentSessionUserId])] };
           return u;
         }));
         toast({ title: "Permintaan Terkirim", description: `Permintaan mengikuti ${profileUser.username} telah dikirim.` });
@@ -195,7 +195,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           const isAlreadyLiked = post.likes.includes(currentSessionUserId);
           const likes = isAlreadyLiked
             ? post.likes.filter(uid => uid !== currentSessionUserId)
-            : [...post.likes, currentSessionUserId];
+            : [...new Set([...post.likes, currentSessionUserId])];
 
           if (!isAlreadyLiked && post.userId !== currentSessionUserId) {
              createAndAddNotification(setNotifications, {
@@ -268,7 +268,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           const isSaved = currentSavedPosts.includes(postId);
           const newSavedPosts = isSaved
             ? currentSavedPosts.filter(id => id !== postId)
-            : [...currentSavedPosts, postId];
+            : [...new Set([...currentSavedPosts, postId])];
 
           if (isSaved) {
             toastInfo = { title: "Postingan Dihapus dari Simpanan", description: "Postingan telah dihapus dari daftar simpanan Anda." };
@@ -333,7 +333,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     if (profileUser) {
       setEditedUsername(profileUser.username);
       setEditedAvatarPreview(profileUser.avatarUrl);
-      // Account type is handled in its own modal now
       setEditedAvatarFile(null);
       setIsEditProfileModalOpen(true);
     }
@@ -417,7 +416,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const isRequested = (currentSessionUser?.sentFollowRequests || []).includes(profileUser.id);
 
   let FollowButtonIconComponent: React.ElementType = UserPlus;
-
   if (isCurrentUserFollowingProfile) {
     FollowButtonIconComponent = UserCheck;
   }
@@ -489,7 +487,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={handleOpenPrivacySettingsModal} className="cursor-pointer">
+                     <DropdownMenuItem onClick={handleOpenPrivacySettingsModal} className="cursor-pointer">
                         <ShieldQuestion className="mr-2 h-4 w-4" />
                         Pengaturan Privasi
                     </DropdownMenuItem>
