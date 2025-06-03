@@ -71,12 +71,11 @@ function createAndAddNotification(
 
 export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const [profileUser, setProfileUser] = useState<User | null>(null);
-
   const [allUsers, setAllUsers] = useLocalStorageState<User[]>('users', initialUsers);
   const [allPosts, setAllPosts] = useLocalStorageState<Post[]>('posts', initialPosts);
   const [notifications, setNotifications] = useLocalStorageState<Notification[]>('notifications', initialNotifications);
-
   const [currentSessionUserId, setCurrentSessionUserId] = useState<string | null>(null);
+  
   const { toast } = useToast();
   const router = useRouter();
 
@@ -94,7 +93,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     const CUID = getCurrentUserId();
     setCurrentSessionUserId(CUID);
     const foundUser = allUsers.find(u => u.id === userId);
-    setProfileUser(foundUser || null);
+    setProfileUser(foundUser || null); // Set to null if not found initially
     if (foundUser) {
       setEditedUsername(foundUser.username);
       setEditedBio(foundUser.bio || '');
@@ -120,7 +119,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     return isCurrentUserFollowingProfile;
   }, [profileUser, currentSessionUserId, isCurrentUserFollowingProfile]);
 
-
   const userPosts = useMemo(() => allPosts
     .filter(p => p.userId === userId && p.type !== 'story')
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()), [allPosts, userId]);
@@ -129,12 +127,16 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     .filter(p => p.userId === userId && p.type === 'story')
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()), [allPosts, userId]);
 
-
   const savedPostsForCurrentUser = useMemo(() => {
     if (!currentSessionUser) return [];
     return allPosts.filter(post => (currentSessionUser.savedPosts || []).includes(post.id))
                    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }, [allPosts, currentSessionUser]);
+  
+  const isProfileUserFollowingCSU = useMemo(() => {
+    if (!currentSessionUser || !profileUser) return false;
+    return (profileUser.following || []).includes(currentSessionUser.id);
+  }, [profileUser, currentSessionUser]);
 
 
   const handleFollowToggle = () => {
@@ -149,10 +151,12 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     if (profileUser.accountType === 'public') {
       setAllUsers(prevUsers => prevUsers.map(u => {
         if (u.id === currentSessionUserId) {
-          return { ...u, following: isAlreadyFollowing ? (u.following || []).filter(id => id !== profileUser.id) : [...new Set([...(u.following || []), profileUser.id])] };
+          const newFollowing = isAlreadyFollowing ? (u.following || []).filter(id => id !== profileUser.id) : [...new Set([...(u.following || []), profileUser.id])];
+          return { ...u, following: newFollowing };
         }
         if (u.id === profileUser.id) {
-          return { ...u, followers: isAlreadyFollowing ? (u.followers || []).filter(id => id !== currentSessionUserId) : [...new Set([...(u.followers || []), currentSessionUserId])] };
+          const newFollowers = isAlreadyFollowing ? (u.followers || []).filter(id => id !== currentSessionUserId) : [...new Set([...(u.followers || []), currentSessionUserId])];
+          return { ...u, followers: newFollowers };
         }
         return u;
       }));
@@ -337,7 +341,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       setEditedUsername(profileUser.username);
       setEditedBio(profileUser.bio || '');
       setEditedAvatarPreview(profileUser.avatarUrl);
-      setEditedAvatarFile(null);
+      setEditedAvatarFile(null); // Reset file input
       setIsEditProfileModalOpen(true);
     }
   };
@@ -348,6 +352,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         setIsPrivacySettingsModalOpen(true);
     }
   };
+
 
   const handleAvatarFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -360,7 +365,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       reader.readAsDataURL(file);
     } else {
       setEditedAvatarFile(null);
-      setEditedAvatarPreview(profileUser?.avatarUrl || null);
+      setEditedAvatarPreview(profileUser?.avatarUrl || null); // Revert to original if no file
     }
   };
 
@@ -397,6 +402,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             username: editedUsername.trim(),
             bio: editedBio.trim(),
             avatarUrl: editedAvatarPreview || user.avatarUrl,
+            // accountType is handled by handleSavePrivacySettings
           };
         }
         return user;
@@ -436,16 +442,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   }
 
   const isCurrentUserProfile = currentSessionUserId === profileUser.id;
-
-  const isProfileUserFollowingCSU = useMemo(() => {
-    if (!currentSessionUser || !profileUser) return false;
-    return (profileUser.following || []).includes(currentSessionUser.id);
-  }, [profileUser, currentSessionUser]);
-
-  const isRequestedByCSUtoPU = useMemo(() => {
-    if (!currentSessionUser || !profileUser) return false;
-    return (currentSessionUser.sentFollowRequests || []).includes(profileUser.id);
-  }, [currentSessionUser, profileUser]);
+  const isRequestedByCSUtoPU = (currentSessionUser?.sentFollowRequests || []).includes(profileUser.id);
 
 
   let followButtonText = "Ikuti";
@@ -457,7 +454,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   } else if (isRequestedByCSUtoPU) {
     followButtonText = "Diminta";
     FollowButtonIconComponent = UserPlus;
-  } else if (isProfileUserFollowingCSU) {
+  } else if (isProfileUserFollowingCSU && !isCurrentUserFollowingProfile) {
     followButtonText = "Ikuti Balik";
     FollowButtonIconComponent = UserPlus;
   } else {
@@ -502,8 +499,8 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       <AlertDialog>
         <Card className="mb-8 shadow-lg rounded-xl overflow-hidden">
           <CardHeader className="relative p-6 bg-card flex flex-col md:flex-row items-center gap-6">
-             <div className="absolute top-4 right-4 md:hidden">
-              {isCurrentUserProfile && (
+            {isCurrentUserProfile && (
+              <div className="absolute top-4 right-4 md:hidden">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-9 w-9">
@@ -514,8 +511,8 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                     <SettingsMenuItemsContent />
                   </DropdownMenuContent>
                 </DropdownMenu>
-              )}
-            </div>
+              </div>
+            )}
             <div className="relative">
               <Avatar className="h-28 w-28 md:h-36 md:w-36 border-4 border-primary shadow-md">
                 <AvatarImage src={profileUser.avatarUrl} alt={profileUser.username} data-ai-hint="portrait person large" />
