@@ -307,7 +307,7 @@ export function ReelCard({
           {post.caption && <p className="text-xs text-white/90 shadow-sm line-clamp-2 pointer-events-none">{post.caption}</p>}
         </div>
 
-        <div className="absolute right-2 bottom-20 md:bottom-6 flex flex-col items-center gap-3 z-10">
+        <div className="absolute right-2 bottom-8 md:bottom-6 flex flex-col items-center gap-3 z-10">
           <button
             onClick={(e) => { e.stopPropagation(); onLikeReel(post.id); }}
             className="flex flex-col items-center text-white p-2 rounded-full md:hover:bg-white/10 active:scale-95 transition-transform"
