@@ -50,6 +50,30 @@ export default function RegisterPage() {
       return;
     }
 
+    // Word count validation for Full Name
+    const fullNameWords = fullName.trim().split(/\s+/);
+    if (fullNameWords.length > 15) {
+      toast({
+        title: "Nama Lengkap Terlalu Panjang",
+        description: "Nama lengkap tidak boleh lebih dari 15 kata.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    // Word count validation for Username
+    const usernameWords = username.trim().split(/\s+/);
+    if (usernameWords.length > 15) {
+      toast({
+        title: "Nama Pengguna Terlalu Panjang",
+        description: "Nama pengguna tidak boleh lebih dari 15 kata.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
+
     const currentUsers = Array.isArray(users) ? users : [];
 
     const emailExists = currentUsers.some(u => u && typeof u.email === 'string' && u.email.toLowerCase() === email.trim().toLowerCase());

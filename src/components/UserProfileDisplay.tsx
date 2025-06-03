@@ -132,11 +132,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     if (currentSessionUserId === profileUser.id) return true;
     return isCurrentUserFollowingProfile;
   }, [profileUser, currentSessionUserId, isCurrentUserFollowingProfile]);
-
-  const userPosts = useMemo(() => allPosts
-    .filter(p => p.userId === userId && p.type !== 'story')
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()), [allPosts, userId]);
-
   
   const allProfilePostsNonStory = useMemo(() => allPosts
     .filter(p => p.userId === userId && p.type !== 'story')
@@ -416,6 +411,18 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       toast({ title: "Error", description: "Tidak dapat menyimpan, data pengguna tidak lengkap.", variant: "destructive" });
       return;
     }
+
+    // Word count validation for Full Name
+    const fullNameWords = editedFullName.trim().split(/\s+/);
+    if (fullNameWords.length > 15) {
+      toast({
+        title: "Nama Lengkap Terlalu Panjang",
+        description: "Nama lengkap tidak boleh lebih dari 15 kata.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (!editedFullName.trim()) {
       toast({
         title: "Gagal Menyimpan",
@@ -425,13 +432,15 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       return;
     }
 
+
     setAllUsers(prevUsers =>
       prevUsers.map(user => {
         if (user.id === currentSessionUserId) {
           return {
             ...user,
             fullName: editedFullName.trim(),
-            username: editedUsername, // Username is now read-only but keep its value
+            // Username is read-only, so we don't update it from editedUsername
+            // username: editedUsername, 
             bio: editedBio.trim(),
             avatarUrl: editedAvatarPreview || user.avatarUrl,
           };
@@ -678,7 +687,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               <Edit3 className="h-6 w-6 text-primary"/>Edit Profil
             </EditDialogTitle>
             <DialogDescription>
-               Perbarui informasi profil Anda. Email dan Nama Pengguna tidak dapat diubah di sini.
+               Perbarui informasi profil Anda. Email dan Nama Pengguna tidak dapat diubah.
             </DialogDescription>
           </DialogHeader>
           <ScrollArea className="max-h-[70vh] -mx-6 px-6">
@@ -818,7 +827,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             <TabsContent value="posts">
               <div className="mb-4">
                 <Tabs defaultValue="all" onValueChange={(value) => setPostFilterType(value as 'all' | 'photo' | 'reel')}>
-                  <TabsList className="grid w-full grid-cols-3 h-10 items-center p-1 text-muted-foreground bg-muted/50 rounded-lg">
+                   <TabsList className="grid w-full grid-cols-3 h-10 items-center p-1 text-muted-foreground bg-muted/50 rounded-lg">
                     <TabsTrigger value="all" className="font-headline"><LayoutGrid className="h-3.5 w-3.5 mr-1.5"/>Semua</TabsTrigger>
                     <TabsTrigger value="photo" className="font-headline"><ImageIconLucide className="h-3.5 w-3.5 mr-1.5"/>Foto</TabsTrigger>
                     <TabsTrigger value="reel" className="font-headline"><Video className="h-3.5 w-3.5 mr-1.5"/>Reels</TabsTrigger>
@@ -931,3 +940,4 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
+
