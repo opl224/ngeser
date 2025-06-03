@@ -3,19 +3,20 @@
 
 import { PostDetailClientPage } from '@/components/PostDetailClientPage';
 import type { Metadata } from 'next';
-import type { Post, User } from '@/lib/types'; // Assuming initialPosts, initialUsers are representative for metadata
-import { initialPosts, initialUsers } from '@/lib/data'; // For metadata purposes if needed
+// Assuming initialPosts, initialUsers are representative for metadata. Removed for now as not directly used in generateMetadata.
+// import { initialPosts, initialUsers } from '@/lib/data';
+import { use } from 'react'; // Import React.use
 
-export async function generateStaticParams() {
-  // In a real app, you might fetch all post IDs here. For now, it's dynamic.
-  return [];
-}
+// Removed generateStaticParams as it returns [], which is the default.
+// export async function generateStaticParams() {
+//   return [];
+// }
 
 export async function generateMetadata(
-  { params: { postId } }: { params: { postId: string } }
+  { params: { postId } }: { params: { postId: string } } // Destructuring here is fine for generateMetadata
 ): Promise<Metadata> {
   // In a real app, fetch post data by postId to generate dynamic metadata
-  // For this example, we'll use a generic title or try to find it in initialData if available.
+  // For this example, we'll use a generic title.
   
   // Simulating data fetching for metadata:
   // const post = initialPosts.find(p => p.id === postId);
@@ -29,7 +30,7 @@ export async function generateMetadata(
   // }
   
   return {
-    title: `Detail Postingan`,
+    title: `Detail Postingan: ${postId}`, // Example: make title slightly more dynamic
     description: 'Lihat detail postingan, komentar, dan interaksi lainnya.',
   };
 }
@@ -38,6 +39,9 @@ interface PostPageProps {
   params: { postId: string };
 }
 
-export default function PostPage({ params: { postId } }: PostPageProps) {
+export default function PostPage({ params }: PostPageProps) { // Accept params directly
+  const actualParams = use(params); // Unwrap params using React.use()
+  const postId = actualParams.postId; // Access postId from the unwrapped params
+
   return <PostDetailClientPage postId={postId} />;
 }

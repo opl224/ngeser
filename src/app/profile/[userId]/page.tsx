@@ -1,20 +1,22 @@
 
 // No "use client" directive here
 import { UserProfileDisplay } from '@/components/UserProfileDisplay';
-import React from 'react';
+import React, { use } from 'react'; // Import React.use
 
-export async function generateStaticParams() {
-  return [];
-}
+// Removed generateStaticParams as it returns [], which is the default.
+// export async function generateStaticParams() {
+//   return [];
+// }
 
 interface ProfilePageProps {
   params: { userId: string };
-  // searchParams: { [key: string]: string | string[] | undefined }; // Removed
 }
 
-// Make the Page component async
-export default async function ProfilePage({ params: { userId } }: ProfilePageProps) {
-  // searchParams was not used, so it's removed from props.
+// Page component no longer needs to be async unless it uses await for other operations
+export default function ProfilePage({ params }: ProfilePageProps) { // Accept params directly
+  const actualParams = use(params); // Unwrap params using React.use()
+  const userId = actualParams.userId; // Access userId from the unwrapped params
+
   return (
     <div className="container mx-auto py-8">
       <UserProfileDisplay userId={userId} />
