@@ -16,6 +16,7 @@ import { initialPosts, initialUsers, getCurrentUserId } from '@/lib/data';
 import { UploadCloud, Image as ImageIcon, Film, GalleryVerticalEnd } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
 export function UploadForm() {
   const router = useRouter();
@@ -37,8 +38,45 @@ export function UploadForm() {
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setMediaFile(file);
-      setMediaPreview(URL.createObjectURL(file));
+
+      if (mediaType === 'reel' && file.type.startsWith('video/')) {
+        const videoElement = document.createElement('video');
+        videoElement.preload = 'metadata';
+        videoElement.onloadedmetadata = () => {
+          window.URL.revokeObjectURL(videoElement.src); // Clean up
+          if (videoElement.duration > 60) {
+            toast({
+              title: "Durasi Reel Terlalu Panjang",
+              description: "Durasi video untuk Reel tidak boleh lebih dari 1 menit.",
+              variant: "destructive",
+            });
+            setMediaFile(null);
+            setMediaPreview(null);
+            if (e.target) {
+              e.target.value = ''; // Reset input file
+            }
+          } else {
+            setMediaFile(file);
+            setMediaPreview(URL.createObjectURL(file));
+          }
+        };
+        videoElement.onerror = () => {
+            toast({
+                title: "Gagal Memuat Video",
+                description: "Tidak dapat memuat metadata video. Silakan coba file lain.",
+                variant: "destructive",
+            });
+            setMediaFile(null);
+            setMediaPreview(null);
+            if (e.target) {
+              e.target.value = '';
+            }
+        };
+        videoElement.src = URL.createObjectURL(file);
+      } else {
+        setMediaFile(file);
+        setMediaPreview(URL.createObjectURL(file));
+      }
     } else {
       setMediaFile(null);
       setMediaPreview(null);
@@ -102,16 +140,28 @@ export function UploadForm() {
             <RadioGroup
               id="mediaType"
               defaultValue="photo"
-              onValueChange={(value: 'photo' | 'reel' | 'story') => setMediaType(value)}
+              onValueChange={(value: 'photo' | 'reel' | 'story') => {
+                setMediaType(value);
+                // Reset file jika jenis media berubah untuk memicu validasi ulang jika diperlukan
+                setMediaFile(null);
+                setMediaPreview(null);
+                const fileInput = document.getElementById('mediaFile') as HTMLInputElement;
+                if (fileInput) fileInput.value = '';
+              }}
               className="flex flex-wrap gap-x-4 gap-y-2"
             >
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="photo" id="r-photo" />
                 <Label htmlFor="r-photo" className="flex items-center gap-1.5"><ImageIcon className="h-4 w-4"/> Foto</Label>
               </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="reel" id="r-reel" />
-                <Label htmlFor="r-reel" className="flex items-center gap-1.5"><Film className="h-4 w-4"/> Reel</Label>
+              <div className="flex flex-col">
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="reel" id="r-reel" />
+                  <Label htmlFor="r-reel" className="flex items-center gap-1.5"><Film className="h-4 w-4"/> Reel</Label>
+                </div>
+                {mediaType === 'reel' && (
+                  <p className="text-xs text-muted-foreground mt-1 ml-6">Durasi video maks. 1 menit.</p>
+                )}
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="story" id="r-story" />
@@ -125,13 +175,16 @@ export function UploadForm() {
             <Input
               id="mediaFile"
               type="file"
-              accept="image/*,video/*"
+              accept={mediaType === 'reel' ? "video/*" : (mediaType === 'story' ? "image/*,video/*" : "image/*")}
               onChange={handleFileChange}
               className="mt-1 file:mr-4 file:py-0 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
               required
             />
             {mediaPreview && (
-              <div className={`mt-4 border rounded-lg overflow-hidden max-h-96 flex justify-center items-center bg-muted/20 ${mediaType === 'story' || mediaType === 'reel' ? 'aspect-[9/16]' : 'aspect-video'}`}>
+              <div className={cn(
+                "mt-4 border rounded-lg overflow-hidden max-h-96 flex justify-center items-center bg-muted/20",
+                mediaType === 'story' ? 'aspect-[9/16]' : (mediaType === 'reel' ? 'aspect-[9/16]' : 'aspect-video')
+              )}>
                 {mediaFile?.type.startsWith('image/') ? (
                   <Image src={mediaPreview} alt="Pratinjau Media" width={mediaType === 'reel' || mediaType === 'story' ? 300 : 500} height={mediaType === 'reel' || mediaType === 'story' ? 500 : 300} style={{objectFit: "contain"}} className="max-h-96 w-auto"/>
                 ) : mediaFile?.type.startsWith('video/') ? (
