@@ -101,7 +101,7 @@ export function AppNavbar() {
     );
     toast({
       title: "Notifikasi Dihapus",
-      description: "Semua notifikasi Anda telah dihapus.",
+      description: "Semua notifikasi Kamu telah dihapus.",
     });
   };
 
@@ -121,13 +121,12 @@ export function AppNavbar() {
 
     if (!CUIDUser || !requesterUser) {
         toast({ title: "Kesalahan Data Pengguna", description: "Tidak dapat menemukan data pengguna terkait untuk memproses permintaan.", variant: "destructive"});
-        // Still update the notification UI even if user data for lists is problematic
         setNotifications(prevNots => prevNots.map(n => {
           if (n.id === notificationId) {
             return {
               ...n,
               type: 'follow_request_handled' as NotificationType,
-              processedState: 'accepted', // Mark as accepted attempt
+              processedState: 'accepted', 
               isRead: true, 
               messageOverride: `Gagal memperbarui daftar pengikut untuk ${requesterUser?.username || 'pengguna'}, tetapi permintaan ditandai diterima.`
             };
@@ -159,12 +158,6 @@ export function AppNavbar() {
     } catch (error) {
       console.error("Error updating user lists on follow accept:", error);
       usersUpdateError = true;
-      toast({
-        title: "Kesalahan Sebagian",
-        description: `Permintaan dari ${requesterUser.username} diterima, tetapi ada masalah saat memperbarui daftar pengikut/mengikuti.`,
-        variant: "destructive",
-        duration: 5000,
-      });
     }
     
     setNotifications(prevNots => prevNots.map(n => {
@@ -174,6 +167,7 @@ export function AppNavbar() {
           type: 'follow_request_handled' as NotificationType,
           processedState: 'accepted',
           isRead: true, 
+          messageOverride: usersUpdateError ? `Permintaan dari ${requesterUser.username} diterima, tetapi ada masalah saat memperbarui daftar pengikut/mengikuti.` : undefined
         };
       }
       return n;
@@ -186,6 +180,13 @@ export function AppNavbar() {
           type: 'follow_accepted' 
       });
       toast({ title: "Permintaan Diterima", description: `Kamu sekarang mengizinkan ${requesterUser.username} untuk mengikutimu.` });
+    } else {
+         toast({
+            title: "Kesalahan Sebagian",
+            description: `Permintaan dari ${requesterUser.username} diterima, tetapi ada masalah saat memperbarui daftar pengikut/mengikuti. Notifikasi UI diperbarui.`,
+            variant: "destructive",
+            duration: 7000,
+        });
     }
   };
 
@@ -231,6 +232,7 @@ export function AppNavbar() {
           type: 'follow_request_handled' as NotificationType,
           processedState: 'declined',
           isRead: true,
+          messageOverride: undefined 
         };
       }
       return n;
@@ -395,7 +397,7 @@ export function AppNavbar() {
                         let avatarSrc = actor?.avatarUrl;
                         let avatarFallback = actor?.username?.substring(0,1).toUpperCase() || 'N';
 
-                        if (!message) { // Only build message if not overridden
+                        if (!message) { 
                           switch (notification.type) {
                             case 'like':
                               message = `${actor?.username || 'Seseorang'} menyukai postingan Kamu.`;
@@ -429,7 +431,9 @@ export function AppNavbar() {
                                   message = `Kamu menerima permintaan mengikuti dari ${actor?.username || 'Seseorang'}.`;
                               } else if (notification.processedState === 'declined') {
                                   message = `Kamu menolak permintaan mengikuti dari ${actor?.username || 'Seseorang'}.`;
-                              } else {
+                              } else if (notification.messageOverride) { 
+                                  message = notification.messageOverride;
+                              } else { 
                                   message = `Permintaan mengikuti dari ${actor?.username || 'Seseorang'} telah diproses.`;
                               }
                               linkHref = actor ? `/profile/${actor.id}` : '/';
@@ -458,7 +462,7 @@ export function AppNavbar() {
                                     <div className="mt-1.5 flex gap-2">
                                       <Button
                                         size="xs"
-                                        variant="default"
+                                        variant="outline"
                                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleAcceptFollowRequest(actor.id, notification.id); }}
                                         className="h-6 px-2 text-xs"
                                       >
@@ -519,7 +523,7 @@ interface Notification {
   timestamp: string;
   isRead: boolean;
   processedState?: 'accepted' | 'declined';
-  messageOverride?: string; // Added for robustness
+  messageOverride?: string; 
 }
 
     
