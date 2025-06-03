@@ -8,6 +8,7 @@ import { BottomNavbar } from '@/components/BottomNavbar'; // Import BottomNavbar
 import { Toaster } from "@/components/ui/toaster";
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import React from 'react'; // Import React
 
 // Metadata can still be defined but won't be dynamic in this client component
 // For dynamic metadata based on path, specific page.tsx files should export it.
@@ -42,7 +43,10 @@ export default function RootLayout({
           "flex-grow",
           hideNavbars ? "" : "container mx-auto px-4 pt-16 pb-20 sm:pb-8"
         )}>
-          {children}
+          {/* Wrap children with a div having pathname as key to force re-mount on navigation */}
+          <div key={pathname}>
+            {children}
+          </div>
         </main>
         {!hideNavbars && <BottomNavbar />}
         <Toaster />
