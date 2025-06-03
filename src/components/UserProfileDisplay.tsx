@@ -50,7 +50,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area"; // Added ScrollArea import
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from '@/lib/utils';
 import type React from 'react';
 import { useTheme } from 'next-themes';
@@ -92,7 +92,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const [isPrivacySettingsModalOpen, setIsPrivacySettingsModalOpen] = useState(false);
 
   const [editedUsername, setEditedUsername] = useState('');
-  const [editedFullName, setEditedFullName] = useState(''); // Added for full name
+  const [editedFullName, setEditedFullName] = useState('');
   const [editedBio, setEditedBio] = useState('');
   const [editedAvatarFile, setEditedAvatarFile] = useState<File | null>(null);
   const [editedAvatarPreview, setEditedAvatarPreview] = useState<string | null>(null);
@@ -106,7 +106,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     setProfileUser(foundUser || null); 
     if (foundUser) {
       setEditedUsername(foundUser.username);
-      setEditedFullName(foundUser.fullName || ''); // Initialize full name
+      setEditedFullName(foundUser.fullName || '');
       setEditedBio(foundUser.bio || '');
       setEditedAvatarPreview(foundUser.avatarUrl);
       setEditedAccountType(foundUser.accountType || 'public');
@@ -415,8 +415,8 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         if (user.id === currentSessionUserId) {
           return {
             ...user,
-            username: user.username, // Username is not changed
-            fullName: editedFullName.trim(), // FullName is now editable
+            username: editedUsername, // username is not changed here based on latest request
+            fullName: editedFullName.trim(),
             bio: editedBio.trim(),
             avatarUrl: editedAvatarPreview || user.avatarUrl,
           };
@@ -578,7 +578,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             </div>
             <div className="flex-1 text-center md:text-left">
               <div className="flex items-center justify-center md:justify-start gap-2">
-                <CardTitle className="font-headline text-3xl md:text-4xl text-foreground">{profileUser.username}</CardTitle>
+                <CardTitle className="font-headline text-3xl md:text-4xl text-foreground">@{profileUser.username}</CardTitle>
                 {profileUser.accountType === 'private' && !isCurrentUserProfile && !isCurrentUserFollowingProfile && <Lock className="h-6 w-6 text-muted-foreground" />}
               </div>
               {profileUser.fullName && <p className="text-foreground/90 mt-1 font-medium text-lg">{profileUser.fullName}</p>}
@@ -661,7 +661,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             </DialogDescription>
           </DialogHeader>
           <ScrollArea className="max-h-[70vh] -mx-6 px-6">
-            <div className="grid gap-6 py-4 pr-2"> {/* Added pr-2 for scrollbar space */}
+            <div className="grid gap-6 py-4 pr-2">
               <div className="space-y-2">
                 <Label htmlFor="profile-email" className="font-medium">Email</Label>
                 <Input
@@ -877,4 +877,3 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
-
