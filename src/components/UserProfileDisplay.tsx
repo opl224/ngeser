@@ -65,7 +65,7 @@ function createAndAddNotification(
     timestamp: new Date().toISOString(),
     isRead: false,
   };
-  setNotifications(prev => [...new Set([notification, ...prev])]);
+  setNotifications(prev => [notification, ...prev]);
 }
 
 
@@ -140,61 +140,67 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
 
   const handleFollowToggle = () => {
-    if (!currentSessionUserId || !profileUser || currentSessionUserId === profileUser.id) {
-        toast({ title: "Aksi Tidak Valid", description: "Tidak dapat melakukan aksi ini pada diri sendiri atau pengguna tidak ditemukan.", variant: "destructive"});
-        return;
+    if (!currentSessionUserId || !profileUser) {
+      toast({ title: "Kesalahan", description: "Pengguna saat ini atau pengguna profil tidak ditemukan.", variant: "destructive" });
+      return;
+    }
+    if (currentSessionUserId === profileUser.id) {
+      toast({ title: "Aksi Tidak Valid", description: "Tidak dapat melakukan aksi ini pada diri sendiri.", variant: "destructive" });
+      return;
     }
 
-    const CUIDUser = allUsers.find(u => u.id === currentSessionUserId);
-    if (!CUIDUser) {
-        toast({ title: "Kesalahan", description: "Pengguna saat ini tidak dapat diverifikasi.", variant: "destructive"});
-        return;
+    const CUIDUser = allUsers.find(u => u.id === currentSessionUserId); // Re-fetch from allUsers for latest state
+    const targetProfileUser = allUsers.find(u => u.id === profileUser.id); // Re-fetch for latest state
+
+    if (!CUIDUser || !targetProfileUser) {
+      toast({ title: "Kesalahan Data Pengguna", description: "Tidak dapat memverifikasi data pengguna untuk melanjutkan.", variant: "destructive" });
+      return;
     }
+    
+    const isAlreadyFollowing = (CUIDUser.following || []).includes(targetProfileUser.id);
+    const hasSentRequest = (CUIDUser.sentFollowRequests || []).includes(targetProfileUser.id);
 
-    const isAlreadyFollowing = (CUIDUser.following || []).includes(profileUser.id);
-    const hasSentRequest = (CUIDUser.sentFollowRequests || []).includes(profileUser.id);
-
-    if (profileUser.accountType === 'public') {
+    if (targetProfileUser.accountType === 'public') {
       setAllUsers(prevUsers => prevUsers.map(u => {
         if (u.id === currentSessionUserId) {
-          const newFollowing = isAlreadyFollowing ? (u.following || []).filter(id => id !== profileUser.id) : [...new Set([...(u.following || []), profileUser.id])];
+          const newFollowing = isAlreadyFollowing ? (u.following || []).filter(id => id !== targetProfileUser.id) : [...new Set([...(u.following || []), targetProfileUser.id])];
           return { ...u, following: newFollowing };
         }
-        if (u.id === profileUser.id) {
+        if (u.id === targetProfileUser.id) {
           const newFollowers = isAlreadyFollowing ? (u.followers || []).filter(id => id !== currentSessionUserId) : [...new Set([...(u.followers || []), currentSessionUserId])];
           return { ...u, followers: newFollowers };
         }
         return u;
       }));
       if (isAlreadyFollowing) {
-        toast({ title: "Berhenti Mengikuti", description: `Anda tidak lagi mengikuti ${profileUser.username}.` });
+        toast({ title: "Berhenti Mengikuti", description: `Anda tidak lagi mengikuti ${targetProfileUser.username}.` });
       } else {
-        toast({ title: "Mulai Mengikuti", description: `Anda sekarang mengikuti ${profileUser.username}.` });
-        createAndAddNotification(setNotifications, { recipientUserId: profileUser.id, actorUserId: currentSessionUserId, type: 'follow' });
+        toast({ title: "Mulai Mengikuti", description: `Anda sekarang mengikuti ${targetProfileUser.username}.` });
+        createAndAddNotification(setNotifications, { recipientUserId: targetProfileUser.id, actorUserId: currentSessionUserId, type: 'follow' });
       }
-    } else { 
-      if (isAlreadyFollowing) { 
+    } else { // Private account
+      if (isAlreadyFollowing) { // Unfollow
         setAllUsers(prevUsers => prevUsers.map(u => {
-          if (u.id === currentSessionUserId) return { ...u, following: (u.following || []).filter(id => id !== profileUser.id) };
-          if (u.id === profileUser.id) return { ...u, followers: (u.followers || []).filter(id => id !== currentSessionUserId) };
+          if (u.id === currentSessionUserId) return { ...u, following: (u.following || []).filter(id => id !== targetProfileUser.id) };
+          if (u.id === targetProfileUser.id) return { ...u, followers: (u.followers || []).filter(id => id !== currentSessionUserId) };
           return u;
         }));
-        toast({ title: "Berhenti Mengikuti", description: `Anda tidak lagi mengikuti ${profileUser.username}.` });
-      } else if (hasSentRequest) { 
+        toast({ title: "Berhenti Mengikuti", description: `Anda tidak lagi mengikuti ${targetProfileUser.username}.` });
+      } else if (hasSentRequest) { // Cancel request
         setAllUsers(prevUsers => prevUsers.map(u => {
-          if (u.id === currentSessionUserId) return { ...u, sentFollowRequests: (u.sentFollowRequests || []).filter(id => id !== profileUser.id) };
-          if (u.id === profileUser.id) return { ...u, pendingFollowRequests: (u.pendingFollowRequests || []).filter(reqId => reqId !== currentSessionUserId) };
+          if (u.id === currentSessionUserId) return { ...u, sentFollowRequests: (u.sentFollowRequests || []).filter(id => id !== targetProfileUser.id) };
+          if (u.id === targetProfileUser.id) return { ...u, pendingFollowRequests: (u.pendingFollowRequests || []).filter(reqId => reqId !== currentSessionUserId) };
           return u;
         }));
-        toast({ title: "Permintaan Dibatalkan", description: `Permintaan mengikuti ${profileUser.username} dibatalkan.` });
-      } else { 
+        toast({ title: "Permintaan Dibatalkan", description: `Permintaan mengikuti ${targetProfileUser.username} dibatalkan.` });
+      } else { // Send request
         setAllUsers(prevUsers => prevUsers.map(u => {
-          if (u.id === currentSessionUserId) return { ...u, sentFollowRequests: [...new Set([...(u.sentFollowRequests || []), profileUser.id])] };
-          if (u.id === profileUser.id) return { ...u, pendingFollowRequests: [...new Set([...(u.pendingFollowRequests || []), currentSessionUserId])] };
+          if (u.id === currentSessionUserId) return { ...u, sentFollowRequests: [...new Set([...(u.sentFollowRequests || []), targetProfileUser.id])] };
+          if (u.id === targetProfileUser.id) return { ...u, pendingFollowRequests: [...new Set([...(u.pendingFollowRequests || []), currentSessionUserId])] };
           return u;
         }));
-        toast({ title: "Permintaan Terkirim", description: `Permintaan mengikuti ${profileUser.username} telah dikirim.` });
-        createAndAddNotification(setNotifications, { recipientUserId: profileUser.id, actorUserId: currentSessionUserId, type: 'follow_request' });
+        toast({ title: "Permintaan Terkirim", description: `Permintaan mengikuti ${targetProfileUser.username} telah dikirim.` });
+        createAndAddNotification(setNotifications, { recipientUserId: targetProfileUser.id, actorUserId: currentSessionUserId, type: 'follow_request' });
       }
     }
   };
