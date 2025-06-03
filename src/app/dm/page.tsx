@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, MessageSquare, Send, ArrowLeft, Users, Info, MoreHorizontal, Edit, Trash2, CornerUpLeft } from 'lucide-react';
+import { Loader2, MessageSquare, Send, ArrowLeft, Users, Info, MoreHorizontal, Edit, Trash2, CornerUpLeft, MoreVertical } from 'lucide-react';
 import Link from 'next/link';
 import { formatTimestamp } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
@@ -264,7 +264,7 @@ export default function DirectMessagesPage() {
         "w-full md:w-1/3 md:max-w-sm border-r border-border bg-card/30 flex flex-col",
         isMobileViewAndViewingMessages ? "hidden md:flex" : "flex"
       )}>
-        <div className="p-3 border-b border-border flex items-center gap-2 sticky top-0 bg-card/30 z-10">
+         <div className="p-3 border-b border-border flex items-center gap-2 sticky top-0 bg-card/30 z-10">
           <Button variant="ghost" size="icon" onClick={() => router.back()} aria-label="Kembali">
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -299,7 +299,6 @@ export default function DirectMessagesPage() {
             ))
           ) : (
              <div className="p-6 text-center text-muted-foreground flex flex-col items-center justify-center h-full">
-              {/* Header for empty conversation list already included from previous request */}
               <Users className="h-12 w-12 mx-auto mb-3" />
               <p className="text-sm">Belum ada percakapan.</p>
               <p className="text-xs mt-1">Mulai percakapan dari profil pengguna.</p>
@@ -333,7 +332,7 @@ export default function DirectMessagesPage() {
                 const isCurrentUserSender = msg.senderId === currentUserId;
                 const sender = isCurrentUserSender ? currentUser : selectedConversation.otherParticipant;
                 return (
-                  <div key={msg.id} className={cn("group flex items-end gap-2 max-w-[85%] sm:max-w-[75%] mb-3", isCurrentUserSender ? "ml-auto flex-row-reverse" : "mr-auto")}>
+                  <div key={msg.id} className={cn("group flex items-center gap-2 max-w-[85%] sm:max-w-[75%] mb-3", isCurrentUserSender ? "ml-auto flex-row-reverse" : "mr-auto")}>
                     {!isCurrentUserSender && (
                        <Avatar className="h-7 w-7 self-start flex-shrink-0 hidden sm:flex">
                          <AvatarImage src={sender?.avatarUrl} alt={sender?.username} data-ai-hint="message sender avatar"/>
@@ -369,11 +368,10 @@ export default function DirectMessagesPage() {
                             size="icon"
                             className={cn(
                               "h-6 w-6 p-0.5 rounded-full opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity",
-                              // Removed absolute positioning classes
                               "data-[state=open]:opacity-100 bg-card/50 hover:bg-card"
                             )}
                           >
-                            <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                            <MoreVertical className="h-4 w-4 text-muted-foreground" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align={isCurrentUserSender ? "end" : "start"} sideOffset={5}>
