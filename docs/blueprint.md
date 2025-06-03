@@ -1,4 +1,4 @@
-# **App Name**: Elegance
+# **App Name**: Ngeser
 
 ## Core Features:
 
@@ -15,5 +15,5 @@
 - Accent color: Dusty Rose (#D8BFD8) to highlight key UI elements and interactions.
 - Headline font: 'Belleza' (humanist sans-serif) for titles and headings.
 - Body font: 'Alegreya' (humanist serif) for descriptions and user-generated content.
-- Simple, minimalist icons with a thin stroke style to match the elegance of the design.
+- Simple, minimalist icons with a thin stroke style to match the ngeser of the design.
 - Clean and spacious layout with rounded corners and subtle shadows for depth.

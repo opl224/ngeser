@@ -427,7 +427,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
     if (!post || !canViewContent) return;
     if (post.type === 'story' && post.mediaMimeType?.startsWith('video/')) {
         setShowVideoControls(true);
-    } else if (post.type === 'video' || post.type === 'reel') {
+    } else if (post.type === 'reel') { 
         setShowVideoControls(true);
     } else { 
         setIsMediaModalOpen(true);
@@ -465,7 +465,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
   const isSavedByCurrentUser = (currentUser?.savedPosts || []).includes(post.id);
   const sortedRootComments = [...post.comments.filter(c => c.parentId === null)].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   
-  const isVideoContent = post.type === 'video' || post.type === 'reel' || (post.type === 'story' && post.mediaMimeType?.startsWith('video/'));
+  const isVideoContent = post.type === 'reel' || (post.type === 'story' && post.mediaMimeType?.startsWith('video/'));
   const isImageContent = post.type === 'photo' || (post.type === 'story' && post.mediaMimeType?.startsWith('image/'));
 
 
@@ -535,7 +535,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
                 controls={showVideoControls}
                 data-ai-hint={post.type === 'story' ? "story video" : (post.type === 'reel' ? 'reel video' : 'video content')}
               />
-              {(post.type === 'video' || post.type === 'reel' || (post.type === 'story' && post.mediaMimeType?.startsWith('video/'))) && !showVideoControls && (
+              {(post.type === 'reel' || (post.type === 'story' && post.mediaMimeType?.startsWith('video/'))) && !showVideoControls && (
                 <PlayCircle className="absolute h-16 w-16 text-background/70 pointer-events-none" />
               )}
             </div>

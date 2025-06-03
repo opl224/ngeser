@@ -28,7 +28,7 @@ export interface Post {
   id: string;
   userId: string;
   user?: User;
-  type: 'photo' | 'video' | 'reel' | 'story';
+  type: 'photo' | 'reel' | 'story';
   mediaUrl: string;
   mediaMimeType?: string; 
   caption: string; 

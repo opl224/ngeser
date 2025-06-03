@@ -65,7 +65,7 @@ export default function SearchPage() {
           Cari Pengguna
         </h1>
         <p className="text-muted-foreground">
-          Temukan pengguna lain dalam komunitas Elegance.
+          Temukan pengguna lain dalam komunitas Ngeser.
         </p>
       </div>
       

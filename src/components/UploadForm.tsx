@@ -13,7 +13,7 @@ import { SuggestedHashtagsClient } from './SuggestedHashtagsClient';
 import type { Post, User } from '@/lib/types';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialPosts, initialUsers, getCurrentUserId } from '@/lib/data';
-import { UploadCloud, Image as ImageIcon, Video as VideoIcon, Film, GalleryVerticalEnd } from 'lucide-react';
+import { UploadCloud, Image as ImageIcon, Film, GalleryVerticalEnd } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
 
@@ -26,7 +26,7 @@ export function UploadForm() {
   const [caption, setCaption] = useState('');
   const [hashtags, setHashtags] = useState('');
   const [mentions, setMentions] = useState('');
-  const [mediaType, setMediaType] = useState<'photo' | 'video' | 'reel' | 'story'>('photo');
+  const [mediaType, setMediaType] = useState<'photo' | 'reel' | 'story'>('photo');
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -93,7 +93,7 @@ export function UploadForm() {
         <CardTitle className="font-headline text-2xl flex items-center gap-2">
             <UploadCloud className="h-7 w-7 text-primary" /> Buat Postingan Baru
         </CardTitle>
-        <CardDescription>Bagikan momen Anda dengan dunia. Unggah foto, video, reel atau cerita.</CardDescription>
+        <CardDescription>Bagikan momen Anda dengan dunia. Unggah foto, reel atau cerita.</CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-6">
@@ -102,16 +102,12 @@ export function UploadForm() {
             <RadioGroup
               id="mediaType"
               defaultValue="photo"
-              onValueChange={(value: 'photo' | 'video' | 'reel' | 'story') => setMediaType(value)}
+              onValueChange={(value: 'photo' | 'reel' | 'story') => setMediaType(value)}
               className="flex flex-wrap gap-x-4 gap-y-2"
             >
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="photo" id="r-photo" />
                 <Label htmlFor="r-photo" className="flex items-center gap-1.5"><ImageIcon className="h-4 w-4"/> Foto</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="video" id="r-video" />
-                <Label htmlFor="r-video" className="flex items-center gap-1.5"><VideoIcon className="h-4 w-4"/> Video</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="reel" id="r-reel" />
@@ -131,7 +127,7 @@ export function UploadForm() {
               type="file"
               accept="image/*,video/*"
               onChange={handleFileChange}
-              className="mt-1 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+              className="mt-1 file:mr-4 file:py-0 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
               required
             />
             {mediaPreview && (

@@ -262,8 +262,8 @@ export function AppNavbar() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-             <Image src="/hand.png" alt="Elegance logo" width={28} height={28} /> {/* Changed from Handshake icon */}
-            <span className="font-headline text-2xl font-semibold text-foreground">Elegance</span>
+             <Image src="/hand.png" alt="Ngeser logo" width={28} height={28} /> {/* Changed from Handshake icon */}
+            <span className="font-headline text-2xl font-semibold text-foreground">Ngeser</span>
           </Link>
         </div>
       </header>
@@ -275,8 +275,8 @@ export function AppNavbar() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-center">
           <Link href="/" className="flex items-center gap-2">
-             <Image src="/hand.png" alt="Elegance logo" width={28} height={28} /> {/* Changed from Handshake icon */}
-            <span className="font-headline text-2xl font-semibold text-foreground">Elegance</span>
+             <Image src="/hand.png" alt="Ngeser logo" width={28} height={28} /> {/* Changed from Handshake icon */}
+            <span className="font-headline text-2xl font-semibold text-foreground">Ngeser</span>
           </Link>
         </div>
       </header>
@@ -287,8 +287,8 @@ export function AppNavbar() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between gap-x-4">
         <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-           <Image src="/hand.png" alt="Elegance logo" width={28} height={28} /> {/* Changed from Handshake icon */}
-          <span className="font-headline text-2xl font-semibold text-foreground">Elegance</span>
+           <Image src="/hand.png" alt="Ngeser logo" width={28} height={28} /> {/* Changed from Handshake icon */}
+          <span className="font-headline text-2xl font-semibold text-foreground">Ngeser</span>
         </Link>
 
         <div className="flex-1 hidden sm:flex justify-center px-2 md:px-4">

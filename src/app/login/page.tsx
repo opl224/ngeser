@@ -95,8 +95,8 @@ export default function LoginPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-background to-muted/30 p-4">
       <div className="flex items-center gap-2 mb-8">
-          <Image src="/hand.png" alt="Elegance logo" width={40} height={40} /> {/* Changed from Handshake icon */}
-          <span className="font-headline text-4xl sm:text-5xl font-semibold text-foreground">Elegance</span>
+          <Image src="/hand.png" alt="Ngeser logo" width={40} height={40} /> {/* Changed from Handshake icon */}
+          <span className="font-headline text-4xl sm:text-5xl font-semibold text-foreground">Ngeser</span>
       </div>
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
@@ -129,7 +129,7 @@ export default function LoginPage() {
         </form>
       </Card>
       <p className="text-xs text-muted-foreground mt-8 text-center">
-        &copy; {new Date().getFullYear()} Elegance Social. Hak cipta dilindungi. <br/>
+        &copy; {new Date().getFullYear()} Ngeser Social. Hak cipta dilindungi. <br/>
         Proyek untuk tujuan demonstrasi.
       </p>
     </div>

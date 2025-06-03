@@ -124,7 +124,7 @@ export function PostCard({
   const handleMediaClick = () => {
     if (post.type === 'story' && post.mediaMimeType?.startsWith('video/')) {
         setShowVideoControls(true);
-    } else if (post.type === 'video' || post.type === 'reel') {
+    } else if (post.type === 'reel') { // Removed post.type === 'video'
         setShowVideoControls(true);
     } else { // photo or image story
         setIsMediaModalOpen(true);
@@ -133,7 +133,7 @@ export function PostCard({
 
   const isLiked = currentUserId ? post.likes.includes(currentUserId) : false;
   const isOwner = currentUserId === post.userId;
-  const isVideoContent = post.type === 'video' || post.type === 'reel' || (post.type === 'story' && post.mediaMimeType?.startsWith('video/'));
+  const isVideoContent = post.type === 'reel' || (post.type === 'story' && post.mediaMimeType?.startsWith('video/'));
   const isImageContent = post.type === 'photo' || (post.type === 'story' && post.mediaMimeType?.startsWith('image/'));
 
 
@@ -223,7 +223,7 @@ export function PostCard({
                 controls={showVideoControls}
                 data-ai-hint={post.type === 'story' ? "story video" : (post.type === 'reel' ? 'reel video' : 'video content')}
               />
-              {(post.type === 'video' || post.type === 'reel' || (post.type === 'story' && post.mediaMimeType?.startsWith('video/'))) && !showVideoControls && (
+              {(post.type === 'reel' || (post.type === 'story' && post.mediaMimeType?.startsWith('video/'))) && !showVideoControls && (
                 <PlayCircle className="absolute h-16 w-16 text-background/70 pointer-events-none" />
               )}
             </div>

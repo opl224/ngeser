@@ -13,7 +13,7 @@ import React from 'react'; // Import React
 // Metadata can still be defined but won't be dynamic in this client component
 // For dynamic metadata based on path, specific page.tsx files should export it.
 // export const metadata: Metadata = {
-//   title: 'Elegance',
+//   title: 'Ngeser',
 //   description: 'Pengalaman media sosial yang sederhana namun elegan.',
 // };
 
@@ -30,7 +30,7 @@ export default function RootLayout({
   return (
     <html lang="id" suppressHydrationWarning>
       <head>
-        <title>Elegance</title>
+        <title>Ngeser</title>
         <meta name="description" content="Pengalaman media sosial yang sederhana namun elegan." />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
