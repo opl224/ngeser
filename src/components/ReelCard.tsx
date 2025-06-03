@@ -10,7 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetClose } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Heart, MessageCircle, Send, Share2, MoreVertical, Edit, Trash2, Link2, CornerUpLeft, Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { Heart, MessageCircle, Send, Share2, MoreHorizontal, Edit, Trash2, Link2, CornerUpLeft, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useToast } from "@/hooks/use-toast";
@@ -277,7 +277,7 @@ export function ReelCard({
         </div>
 
         {/* Action Buttons */}
-        <div className="absolute right-2 bottom-1/2 translate-y-1/2 md:bottom-6 md:translate-y-0 flex flex-col items-center gap-3 z-10">
+        <div className="absolute right-2 bottom-20 md:bottom-6 flex flex-col items-center gap-3 z-10">
           <button
             onClick={(e) => { e.stopPropagation(); onLikeReel(post.id); }}
             className="flex flex-col items-center text-white p-2 rounded-full hover:bg-white/10 active:scale-95 transition-transform"
@@ -310,7 +310,7 @@ export function ReelCard({
                 className="flex flex-col items-center text-white p-2 rounded-full hover:bg-white/10 active:scale-95 transition-transform"
                 aria-label="Opsi lainnya"
               >
-                <MoreVertical className="h-7 w-7" />
+                <MoreHorizontal className="h-7 w-7" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" side="left" sideOffset={8} onClick={(e) => e.stopPropagation()}>
@@ -436,5 +436,3 @@ export function ReelCard({
     </>
   );
 }
-
-    
