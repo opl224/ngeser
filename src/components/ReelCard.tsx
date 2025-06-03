@@ -10,7 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetClose } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Heart, MessageCircle, Send, Share2, MoreHorizontal, Edit, Trash2, Link2, CornerUpLeft, Play, Pause, Volume2, VolumeX, Bookmark } from 'lucide-react';
+import { Heart, MessageCircle, Send, Share2, MoreHorizontal, Edit, Trash2, Link2, CornerUpLeft, Play, Pause, Volume2, VolumeX, Bookmark, UserPlus, UserCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useToast } from "@/hooks/use-toast";
@@ -95,11 +95,13 @@ interface ReelCardProps {
   currentUser: User;
   isCurrentlyActive: boolean;
   isSavedByCurrentUser: boolean;
+  isFollowingAuthor: boolean;
   onLikeReel: (postId: string) => void;
   onAddCommentToReel: (postId: string, text: string, replyToCommentId?: string) => void;
   onDeleteReel: (postId: string) => void;
   onEditReelCaption: (postId: string, newCaption: string) => void;
   onToggleSaveReel: (postId: string) => void;
+  onFollowAuthor: (authorId: string) => void;
   allUsers: User[];
 }
 
@@ -109,11 +111,13 @@ export function ReelCard({
   currentUser,
   isCurrentlyActive,
   isSavedByCurrentUser,
+  isFollowingAuthor,
   onLikeReel,
   onAddCommentToReel,
   onDeleteReel,
   onEditReelCaption,
   onToggleSaveReel,
+  onFollowAuthor,
   allUsers,
 }: ReelCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -276,6 +280,22 @@ export function ReelCard({
             <Link href={`/profile/${author.id}`} className="pointer-events-auto">
               <p className="font-semibold text-sm text-white shadow-sm">{author.username}</p>
             </Link>
+            {currentUser.id !== author.id && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent video toggle
+                  onFollowAuthor(author.id);
+                }}
+                className={cn(
+                  "ml-2 pointer-events-auto text-xs font-semibold text-white px-2.5 py-1 rounded-md transition-colors",
+                  isFollowingAuthor 
+                    ? "bg-transparent border border-white/50 hover:bg-white/10" 
+                    : "bg-white/20 hover:bg-white/30"
+                )}
+              >
+                {isFollowingAuthor ? 'Mengikuti' : 'Ikuti'}
+              </button>
+            )}
           </div>
           {post.caption && <p className="text-xs text-white/90 shadow-sm line-clamp-2">{post.caption}</p>}
         </div>
@@ -328,11 +348,11 @@ export function ReelCard({
               {isOwner && (
                 <>
                   <DropdownMenuItem onClick={handleOpenEditCaptionDialog}>
-                    <Edit className="mr-2" /> Edit Keterangan
+                    <Edit className="mr-2 h-4 w-4" /> Edit Keterangan
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive focus:text-destructive">
-                    <Trash2 className="mr-2" /> Hapus Reel
+                  <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                    <Trash2 className="mr-2 h-4 w-4" /> Hapus Reel
                   </DropdownMenuItem>
                 </>
               )}

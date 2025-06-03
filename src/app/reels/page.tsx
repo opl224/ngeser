@@ -257,6 +257,54 @@ export default function ReelsPage() {
     }
   }, [currentUserId, setAllUsers, toast]);
 
+  const handleFollowToggleReelAuthor = useCallback((authorId: string) => {
+    if (!currentUserId || !currentUser || authorId === currentUserId) return;
+
+    const isCurrentlyFollowing = currentUser.following.includes(authorId);
+
+    setAllUsers(prevUsers => 
+      prevUsers.map(u => {
+        if (u.id === currentUserId) { // Update current user's following list
+          return {
+            ...u,
+            following: isCurrentlyFollowing
+              ? u.following.filter(id => id !== authorId)
+              : [...u.following, authorId]
+          };
+        }
+        if (u.id === authorId) { // Update target user's followers list
+          return {
+            ...u,
+            followers: isCurrentlyFollowing
+              ? u.followers.filter(id => id !== currentUserId)
+              : [...u.followers, currentUserId]
+          };
+        }
+        return u;
+      })
+    );
+
+    const targetUser = allUsers.find(u => u.id === authorId);
+    if (targetUser) {
+      if (isCurrentlyFollowing) {
+        toast({
+          title: "Berhenti Mengikuti",
+          description: `Anda sekarang tidak lagi mengikuti ${targetUser.username}.`
+        });
+      } else {
+        toast({
+          title: "Mulai Mengikuti",
+          description: `Anda sekarang mengikuti ${targetUser.username}.`
+        });
+        createAndAddNotification(setNotifications, {
+          recipientUserId: authorId,
+          actorUserId: currentUserId,
+          type: 'follow',
+        });
+      }
+    }
+  }, [currentUserId, currentUser, allUsers, setAllUsers, setNotifications, toast]);
+
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -331,6 +379,7 @@ export default function ReelsPage() {
       {reels.map((reel, index) => {
         const author = allUsers.find(u => u.id === reel.userId);
         const isSaved = currentUser?.savedPosts?.includes(reel.id) || false;
+        const isFollowingAuthor = currentUser?.following?.includes(reel.userId) || false;
         return (
           <div
             key={reel.id}
@@ -345,11 +394,13 @@ export default function ReelsPage() {
                 currentUser={currentUser}
                 isCurrentlyActive={index === activeReelIndex}
                 isSavedByCurrentUser={isSaved}
+                isFollowingAuthor={isFollowingAuthor}
                 onLikeReel={handleLikeReel}
                 onAddCommentToReel={handleAddCommentToReel}
                 onDeleteReel={handleDeleteReel}
                 onEditReelCaption={handleEditReelCaption}
                 onToggleSaveReel={handleToggleSaveReel}
+                onFollowAuthor={handleFollowToggleReelAuthor}
                 allUsers={allUsers}
               />
             )}
@@ -361,3 +412,4 @@ export default function ReelsPage() {
 }
 
     
+
