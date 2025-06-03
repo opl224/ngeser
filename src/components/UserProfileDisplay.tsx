@@ -411,7 +411,11 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   };
 
   const handleSaveChanges = () => {
-    if (!profileUser || !currentSessionUserId || !editedFullName.trim()) {
+    if (!profileUser || !currentSessionUserId) {
+        toast({ title: "Error", description: "Tidak dapat menyimpan, data pengguna tidak lengkap.", variant: "destructive" });
+        return;
+    }
+    if (!editedFullName.trim()) {
       toast({
         title: "Gagal Menyimpan",
         description: "Nama lengkap tidak boleh kosong.",
@@ -428,6 +432,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             fullName: editedFullName.trim(),
             bio: editedBio.trim(),
             avatarUrl: editedAvatarPreview || user.avatarUrl,
+            // username tidak diubah di sini lagi
           };
         }
         return user;
@@ -787,15 +792,16 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               {isCurrentUserProfile && <TabsTrigger value="saved" className="font-headline"><Bookmark className="h-4 w-4 mr-2"/>Disimpan</TabsTrigger>}
             </TabsList>
             <TabsContent value="posts">
-              <Tabs defaultValue="all" onValueChange={(value) => setPostFilterType(value as 'all' | 'photo' | 'reel')}>
-                <ScrollArea className="w-full mb-4">
-                  <TabsList className="inline-flex h-10 items-center justify-start p-1 text-muted-foreground bg-muted/30 rounded-md">
-                    <TabsTrigger value="all" className="font-headline text-xs sm:text-sm"><LayoutGrid className="h-3.5 w-3.5 mr-1.5"/>Semua</TabsTrigger>
-                    <TabsTrigger value="photo" className="font-headline text-xs sm:text-sm"><ImageIconLucide className="h-3.5 w-3.5 mr-1.5"/>Foto</TabsTrigger>
-                    <TabsTrigger value="reel" className="font-headline text-xs sm:text-sm"><Video className="h-3.5 w-3.5 mr-1.5"/>Reels</TabsTrigger>
+              <ScrollArea className="w-full mb-4 whitespace-nowrap">
+                <Tabs defaultValue="all" onValueChange={(value) => setPostFilterType(value as 'all' | 'photo' | 'reel')}>
+                  <TabsList className="inline-flex h-10 items-center justify-start p-1 text-muted-foreground bg-muted/50 rounded-lg">
+                    <TabsTrigger value="all" className="font-headline"><LayoutGrid className="h-3.5 w-3.5 mr-1.5"/>Semua</TabsTrigger>
+                    <TabsTrigger value="photo" className="font-headline"><ImageIconLucide className="h-3.5 w-3.5 mr-1.5"/>Foto</TabsTrigger>
+                    <TabsTrigger value="reel" className="font-headline"><Video className="h-3.5 w-3.5 mr-1.5"/>Reels</TabsTrigger>
                   </TabsList>
-                  <ScrollBar orientation="horizontal" />
-                </ScrollArea>
+                </Tabs>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
                 {filteredDisplayPosts.length > 0 ? (
                   <div className="grid grid-cols-1 gap-6">
                     {filteredDisplayPosts.map(post => {
@@ -819,7 +825,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                     Belum ada {postFilterType === 'photo' ? 'foto' : postFilterType === 'reel' ? 'reel' : 'postingan'}.
                   </p>
                 )}
-              </Tabs>
             </TabsContent>
             <TabsContent value="followers">
               <UserList userIds={profileUser.followers || []} allUsers={allUsers} listTitle="Pengikut" />
