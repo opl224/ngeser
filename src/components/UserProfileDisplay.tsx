@@ -93,7 +93,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     const CUID = getCurrentUserId();
     setCurrentSessionUserId(CUID);
     const foundUser = allUsers.find(u => u.id === userId);
-    setProfileUser(foundUser || null); // Set to null if not found initially
+    setProfileUser(foundUser || null); 
     if (foundUser) {
       setEditedUsername(foundUser.username);
       setEditedBio(foundUser.bio || '');
@@ -140,10 +140,16 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
 
   const handleFollowToggle = () => {
-    if (!currentSessionUserId || !profileUser || currentSessionUserId === profileUser.id) return;
+    if (!currentSessionUserId || !profileUser || currentSessionUserId === profileUser.id) {
+        toast({ title: "Aksi Tidak Valid", description: "Tidak dapat melakukan aksi ini pada diri sendiri atau pengguna tidak ditemukan.", variant: "destructive"});
+        return;
+    }
 
     const CUIDUser = allUsers.find(u => u.id === currentSessionUserId);
-    if (!CUIDUser) return;
+    if (!CUIDUser) {
+        toast({ title: "Kesalahan", description: "Pengguna saat ini tidak dapat diverifikasi.", variant: "destructive"});
+        return;
+    }
 
     const isAlreadyFollowing = (CUIDUser.following || []).includes(profileUser.id);
     const hasSentRequest = (CUIDUser.sentFollowRequests || []).includes(profileUser.id);
@@ -166,22 +172,22 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         toast({ title: "Mulai Mengikuti", description: `Anda sekarang mengikuti ${profileUser.username}.` });
         createAndAddNotification(setNotifications, { recipientUserId: profileUser.id, actorUserId: currentSessionUserId, type: 'follow' });
       }
-    } else { // Private account
-      if (isAlreadyFollowing) { // Unfollow action
+    } else { 
+      if (isAlreadyFollowing) { 
         setAllUsers(prevUsers => prevUsers.map(u => {
           if (u.id === currentSessionUserId) return { ...u, following: (u.following || []).filter(id => id !== profileUser.id) };
           if (u.id === profileUser.id) return { ...u, followers: (u.followers || []).filter(id => id !== currentSessionUserId) };
           return u;
         }));
         toast({ title: "Berhenti Mengikuti", description: `Anda tidak lagi mengikuti ${profileUser.username}.` });
-      } else if (hasSentRequest) { // Cancel follow request action
+      } else if (hasSentRequest) { 
         setAllUsers(prevUsers => prevUsers.map(u => {
           if (u.id === currentSessionUserId) return { ...u, sentFollowRequests: (u.sentFollowRequests || []).filter(id => id !== profileUser.id) };
           if (u.id === profileUser.id) return { ...u, pendingFollowRequests: (u.pendingFollowRequests || []).filter(reqId => reqId !== currentSessionUserId) };
           return u;
         }));
         toast({ title: "Permintaan Dibatalkan", description: `Permintaan mengikuti ${profileUser.username} dibatalkan.` });
-      } else { // Send follow request action
+      } else { 
         setAllUsers(prevUsers => prevUsers.map(u => {
           if (u.id === currentSessionUserId) return { ...u, sentFollowRequests: [...new Set([...(u.sentFollowRequests || []), profileUser.id])] };
           if (u.id === profileUser.id) return { ...u, pendingFollowRequests: [...new Set([...(u.pendingFollowRequests || []), currentSessionUserId])] };
@@ -341,7 +347,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       setEditedUsername(profileUser.username);
       setEditedBio(profileUser.bio || '');
       setEditedAvatarPreview(profileUser.avatarUrl);
-      setEditedAvatarFile(null); // Reset file input
+      setEditedAvatarFile(null); 
       setIsEditProfileModalOpen(true);
     }
   };
@@ -365,7 +371,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       reader.readAsDataURL(file);
     } else {
       setEditedAvatarFile(null);
-      setEditedAvatarPreview(profileUser?.avatarUrl || null); // Revert to original if no file
+      setEditedAvatarPreview(profileUser?.avatarUrl || null); 
     }
   };
 
@@ -402,7 +408,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             username: editedUsername.trim(),
             bio: editedBio.trim(),
             avatarUrl: editedAvatarPreview || user.avatarUrl,
-            // accountType is handled by handleSavePrivacySettings
+            
           };
         }
         return user;
@@ -603,7 +609,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Edit Profile Dialog */}
+      
       <Dialog open={isEditProfileModalOpen} onOpenChange={setIsEditProfileModalOpen}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
@@ -665,7 +671,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Privacy Settings Dialog */}
+      
       <Dialog open={isPrivacySettingsModalOpen} onOpenChange={setIsPrivacySettingsModalOpen}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>

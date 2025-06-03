@@ -23,7 +23,7 @@ import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from "@/hooks/use-toast";
 
-// Helper function for creating notifications
+
 function createAndAddNotification(
   setNotificationsGlobal: Dispatch<SetStateAction<Notification[]>>, 
   newNotificationData: Omit<Notification, 'id' | 'timestamp' | 'isRead'>
@@ -70,7 +70,7 @@ export function AppNavbar() {
 
   const unreadNotifications = useMemo(() => {
     if (!currentUserId || !isClient) return [];
-    // Only count as unread if it's not a 'follow_request_handled' or if it is, its isRead is false (though we set it to true)
+    
     return notifications.filter(n => n.recipientUserId === currentUserId && !n.isRead && n.type !== 'follow_request_handled');
   }, [notifications, currentUserId, isClient]);
 
@@ -88,8 +88,6 @@ export function AppNavbar() {
     if (open && unreadCount > 0 && currentUserId) {
       setNotifications(prevNotifications =>
         prevNotifications.map(n =>
-          // Mark as read if it's for the current user, is unread, and is NOT a follow_request_handled
-          // (follow_request_handled are marked read upon actioning)
           (n.recipientUserId === currentUserId && !n.isRead && n.type !== 'follow_request_handled') ? { ...n, isRead: true } : n
         )
       );
@@ -114,8 +112,17 @@ export function AppNavbar() {
   };
 
   const handleAcceptFollowRequest = (requesterId: string, notificationId: string) => {
-    if (!currentUserId) return;
+    if (!currentUserId) {
+        toast({ title: "Kesalahan", description: "Tidak dapat memproses permintaan, pengguna tidak dikenal.", variant: "destructive"});
+        return;
+    }
+    const CUIDUser = allUsers.find(u => u.id === currentUserId); 
     const requesterUser = allUsers.find(u => u.id === requesterId);
+
+    if (!CUIDUser || !requesterUser) {
+        toast({ title: "Kesalahan Data Pengguna", description: "Tidak dapat menemukan data pengguna terkait untuk memproses permintaan.", variant: "destructive"});
+        return;
+    }
 
     setAllUsers(prevUsers => prevUsers.map(user => {
       if (user.id === currentUserId) { 
@@ -153,11 +160,22 @@ export function AppNavbar() {
         type: 'follow_accepted' 
     });
     
-    toast({ title: "Permintaan Diterima", description: `Kamu sekarang mengizinkan ${requesterUser?.username || 'pengguna tersebut'} untuk mengikutimu.` });
+    toast({ title: "Permintaan Diterima", description: `Kamu sekarang mengizinkan ${requesterUser.username} untuk mengikutimu.` });
   };
 
   const handleDeclineFollowRequest = (requesterId: string, notificationId: string) => {
-    if (!currentUserId) return;
+    if (!currentUserId) {
+        toast({ title: "Kesalahan", description: "Tidak dapat memproses permintaan, pengguna tidak dikenal.", variant: "destructive"});
+        return;
+    }
+    const CUIDUser = allUsers.find(u => u.id === currentUserId);
+    const requesterUser = allUsers.find(u => u.id === requesterId);
+
+    if (!CUIDUser || !requesterUser) { // Check if both users exist
+        toast({ title: "Kesalahan Data Pengguna", description: "Tidak dapat menemukan data pengguna terkait untuk memproses penolakan.", variant: "destructive"});
+        return;
+    }
+
      setAllUsers(prevUsers => prevUsers.map(user => {
       if (user.id === currentUserId) { 
         return { ...user, pendingFollowRequests: (user.pendingFollowRequests || []).filter(id => id !== requesterId) };
@@ -341,30 +359,30 @@ export function AppNavbar() {
 
                         switch (notification.type) {
                           case 'like':
-                            message = `${actor?.username || 'Seseorang'} menyukai postingan Anda.`;
+                            message = `${actor?.username || 'Seseorang'} menyukai postingan Kamu.`;
                             linkHref = notification.postId ? `/post/${notification.postId}` : '/';
                             if (!actor?.avatarUrl && notification.postMediaUrl) avatarSrc = notification.postMediaUrl;
                             break;
                           case 'comment':
-                            message = `${actor?.username || 'Seseorang'} mengomentari postingan Anda.`;
+                            message = `${actor?.username || 'Seseorang'} mengomentari postingan Kamu.`;
                             linkHref = notification.postId ? `/post/${notification.postId}` : '/';
                              if (!actor?.avatarUrl && notification.postMediaUrl) avatarSrc = notification.postMediaUrl;
                             break;
                           case 'reply':
-                            message = `${actor?.username || 'Seseorang'} membalas komentar Anda.`;
+                            message = `${actor?.username || 'Seseorang'} membalas komentar Kamu.`;
                             linkHref = notification.postId ? `/post/${notification.postId}` : '/';
                              if (!actor?.avatarUrl && notification.postMediaUrl) avatarSrc = notification.postMediaUrl;
                             break;
                           case 'follow':
-                            message = `${actor?.username || 'Seseorang'} mulai mengikuti Anda.`;
+                            message = `${actor?.username || 'Seseorang'} mulai mengikuti Kamu.`;
                             linkHref = actor ? `/profile/${actor.id}` : '/';
                             break;
                           case 'follow_request':
-                            message = `${actor?.username || 'Seseorang'} ingin mengikuti Anda.`;
+                            message = `${actor?.username || 'Seseorang'} ingin mengikuti Kamu.`;
                             linkHref = actor ? `/profile/${actor.id}` : '/';
                             break;
                           case 'follow_accepted':
-                            message = `${actor?.username || 'Seseorang'} menerima permintaan mengikuti Anda.`;
+                            message = `${actor?.username || 'Seseorang'} menerima permintaan mengikuti Kamu.`;
                             linkHref = actor ? `/profile/${actor.id}` : '/';
                             break;
                           case 'follow_request_handled':
@@ -373,7 +391,7 @@ export function AppNavbar() {
                             } else if (notification.processedState === 'declined') {
                                 message = `Kamu menolak permintaan mengikuti dari ${actor?.username || 'Seseorang'}.`;
                             } else {
-                                // Fallback, should ideally not be reached if processedState is always set
+                                
                                 message = `Permintaan mengikuti dari ${actor?.username || 'Seseorang'} telah diproses.`;
                             }
                             linkHref = actor ? `/profile/${actor.id}` : '/';
