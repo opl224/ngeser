@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, useMemo, FormEvent } from 'react';
+import { useEffect, useState, useMemo, FormEvent, Suspense } from 'react'; // Added Suspense
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import type { User } from '@/lib/types';
@@ -11,28 +11,25 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search as SearchIcon, AlertTriangle, Users } from 'lucide-react';
+import { Search as SearchIcon, AlertTriangle, Users, Loader2 } from 'lucide-react'; // Added Loader2
 
-export default function SearchPage() {
+function SearchPageContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   
   const [allUsers] = useLocalStorageState<User[]>('users', initialUsers);
   
-  // State for the search input on this page
   const [pageSearchQuery, setPageSearchQuery] = useState('');
-  // State to hold the query that was actually used for filtering (from URL or page input)
   const [activeQuery, setActiveQuery] = useState('');
 
   useEffect(() => {
     const qFromUrl = searchParams.get('q');
     if (qFromUrl) {
       setActiveQuery(qFromUrl);
-      setPageSearchQuery(qFromUrl); // Pre-fill input if query comes from URL
+      setPageSearchQuery(qFromUrl);
     } else {
-      setActiveQuery(''); // No active query if not in URL
-      // Don't clear pageSearchQuery here, user might be typing
+      setActiveQuery('');
     }
   }, [searchParams]);
 
@@ -46,16 +43,11 @@ export default function SearchPage() {
   const handlePageSearchSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (pageSearchQuery.trim()) {
-      // Update URL, which will trigger useEffect and re-filter
       router.push(`${pathname}?q=${encodeURIComponent(pageSearchQuery.trim())}`);
     } else {
-      // If search is cleared, remove query from URL
       router.push(pathname);
     }
   };
-
-  // Show search input if navigating directly to /search or if URL query is empty
-  const showPageSearchInput = !searchParams.get('q');
 
   return (
     <div className="container mx-auto max-w-2xl py-8">
@@ -80,8 +72,8 @@ export default function SearchPage() {
         />
         <Button
           type="submit"
-          variant="default" // Explicitly set variant
-          className="h-11 w-11 p-0 sm:w-auto sm:px-8" // Custom responsive classes
+          variant="default"
+          className="h-11 w-11 p-0 sm:w-auto sm:px-8"
         >
           <SearchIcon className="h-5 w-5" />
           <span className="hidden sm:ml-2 sm:inline">Cari</span>
@@ -136,5 +128,18 @@ export default function SearchPage() {
           </p>
        )}
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)] bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-xl font-headline text-muted-foreground">Memuat Halaman Pencarian...</p>
+      </div>
+    }>
+      <SearchPageContent />
+    </Suspense>
   );
 }
