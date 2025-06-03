@@ -25,7 +25,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
-  DropdownMenuPortal, // Added DropdownMenuPortal
+  DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
@@ -85,7 +85,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   
   const { toast } = useToast();
   const router = useRouter();
-  const { theme, setTheme, themes } = useTheme();
+  const { theme, setTheme } = useTheme();
 
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
   const [isPrivacySettingsModalOpen, setIsPrivacySettingsModalOpen] = useState(false);
@@ -426,7 +426,8 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         if (user.id === currentSessionUserId) {
           return {
             ...user,
-            username: editedUsername.trim(),
+            username: editedUsername.trim(), // Username is editable
+            // fullName remains unchanged by this dialog as per request
             bio: editedBio.trim(),
             avatarUrl: editedAvatarPreview || user.avatarUrl,
             
@@ -627,11 +628,12 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                       variant={isCurrentUserFollowingProfile ? "secondary" : "default"}
                       size="sm"
                       disabled={isFollowButtonDisabled}
+                      className="md:hover:bg-primary/90"
                     >
                       <FollowButtonIconComponent className="mr-2 h-4 w-4" />
                       {followButtonText}
                     </Button>
-                    <Button onClick={handleSendMessage} variant="outline" size="sm" className="px-3">
+                    <Button onClick={handleSendMessage} variant="outline" size="sm" className="px-3 md:hover:bg-accent md:hover:text-accent-foreground">
                         <MessageSquare className="h-4 w-4 md:mr-2" />
                         <span className="hidden md:inline">Pesan</span>
                     </Button>
@@ -665,12 +667,30 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               <Edit3 className="h-6 w-6 text-primary"/>Edit Profil
             </DialogTitle>
             <DialogDescription>
-              Perbarui nama pengguna, bio, dan gambar profil Anda.
+              Perbarui informasi profil Anda. Email dan Nama Lengkap tidak dapat diubah di sini.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-6 py-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-username" className="font-medium">Nama Pengguna</Label>
+              <Label htmlFor="profile-email" className="font-medium">Email</Label>
+              <Input
+                id="profile-email"
+                value={profileUser?.email || ''}
+                readOnly
+                className="mt-1 bg-muted/50 cursor-not-allowed"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="profile-fullname" className="font-medium">Nama Lengkap</Label>
+              <Input
+                id="profile-fullname"
+                value={profileUser?.fullName || ''}
+                readOnly
+                className="mt-1 bg-muted/50 cursor-not-allowed"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-username" className="font-medium">Nama Pengguna (Username)</Label>
               <Input
                 id="edit-username"
                 value={editedUsername}
@@ -713,8 +733,8 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditProfileModalOpen(false)}>Batal</Button>
-            <Button onClick={handleSaveChanges}><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
+            <Button variant="outline" onClick={() => setIsEditProfileModalOpen(false)} className="md:hover:bg-accent md:hover:text-accent-foreground">Batal</Button>
+            <Button onClick={handleSaveChanges} className="md:hover:bg-primary/90"><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -750,8 +770,8 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsPrivacySettingsModalOpen(false)}>Batal</Button>
-            <Button onClick={handleSavePrivacySettings}><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
+            <Button variant="outline" onClick={() => setIsPrivacySettingsModalOpen(false)} className="md:hover:bg-accent md:hover:text-accent-foreground">Batal</Button>
+            <Button onClick={handleSavePrivacySettings} className="md:hover:bg-primary/90"><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
