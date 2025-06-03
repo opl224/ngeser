@@ -1,7 +1,7 @@
 
 "use client";
 
-import { Suspense, useEffect, useState, useMemo, FormEvent, useRef } from 'react'; // Added Suspense
+import { Suspense, useEffect, useState, useMemo, FormEvent, useRef } from 'react'; 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { getCurrentUserId, initialUsers, initialConversations } from '@/lib/data';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
@@ -107,6 +107,10 @@ function DmPageContent() {
           participantIds: [currentUserId, queryUserId],
           messages: [],
           timestamp: new Date().toISOString(),
+          unreadCount: { // Initialize unreadCount
+            [currentUserId]: 0,
+            [queryUserId]: 0,
+          }
         };
         setConversations(prev => [...prev, newConversation]);
         setSelectedConversationId(newConversationId);
@@ -120,6 +124,28 @@ function DmPageContent() {
 
     }
   }, [authStatus, currentUserId, searchParams, conversations, setConversations, router, pathname]);
+
+  // Effect to reset unread count when a conversation is selected
+  useEffect(() => {
+    if (selectedConversationId && currentUserId && conversations.length > 0) {
+      const conversationToUpdate = conversations.find(c => c.id === selectedConversationId);
+      if (conversationToUpdate && 
+          conversationToUpdate.unreadCount && 
+          conversationToUpdate.unreadCount[currentUserId] > 0
+      ) {
+        setConversations(prevConvos =>
+          prevConvos.map(convo => {
+            if (convo.id === selectedConversationId) {
+              const newUnreadCount = { ...(convo.unreadCount || {}) };
+              newUnreadCount[currentUserId] = 0;
+              return { ...convo, unreadCount: newUnreadCount };
+            }
+            return convo;
+          })
+        );
+      }
+    }
+  }, [selectedConversationId, currentUserId, conversations, setConversations]);
 
 
   const currentUser = useMemo(() => allUsers.find(u => u.id === currentUserId), [allUsers, currentUserId]);
@@ -240,11 +266,17 @@ function DmPageContent() {
     setConversations(prevConvos =>
       prevConvos.map(convo => {
         if (convo.id === selectedConversationId) {
+          const otherParticipantId = convo.participantIds.find(id => id !== currentUserId);
+          let updatedUnreadCount = { ...(convo.unreadCount || {}) };
+          if (otherParticipantId) {
+            updatedUnreadCount[otherParticipantId] = (updatedUnreadCount[otherParticipantId] || 0) + 1;
+          }
           return {
             ...convo,
             messages: [...convo.messages, newMessage],
             lastMessage: newMessage,
             timestamp: newMessage.timestamp, 
+            unreadCount: updatedUnreadCount,
           };
         }
         return convo;
@@ -377,6 +409,14 @@ function DmPageContent() {
                       <p className="font-headline text-sm font-semibold truncate">{convo.otherParticipant?.username || "Pengguna tidak dikenal"}</p>
                       <p className="text-xs text-muted-foreground flex-shrink-0 ml-2">{formatTimestamp(convo.lastMessageTimestamp)}</p>
                     </div>
+                    {/* Display unread count badge if any */}
+                    {convo.unreadCount && currentUserId && convo.unreadCount[currentUserId] > 0 && (
+                         <div className="flex justify-end mt-0.5">
+                            <Badge variant="destructive" className="h-5 px-1.5 text-xs">
+                                {convo.unreadCount[currentUserId]}
+                            </Badge>
+                        </div>
+                    )}
                   </div>
                 </div>
               </div>

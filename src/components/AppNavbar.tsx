@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn, formatTimestamp } from '@/lib/utils';
 import { useEffect, useState, FormEvent, useMemo, Dispatch, SetStateAction } from 'react';
-import { getCurrentUserId, initialNotifications, initialUsers } from '@/lib/data';
+import { getCurrentUserId, initialNotifications, initialUsers, initialConversations } from '@/lib/data';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import type { Notification, User as UserType, NotificationType } from '@/lib/types';
+import type { Notification, User as UserType, NotificationType, Conversation } from '@/lib/types';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from "@/hooks/use-toast";
@@ -52,6 +52,8 @@ export function AppNavbar() {
 
   const [notifications, setNotifications] = useLocalStorageState<Notification[]>('notifications', initialNotifications);
   const [allUsers, setAllUsers] = useLocalStorageState<UserType[]>('users', initialUsers);
+  const [conversations, setConversations] = useLocalStorageState<Conversation[]>('conversations', initialConversations);
+
 
   useEffect(() => {
     setIsClient(true);
@@ -75,7 +77,20 @@ export function AppNavbar() {
     return notifications.filter(n => n.recipientUserId === currentUserId && !n.isRead && n.type !== 'follow_request_handled');
   }, [notifications, currentUserId, isClient]);
 
-  const unreadCount = unreadNotifications.length;
+  const unreadNotificationCount = unreadNotifications.length;
+
+  const unreadMessagesCount = useMemo(() => {
+    if (!currentUserId || !isClient || !conversations) return 0;
+    
+    let totalUnread = 0;
+    conversations.forEach(convo => {
+      if (convo.participantIds.includes(currentUserId) && convo.unreadCount && convo.unreadCount[currentUserId]) {
+        totalUnread += convo.unreadCount[currentUserId];
+      }
+    });
+    return totalUnread;
+  }, [conversations, currentUserId, isClient]);
+
 
   const sortedNotificationsForDisplay = useMemo(() => {
     if (!currentUserId || !isClient) return [];
@@ -86,7 +101,7 @@ export function AppNavbar() {
   }, [notifications, currentUserId, isClient]);
 
   const handleOpenNotifications = (open: boolean) => {
-    if (open && unreadCount > 0 && currentUserId) {
+    if (open && unreadNotificationCount > 0 && currentUserId) {
       setNotifications(prevNotifications =>
         prevNotifications.map(n =>
           (n.recipientUserId === currentUserId && !n.isRead && n.type !== 'follow_request_handled') ? { ...n, isRead: true } : n
@@ -119,7 +134,6 @@ export function AppNavbar() {
       return;
     }
   
-    // Prioritize UI update for the clicked notification
     setNotifications(prevNots =>
       prevNots.map(n => {
         if (n.id === notificationId) {
@@ -140,25 +154,25 @@ export function AppNavbar() {
     if (!CUIDUser || !requesterUser) {
       const missingUserMsg = `Gagal: ${!CUIDUser ? 'Data Anda' : 'Data pemohon'} tidak lengkap.`;
       toast({ title: "Kesalahan Data Pengguna", description: missingUserMsg, variant: "destructive" });
-      setNotifications(prevNots => prevNots.map(n => n.id === notificationId ? { ...n, messageOverride: missingUserMsg } : n)); // Update existing notification message
+      setNotifications(prevNots => prevNots.map(n => n.id === notificationId ? { ...n, messageOverride: missingUserMsg } : n));
       return;
     }
   
     let usersUpdateError = false;
     try {
       setAllUsers(prevUsers => prevUsers.map(user => {
-        if (user.id === currentUserId) { // Current user (accepting)
+        if (user.id === currentUserId) { 
           return {
             ...user,
             followers: [...new Set([...(user.followers || []), requesterId])],
             pendingFollowRequests: (user.pendingFollowRequests || []).filter(id => id !== requesterId),
           };
         }
-        if (user.id === requesterId) { // User who sent the request
+        if (user.id === requesterId) { 
           return {
             ...user,
-            following: [...new Set([...(user.following || []), currentUserId])], // Corrected: currentUserId, not CUIDUser.id
-            sentFollowRequests: (user.sentFollowRequests || []).filter(id => id !== currentUserId), // Corrected: currentUserId
+            following: [...new Set([...(user.following || []), currentUserId])], 
+            sentFollowRequests: (user.sentFollowRequests || []).filter(id => id !== currentUserId), 
           };
         }
         return user;
@@ -263,7 +277,7 @@ export function AppNavbar() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-             <Image src="/hand.png" alt="Ngeser logo" width={28} height={28} /> {/* Changed from Handshake icon */}
+             <Image src="/hand.png" alt="Ngeser logo" width={28} height={28} /> 
             <span className="font-headline text-2xl font-semibold text-foreground">Ngeser</span>
           </Link>
         </div>
@@ -276,7 +290,7 @@ export function AppNavbar() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-center">
           <Link href="/" className="flex items-center gap-2">
-             <Image src="/hand.png" alt="Ngeser logo" width={28} height={28} /> {/* Changed from Handshake icon */}
+             <Image src="/hand.png" alt="Ngeser logo" width={28} height={28} /> 
             <span className="font-headline text-2xl font-semibold text-foreground">Ngeser</span>
           </Link>
         </div>
@@ -288,7 +302,7 @@ export function AppNavbar() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between gap-x-4">
         <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-           <Image src="/hand.png" alt="Ngeser logo" width={28} height={28} /> {/* Changed from Handshake icon */}
+           <Image src="/hand.png" alt="Ngeser logo" width={28} height={28} /> 
           <span className="font-headline text-2xl font-semibold text-foreground">Ngeser</span>
         </Link>
 
@@ -336,13 +350,21 @@ export function AppNavbar() {
                   size="icon"
                   asChild
                   className={cn(
-                    "text-muted-foreground hover:text-foreground",
+                    "relative text-muted-foreground hover:text-foreground", // Added relative for badge positioning
                     pathname === '/dm' && "text-primary bg-primary/10"
                   )}
                   aria-label="Pesan Langsung"
                 >
                   <Link href="/dm">
                     <MessageSquare className="h-5 w-5" />
+                     {isClient && unreadMessagesCount > 0 && (
+                        <Badge
+                          variant="destructive"
+                          className="absolute -top-1 -right-1 h-4 w-4 min-w-min p-0.5 text-xs flex items-center justify-center rounded-full pointer-events-none"
+                        >
+                          {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
+                        </Badge>
+                      )}
                   </Link>
                 </Button>
 
@@ -355,12 +377,12 @@ export function AppNavbar() {
                       className="relative text-muted-foreground hover:text-foreground"
                     >
                       <Bell className="h-5 w-5" />
-                      {isClient && unreadCount > 0 && (
+                      {isClient && unreadNotificationCount > 0 && (
                         <Badge
                           variant="destructive"
                           className="absolute -top-1 -right-1 h-4 w-4 min-w-min p-0.5 text-xs flex items-center justify-center rounded-full pointer-events-none"
                         >
-                          {unreadCount > 9 ? '9+' : unreadCount}
+                          {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
                         </Badge>
                       )}
                     </Button>
