@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from './PostCard';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialUsers, initialPosts, initialNotifications, getCurrentUserId } from '@/lib/data';
-import { Settings, UserPlus, UserCheck, Edit3, LogOut, Trash2, ImageIcon, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, ShieldQuestion, Moon, Sun, Laptop } from 'lucide-react';
+import { Settings, UserPlus, UserCheck, Edit3, LogOut, Trash2, ImageIcon, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, ShieldQuestion, Moon, Sun, Laptop, LayoutGrid, Image as ImageIconLucide, Video } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
@@ -97,6 +97,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const [editedAvatarFile, setEditedAvatarFile] = useState<File | null>(null);
   const [editedAvatarPreview, setEditedAvatarPreview] = useState<string | null>(null);
   const [editedAccountType, setEditedAccountType] = useState<'public' | 'private'>('public');
+  const [postFilterType, setPostFilterType] = useState<'all' | 'photo' | 'reel'>('all');
 
 
   useEffect(() => {
@@ -134,9 +135,18 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     .filter(p => p.userId === userId && p.type !== 'story')
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()), [allPosts, userId]);
 
-  const userStories = useMemo(() => allPosts
-    .filter(p => p.userId === userId && p.type === 'story')
+  // This remains the base for display, already filtering out stories.
+  const allProfilePostsNonStory = useMemo(() => allPosts
+    .filter(p => p.userId === userId && p.type !== 'story')
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()), [allPosts, userId]);
+  
+  const filteredDisplayPosts = useMemo(() => {
+    if (postFilterType === 'all') {
+      return allProfilePostsNonStory;
+    }
+    return allProfilePostsNonStory.filter(post => post.type === postFilterType);
+  }, [allProfilePostsNonStory, postFilterType]);
+
 
   const savedPostsForCurrentUser = useMemo(() => {
     if (!currentSessionUser) return [];
@@ -415,6 +425,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         if (user.id === currentSessionUserId) {
           return {
             ...user,
+            // username: editedUsername.trim(), // Username is now read-only
             fullName: editedFullName.trim(),
             bio: editedBio.trim(),
             avatarUrl: editedAvatarPreview || user.avatarUrl,
@@ -479,13 +490,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
   const isFollowButtonDisabled = isRequestedByCSUtoPU && !isCurrentUserFollowingProfile;
 
-
-  const allProfilePosts = [...userStories, ...userPosts].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-  const handleSendMessage = () => {
-    if (!profileUser) return;
-    router.push(`/dm?userId=${profileUser.id}`);
-  };
 
   const SettingsMenuItemsContent = () => (
     <>
@@ -578,14 +582,14 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             <div className="flex-1 text-center md:text-left">
               <div className="flex flex-col items-center md:items-start">
                 {profileUser.fullName && <CardTitle className="font-headline text-3xl md:text-4xl text-foreground">{profileUser.fullName}</CardTitle>}
-                <div className="flex items-center gap-1 text-muted-foreground mt-1">
+                <div className="flex items-center gap-1 text-muted-foreground mt-0.5">
                     <p className="text-lg">@{profileUser.username}</p>
-                    {profileUser.accountType === 'private' && !isCurrentUserProfile && !isCurrentUserFollowingProfile && <Lock className="h-5 w-5" />}
+                    {profileUser.accountType === 'private' && !isCurrentUserProfile && !isCurrentUserFollowingProfile && <Lock className="h-4 w-4" />}
                 </div>
               </div>
               {profileUser.bio && <p className="text-muted-foreground mt-2 font-body text-sm md:text-base">{profileUser.bio}</p>}
               <div className="flex justify-center md:justify-start gap-4 mt-4 text-sm">
-                <div><span className="font-semibold">{canViewProfileContent ? allProfilePosts.length : "-"}</span> Postingan</div>
+                <div><span className="font-semibold">{canViewProfileContent ? allProfilePostsNonStory.length : "-"}</span> Postingan</div>
                 <div><span className="font-semibold">{canViewProfileContent ? (profileUser.followers || []).length : "-"}</span> Pengikut</div>
                 <div><span className="font-semibold">{canViewProfileContent ? (profileUser.following || []).length : "-"}</span> Mengikuti</div>
               </div>
@@ -658,7 +662,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               <Edit3 className="h-6 w-6 text-primary"/>Edit Profil
             </EditDialogTitle>
             <DialogDescription>
-              Perbarui informasi profil Anda. Email dan Nama Pengguna tidak dapat diubah di sini.
+               Perbarui informasi profil Anda. Email dan Nama Pengguna tidak dapat diubah.
             </DialogDescription>
           </DialogHeader>
           <ScrollArea className="max-h-[70vh] -mx-6 px-6">
@@ -672,7 +676,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                   className="mt-1 bg-muted/50 cursor-not-allowed"
                 />
               </div>
-              <div className="space-y-2">
+               <div className="space-y-2">
                 <Label htmlFor="profile-username" className="font-medium">Nama Pengguna (Username)</Label>
                 <Input
                   id="profile-username"
@@ -681,7 +685,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                   className="mt-1 bg-muted/50 cursor-not-allowed"
                 />
               </div>
-               <div className="space-y-2">
+              <div className="space-y-2">
                 <Label htmlFor="edit-fullname" className="font-medium">Nama Lengkap</Label>
                 <Input
                   id="edit-fullname"
@@ -773,33 +777,42 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         {canViewProfileContent ? (
           <Tabs defaultValue="posts" className="w-full">
             <TabsList className={`grid w-full mb-6 bg-muted/50 rounded-lg ${isCurrentUserProfile ? 'grid-cols-4' : 'grid-cols-3'}`}>
-              <TabsTrigger value="posts" className="font-headline">Postingan</TabsTrigger>
+              <TabsTrigger value="posts" className="font-headline"><LayoutGrid className="h-4 w-4 mr-2"/>Postingan</TabsTrigger>
               <TabsTrigger value="followers" className="font-headline">Pengikut</TabsTrigger>
               <TabsTrigger value="following" className="font-headline">Mengikuti</TabsTrigger>
-              {isCurrentUserProfile && <TabsTrigger value="saved" className="font-headline">Disimpan</TabsTrigger>}
+              {isCurrentUserProfile && <TabsTrigger value="saved" className="font-headline"><Bookmark className="h-4 w-4 mr-2"/>Disimpan</TabsTrigger>}
             </TabsList>
             <TabsContent value="posts">
-              {allProfilePosts.length > 0 ? (
-                <div className="grid grid-cols-1 gap-6">
-                  {allProfilePosts.map(post => {
-                    const isSavedByCurrentSessUser = (currentSessionUser?.savedPosts || []).includes(post.id);
-                    return(
-                    <PostCard
-                      key={post.id}
-                      post={post}
-                      onLikePost={handleLikePost}
-                      onAddComment={handleAddComment}
-                      onUpdatePostCaption={handleUpdatePostCaptionOnProfile}
-                      onDeletePost={handleDeletePostOnProfile}
-                      onToggleSavePost={handleToggleSavePost}
-                      isSavedByCurrentUser={isSavedByCurrentSessUser}
-                    />
-                  );
-                })}
-                </div>
-              ) : (
-                <p className="text-center text-muted-foreground py-8 font-body">Belum ada postingan.</p>
-              )}
+              <Tabs defaultValue="all" onValueChange={(value) => setPostFilterType(value as 'all' | 'photo' | 'reel')}>
+                <TabsList className="grid w-full grid-cols-3 mb-4 bg-muted/30">
+                  <TabsTrigger value="all" className="font-headline text-xs sm:text-sm"><LayoutGrid className="h-3.5 w-3.5 mr-1.5"/>Semua</TabsTrigger>
+                  <TabsTrigger value="photo" className="font-headline text-xs sm:text-sm"><ImageIconLucide className="h-3.5 w-3.5 mr-1.5"/>Foto</TabsTrigger>
+                  <TabsTrigger value="reel" className="font-headline text-xs sm:text-sm"><Video className="h-3.5 w-3.5 mr-1.5"/>Reels</TabsTrigger>
+                </TabsList>
+                {filteredDisplayPosts.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-6">
+                    {filteredDisplayPosts.map(post => {
+                      const isSavedByCurrentSessUser = (currentSessionUser?.savedPosts || []).includes(post.id);
+                      return(
+                      <PostCard
+                        key={post.id}
+                        post={post}
+                        onLikePost={handleLikePost}
+                        onAddComment={handleAddComment}
+                        onUpdatePostCaption={handleUpdatePostCaptionOnProfile}
+                        onDeletePost={handleDeletePostOnProfile}
+                        onToggleSavePost={handleToggleSavePost}
+                        isSavedByCurrentUser={isSavedByCurrentSessUser}
+                      />
+                    );
+                  })}
+                  </div>
+                ) : (
+                  <p className="text-center text-muted-foreground py-8 font-body">
+                    Belum ada {postFilterType === 'photo' ? 'foto' : postFilterType === 'reel' ? 'reel' : 'postingan'}.
+                  </p>
+                )}
+              </Tabs>
             </TabsContent>
             <TabsContent value="followers">
               <UserList userIds={profileUser.followers || []} allUsers={allUsers} listTitle="Pengikut" />
