@@ -7,9 +7,10 @@ import type { Post, User, Comment as CommentType, Notification } from '@/lib/typ
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialPosts, initialUsers, initialNotifications, getCurrentUserId } from '@/lib/data';
 import { ReelCard } from '@/components/ReelCard';
-import { Loader2, VideoOff } from 'lucide-react';
+import { Loader2, VideoOff, ArrowLeft } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 // Helper function for creating notifications (can be moved to a shared util if used elsewhere)
 function createAndAddNotification(
@@ -287,7 +288,16 @@ export default function ReelsPage() {
   }
 
   return (
-    <div className="h-dvh overflow-y-scroll snap-y snap-mandatory bg-black">
+    <div className="h-dvh overflow-y-scroll snap-y snap-mandatory bg-black relative">
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => router.back()}
+        className="absolute top-4 left-4 z-20 text-white bg-black/30 hover:bg-black/50 hover:text-white"
+        aria-label="Kembali"
+      >
+        <ArrowLeft className="h-6 w-6" />
+      </Button>
       {reels.map((reel, index) => {
         const author = allUsers.find(u => u.id === reel.userId);
         return (
@@ -316,3 +326,5 @@ export default function ReelsPage() {
     </div>
   );
 }
+
+    
