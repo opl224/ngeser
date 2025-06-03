@@ -95,7 +95,7 @@ export default function DirectMessagesPage() {
         setConversations(prev => [...prev, newConversation]);
         setSelectedConversationId(newConversationId);
       }
-      // router.replace(pathname, { scroll: false }); // Caused issues with query persistence
+      
       const current = new URL(window.location.href);
       current.searchParams.delete('userId');
       window.history.replaceState({}, '', current.toString());
@@ -116,7 +116,6 @@ export default function DirectMessagesPage() {
         return {
           ...c,
           otherParticipant,
-          lastMessageText: c.lastMessage?.text || (c.messages.length > 0 ? c.messages[c.messages.length -1].text : "Belum ada pesan"),
           lastMessageTimestamp: c.lastMessage?.timestamp || c.timestamp,
         };
       })
@@ -185,7 +184,7 @@ export default function DirectMessagesPage() {
   const handleStartEdit = (message: MessageType) => {
     setEditingMessage(message);
     setEditedText(message.text);
-    setReplyingToMessage(null); // Cancel reply if editing
+    setReplyingToMessage(null); 
   };
 
   const handleCancelEdit = () => {
@@ -224,7 +223,6 @@ export default function DirectMessagesPage() {
       prevConvos.map(convo => {
         if (convo.id === messageToDelete.conversationId) {
           const updatedMessages = convo.messages.filter(msg => msg.id !== messageToDelete.id);
-          // Update lastMessage if the deleted message was the last one
           let newLastMessage = convo.lastMessage;
           if (convo.lastMessage?.id === messageToDelete.id) {
             newLastMessage = updatedMessages.length > 0 ? updatedMessages[updatedMessages.length - 1] : undefined;
@@ -241,7 +239,7 @@ export default function DirectMessagesPage() {
 
   const handleReplyMessage = (message: MessageType) => {
     setReplyingToMessage(message);
-    setEditingMessage(null); // Cancel edit if replying
+    setEditingMessage(null); 
     if (newMessageInputRef.current) {
       newMessageInputRef.current.focus();
     }
@@ -275,7 +273,6 @@ export default function DirectMessagesPage() {
 
   return (
     <div className="flex flex-col md:flex-row h-svh overflow-hidden">
-      {/* Sidebar - Conversation List */}
        <div className={cn(
         "w-full md:w-1/3 md:max-w-sm border-r border-border bg-card/30 flex flex-col",
         isMobileViewAndViewingMessages ? "hidden md:flex" : "flex"
@@ -308,7 +305,7 @@ export default function DirectMessagesPage() {
                       <p className="font-headline text-sm font-semibold truncate">{convo.otherParticipant?.username || "Pengguna tidak dikenal"}</p>
                       <p className="text-xs text-muted-foreground flex-shrink-0 ml-2">{formatTimestamp(convo.lastMessageTimestamp)}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">{convo.lastMessageText}</p>
+                    {/* Last message text removed as per request */}
                   </div>
                 </div>
               </div>
@@ -324,7 +321,6 @@ export default function DirectMessagesPage() {
       </div>
 
 
-      {/* Main Content - Message View */}
       <div className={cn(
         "flex-1 flex flex-col bg-background",
         !isMobileViewAndViewingMessages && selectedConversationId === null ? "hidden md:flex items-center justify-center" : "flex"
@@ -452,7 +448,6 @@ export default function DirectMessagesPage() {
         )}
       </div>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -472,3 +467,4 @@ export default function DirectMessagesPage() {
     </div>
   );
 }
+
