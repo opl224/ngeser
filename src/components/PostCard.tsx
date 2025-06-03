@@ -146,7 +146,7 @@ export function PostCard({
 
   if (!author) {
     return (
-      <Card className="w-full max-w-2xl mx-auto my-4 shadow-lg rounded-xl overflow-hidden">
+      <Card className="w-full max-w-2xl mx-auto shadow-lg rounded-xl overflow-hidden">
         <CardHeader className="p-4">
           <div className="animate-pulse flex space-x-4">
             <div className="rounded-full bg-muted h-12 w-12"></div>
@@ -167,7 +167,7 @@ export function PostCard({
 
   return (
     <>
-      <Card className="w-full max-w-2xl mx-auto my-6 shadow-lg rounded-xl overflow-hidden bg-card">
+      <Card className="w-full max-w-2xl mx-auto shadow-lg rounded-xl overflow-hidden bg-card">
         <CardHeader className="flex flex-row items-center justify-between p-4">
           <div className="flex items-center gap-3">
             <Link href={`/profile/${author.id}`} className="flex items-center gap-3 group">

@@ -413,8 +413,8 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
   const handleSaveChanges = () => {
     if (!profileUser || !currentSessionUserId) {
-        toast({ title: "Error", description: "Tidak dapat menyimpan, data pengguna tidak lengkap.", variant: "destructive" });
-        return;
+      toast({ title: "Error", description: "Tidak dapat menyimpan, data pengguna tidak lengkap.", variant: "destructive" });
+      return;
     }
     if (!editedFullName.trim()) {
       toast({
@@ -424,7 +424,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       });
       return;
     }
-    
 
     setAllUsers(prevUsers =>
       prevUsers.map(user => {
@@ -432,6 +431,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           return {
             ...user,
             fullName: editedFullName.trim(),
+            username: editedUsername, // Username is now read-only but keep its value
             bio: editedBio.trim(),
             avatarUrl: editedAvatarPreview || user.avatarUrl,
           };
@@ -826,7 +826,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                 </Tabs>
               </div>
                 {filteredDisplayPosts.length > 0 ? (
-                  <div className="grid grid-cols-1 gap-6">
+                  <div className="grid grid-cols-1 gap-4">
                     {filteredDisplayPosts.map(post => {
                       const isSavedByCurrentSessUser = (currentSessionUser?.savedPosts || []).includes(post.id);
                       return(
@@ -858,7 +858,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             {isCurrentUserProfile && (
               <TabsContent value="saved">
                 {savedPostsForCurrentUser.length > 0 ? (
-                  <div className="grid grid-cols-1 gap-6">
+                  <div className="grid grid-cols-1 gap-4">
                     {savedPostsForCurrentUser.map(post => {
                       const isSavedByCurrentSessUser = (currentSessionUser?.savedPosts || []).includes(post.id);
                       return(

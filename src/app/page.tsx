@@ -485,7 +485,7 @@ export default function FeedPage() {
     <div className="w-full max-w-2xl mx-auto">
       {usersWithStories.length > 0 && <StoryAvatarReel usersWithStories={usersWithStories} onAvatarClick={handleStoryAvatarClick} />}
             {feedPosts.length > 0 ? (
-        <div className="space-y-8">
+        <div className="space-y-4">
           {feedPosts.map(post => {
             const isSavedByCurrentUser = (currentSessionUser?.savedPosts || []).includes(post.id);
             return (
