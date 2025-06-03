@@ -44,7 +44,7 @@ import {
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
+  DialogTitle as EditDialogTitle, // Renamed to avoid conflict with CardTitle
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,7 +52,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from '@/lib/utils';
-import type React from 'react';
+import type React_dot_FC from 'react'; // Changed React to React_dot_FC to avoid conflict
 import { useTheme } from 'next-themes';
 
 
@@ -415,7 +415,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         if (user.id === currentSessionUserId) {
           return {
             ...user,
-            username: editedUsername, // username is not changed here based on latest request
+            // username: editedUsername, // username tidak diubah
             fullName: editedFullName.trim(),
             bio: editedBio.trim(),
             avatarUrl: editedAvatarPreview || user.avatarUrl,
@@ -462,7 +462,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
 
   let followButtonText = "Ikuti";
-  let FollowButtonIconComponent: React.ElementType = UserPlus;
+  let FollowButtonIconComponent: React_dot_FC.ElementType = UserPlus;
 
   if (isCurrentUserFollowingProfile) {
     followButtonText = "Mengikuti";
@@ -569,7 +569,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                   variant="outline"
                   size="icon"
                   onClick={handleOpenEditProfileModal}
-                  className="absolute -bottom-2 -right-2 h-9 w-9 rounded-full p-2 bg-background border-2 border-primary/70 shadow-md md:hidden md:hover:bg-accent"
+                  className="absolute -bottom-2 -right-2 h-9 w-9 rounded-full p-2 bg-background border-2 border-primary/70 shadow-md md:hidden md:md:hover:bg-accent"
                   aria-label="Edit Profil"
                 >
                   <Edit3 className="h-4 w-4" />
@@ -577,11 +577,13 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               )}
             </div>
             <div className="flex-1 text-center md:text-left">
-              <div className="flex items-center justify-center md:justify-start gap-2">
-                <CardTitle className="font-headline text-3xl md:text-4xl text-foreground">@{profileUser.username}</CardTitle>
-                {profileUser.accountType === 'private' && !isCurrentUserProfile && !isCurrentUserFollowingProfile && <Lock className="h-6 w-6 text-muted-foreground" />}
+              <div className="flex flex-col items-center md:items-start">
+                {profileUser.fullName && <CardTitle className="font-headline text-3xl md:text-4xl text-foreground">{profileUser.fullName}</CardTitle>}
+                <div className="flex items-center gap-1 text-muted-foreground mt-1">
+                    <p className="text-lg">@{profileUser.username}</p>
+                    {profileUser.accountType === 'private' && !isCurrentUserProfile && !isCurrentUserFollowingProfile && <Lock className="h-5 w-5" />}
+                </div>
               </div>
-              {profileUser.fullName && <p className="text-foreground/90 mt-1 font-medium text-lg">{profileUser.fullName}</p>}
               {profileUser.bio && <p className="text-muted-foreground mt-2 font-body text-sm md:text-base">{profileUser.bio}</p>}
               <div className="flex justify-center md:justify-start gap-4 mt-4 text-sm">
                 <div><span className="font-semibold">{canViewProfileContent ? allProfilePosts.length : "-"}</span> Postingan</div>
@@ -595,14 +597,14 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                     variant="outline"
                     size="sm"
                     onClick={handleOpenEditProfileModal}
-                    className="md:hover:bg-accent md:hover:text-accent-foreground"
+                    className="md:md:hover:bg-accent md:md:hover:text-accent-foreground"
                   >
                     <Edit3 className="h-4 w-4 md:mr-2" />
                     <span className="hidden md:inline">Edit Profil</span>
                   </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="px-2 w-9 md:hover:bg-accent md:hover:text-accent-foreground">
+                      <Button variant="ghost" size="sm" className="px-2 w-9 md:md:hover:bg-accent md:md:hover:text-accent-foreground">
                         <Settings className="h-5 w-5" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -618,12 +620,12 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                       variant={isCurrentUserFollowingProfile ? "secondary" : "default"}
                       size="sm"
                       disabled={isFollowButtonDisabled}
-                      className="md:hover:bg-primary/90"
+                      className="md:md:hover:bg-primary/90"
                     >
                       <FollowButtonIconComponent className="mr-2 h-4 w-4" />
                       {followButtonText}
                     </Button>
-                    <Button onClick={handleSendMessage} variant="outline" size="sm" className="px-3 md:hover:bg-accent md:hover:text-accent-foreground">
+                    <Button onClick={handleSendMessage} variant="outline" size="sm" className="px-3 md:md:hover:bg-accent md:md:hover:text-accent-foreground">
                         <MessageSquare className="h-4 w-4 md:mr-2" />
                         <span className="hidden md:inline">Pesan</span>
                     </Button>
@@ -642,7 +644,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handleLogoutAndDeleteAllData} className={cn(buttonVariants({ variant: "destructive" }), "md:hover:bg-destructive/90")}>
+            <AlertDialogAction onClick={handleLogoutAndDeleteAllData} className={cn(buttonVariants({ variant: "destructive" }), "md:md:hover:bg-destructive/90")}>
               Ya, Hapus Semua &amp; Keluar
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -653,11 +655,11 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       <Dialog open={isEditProfileModalOpen} onOpenChange={setIsEditProfileModalOpen}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
-            <DialogTitle className="font-headline text-2xl flex items-center gap-2">
+            <EditDialogTitle className="font-headline text-2xl flex items-center gap-2">
               <Edit3 className="h-6 w-6 text-primary"/>Edit Profil
-            </DialogTitle>
+            </EditDialogTitle>
             <DialogDescription>
-              Perbarui informasi profil Anda. Email dan Nama Pengguna tidak dapat diubah di sini.
+              Perbarui informasi profil Anda. Email dan Nama Pengguna tidak dapat diubah.
             </DialogDescription>
           </DialogHeader>
           <ScrollArea className="max-h-[70vh] -mx-6 px-6">
@@ -708,7 +710,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                   type="file"
                   accept="image/*"
                   onChange={handleAvatarFileChange}
-                  className="mt-1 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary md:hover:file:bg-primary/20"
+                  className="mt-1 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary md:md:hover:file:bg-primary/20"
                 />
               </div>
               {editedAvatarPreview && (
@@ -725,8 +727,8 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             </div>
           </ScrollArea>
           <DialogFooter className="mt-2 pt-4 border-t">
-            <Button variant="outline" onClick={() => setIsEditProfileModalOpen(false)} className="md:hover:bg-accent md:hover:text-accent-foreground">Batal</Button>
-            <Button onClick={handleSaveChanges} className="md:hover:bg-primary/90"><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
+            <Button variant="outline" onClick={() => setIsEditProfileModalOpen(false)} className="md:md:hover:bg-accent md:md:hover:text-accent-foreground">Batal</Button>
+            <Button onClick={handleSaveChanges} className="md:md:hover:bg-primary/90"><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -735,9 +737,9 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       <Dialog open={isPrivacySettingsModalOpen} onOpenChange={setIsPrivacySettingsModalOpen}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
-            <DialogTitle className="font-headline text-2xl flex items-center gap-2">
+            <EditDialogTitle className="font-headline text-2xl flex items-center gap-2">
                 <ShieldQuestion className="h-6 w-6 text-primary" />Pengaturan Privasi Akun
-            </DialogTitle>
+            </EditDialogTitle>
             <DialogDescription>
               Kelola siapa yang dapat melihat konten Anda.
             </DialogDescription>
@@ -762,8 +764,8 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsPrivacySettingsModalOpen(false)} className="md:hover:bg-accent md:hover:text-accent-foreground">Batal</Button>
-            <Button onClick={handleSavePrivacySettings} className="md:hover:bg-primary/90"><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
+            <Button variant="outline" onClick={() => setIsPrivacySettingsModalOpen(false)} className="md:md:hover:bg-accent md:md:hover:text-accent-foreground">Batal</Button>
+            <Button onClick={handleSavePrivacySettings} className="md:md:hover:bg-primary/90"><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -864,12 +866,12 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
           const user = allUsers.find(u => u.id === id);
           if (!user) return null;
           return (
-            <Link href={`/profile/${user.id}`} key={id} className="flex items-center gap-3 p-3 md:hover:bg-muted/50 rounded-md transition-colors group">
-              <Avatar className="h-10 w-10 border md:group-hover:border-primary">
+            <Link href={`/profile/${user.id}`} key={id} className="flex items-center gap-3 p-3 md:md:hover:bg-muted/50 rounded-md transition-colors group">
+              <Avatar className="h-10 w-10 border md:md:group-hover:border-primary">
                 <AvatarImage src={user.avatarUrl} alt={user.username} data-ai-hint="portrait person"/>
                 <AvatarFallback>{user.username.substring(0,1).toUpperCase()}</AvatarFallback>
               </Avatar>
-              <span className="font-medium font-headline text-foreground md:group-hover:text-primary">{user.username}</span>
+              <span className="font-medium font-headline text-foreground md:md:group-hover:text-primary">{user.username}</span>
             </Link>
           );
         })}
@@ -877,3 +879,4 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
+
