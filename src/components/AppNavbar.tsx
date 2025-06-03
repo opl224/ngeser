@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image'; // Added import for Image
-import { Home, PlusSquare, User, LogIn, Search as SearchIconLucide, Bell, Trash2, X as XIcon, MessageSquare, UserCheck, UserX, ShieldQuestion, Film } from 'lucide-react'; // Handshake removed, Film added
+import { Home, BadgePlus, User, LogIn, Search as SearchIconLucide, Bell, Trash2, X as XIcon, MessageSquare, UserCheck, UserX, ShieldQuestion, Film } from 'lucide-react'; // Handshake removed, Film added
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { usePathname, useRouter } from 'next/navigation';
@@ -253,7 +253,7 @@ export function AppNavbar() {
   ];
 
   const authNavItems = [
-    { href: '/upload', label: 'Unggah', icon: PlusSquare },
+    { href: '/upload', label: 'Unggah', icon: BadgePlus },
     { href: '/reels', label: 'Reels', icon: Film },
     { href: '/profile', label: 'Profil', icon: User },
   ];

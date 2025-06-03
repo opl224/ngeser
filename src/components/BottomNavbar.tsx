@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Search, PlusSquare, User, LogIn, Film } from 'lucide-react';
+import { Home, Search, BadgePlus, User, LogIn, Film } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 import { getCurrentUserId } from '@/lib/data';
@@ -42,7 +42,7 @@ export function BottomNavbar() {
     ? [
         { href: '/', label: 'Beranda', icon: Home },
         { href: '/search', label: 'Cari', icon: Search },
-        { href: '/upload', label: 'Unggah', icon: PlusSquare },
+        { href: '/upload', label: 'Unggah', icon: BadgePlus },
         { href: '/reels', label: 'Reels', icon: Film },
         { href: '/profile', label: 'Profil', icon: User },
       ]
