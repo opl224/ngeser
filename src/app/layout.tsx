@@ -42,7 +42,8 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           {!hideNavbars && <AppNavbar />}
           <main className={cn(
-            "flex-grow pt-10", // Adjusted padding-top based on previous request
+            "flex-grow",
+            !hideNavbars && "pt-10", // Apply pt-10 only when navbars are shown
             hideNavbars ? "" : "container mx-auto px-4 pb-20 sm:pb-8"
           )}>
             {/* Wrap children with a div having pathname as key to force re-mount on navigation */}
