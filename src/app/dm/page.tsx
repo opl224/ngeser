@@ -171,7 +171,7 @@ export default function DirectMessagesPage() {
         isMobileViewAndViewingMessages ? "hidden md:flex" : "flex"
       )}>
         {/* Header for conversation list */}
-        <div className="p-3 border-b border-border flex items-center gap-2 sticky top-0 bg-card/30 z-10">
+         <div className="p-3 border-b border-border flex items-center gap-2 sticky top-0 bg-card/30 z-10">
           <Button variant="ghost" size="icon" onClick={() => router.back()} aria-label="Kembali">
             <ArrowLeft className="h-5 w-5" />
           </Button>
