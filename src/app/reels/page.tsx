@@ -227,6 +227,36 @@ export default function ReelsPage() {
     toast({ title: "Keterangan Diperbarui", description: "Keterangan reel telah diperbarui."});
   }, [setAllPosts, toast]);
 
+  const handleToggleSaveReel = useCallback((postId: string) => {
+    if (!currentUserId) return;
+    let toastInfoParcel: { title: string; description: string } | null = null;
+
+    setAllUsers(prevUsers => {
+      const newUsers = prevUsers.map(user => {
+        if (user.id === currentUserId) {
+          const currentSavedPosts = user.savedPosts || [];
+          const isSaved = currentSavedPosts.includes(postId);
+          const newSavedPosts = isSaved
+            ? currentSavedPosts.filter(id => id !== postId)
+            : [...currentSavedPosts, postId];
+
+          if (isSaved) {
+            toastInfoParcel = { title: "Reel Dihapus dari Simpanan", description: "Reel telah dihapus dari daftar simpanan Anda." };
+          } else {
+            toastInfoParcel = { title: "Reel Disimpan", description: "Reel telah ditambahkan ke daftar simpanan Anda." };
+          }
+          return { ...user, savedPosts: newSavedPosts };
+        }
+        return user;
+      });
+      return newUsers;
+    });
+
+    if (toastInfoParcel) {
+      toast(toastInfoParcel);
+    }
+  }, [currentUserId, setAllUsers, toast]);
+
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -300,6 +330,7 @@ export default function ReelsPage() {
       </Button>
       {reels.map((reel, index) => {
         const author = allUsers.find(u => u.id === reel.userId);
+        const isSaved = currentUser?.savedPosts?.includes(reel.id) || false;
         return (
           <div
             key={reel.id}
@@ -313,10 +344,12 @@ export default function ReelsPage() {
                 author={author}
                 currentUser={currentUser}
                 isCurrentlyActive={index === activeReelIndex}
+                isSavedByCurrentUser={isSaved}
                 onLikeReel={handleLikeReel}
                 onAddCommentToReel={handleAddCommentToReel}
                 onDeleteReel={handleDeleteReel}
                 onEditReelCaption={handleEditReelCaption}
+                onToggleSaveReel={handleToggleSaveReel}
                 allUsers={allUsers}
               />
             )}

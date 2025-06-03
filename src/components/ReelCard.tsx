@@ -10,7 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetClose } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Heart, MessageCircle, Send, Share2, MoreHorizontal, Edit, Trash2, Link2, CornerUpLeft, Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { Heart, MessageCircle, Send, Share2, MoreHorizontal, Edit, Trash2, Link2, CornerUpLeft, Play, Pause, Volume2, VolumeX, Bookmark } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useToast } from "@/hooks/use-toast";
@@ -94,10 +94,12 @@ interface ReelCardProps {
   author: User;
   currentUser: User;
   isCurrentlyActive: boolean;
+  isSavedByCurrentUser: boolean;
   onLikeReel: (postId: string) => void;
   onAddCommentToReel: (postId: string, text: string, replyToCommentId?: string) => void;
   onDeleteReel: (postId: string) => void;
   onEditReelCaption: (postId: string, newCaption: string) => void;
+  onToggleSaveReel: (postId: string) => void;
   allUsers: User[];
 }
 
@@ -106,10 +108,12 @@ export function ReelCard({
   author,
   currentUser,
   isCurrentlyActive,
+  isSavedByCurrentUser,
   onLikeReel,
   onAddCommentToReel,
   onDeleteReel,
   onEditReelCaption,
+  onToggleSaveReel,
   allUsers,
 }: ReelCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -296,12 +300,18 @@ export function ReelCard({
           </button>
           <button 
             onClick={(e) => { e.stopPropagation(); handleShare(); }}
-            className="flex flex-col items-center text-white p-2 rounded-full hover:bg-white/10 active:scale-95 transition-transform"
+            className="flex flex-col items-center text-white p-2 rounded-full hover:bg-white/10 active:scale-95 transition-transform disabled:opacity-50"
             aria-label="Bagikan reel"
             disabled
           >
             <Share2 className="h-7 w-7"/>
-            {/* <span className="text-xs font-medium mt-0.5">Bagikan</span> */}
+          </button>
+           <button
+            onClick={(e) => { e.stopPropagation(); onToggleSaveReel(post.id); }}
+            className="flex flex-col items-center text-white p-2 rounded-full hover:bg-white/10 active:scale-95 transition-transform"
+            aria-label="Simpan reel"
+          >
+            <Bookmark className={cn("h-7 w-7", isSavedByCurrentUser && "fill-white")} />
           </button>
           
           <DropdownMenu>
@@ -335,7 +345,7 @@ export function ReelCard({
                     <Share2 className="mr-2 h-4 w-4" />
                     <span>Bagikan Reel</span>
                   </DropdownMenuItem>
-                   <DropdownMenuItem onClick={() => { const postUrl = `${window.location.origin}/post/${post.id}`; navigator.clipboard.writeText(postUrl).then(() => toast({title: "Tautan Disalin!"})).catch(e => toast({title:"Gagal menyalin", variant:"destructive"}))}}>
+                   <DropdownMenuItem onClick={() => { const postUrl = `${window.location.origin}/post/${post.id}`; navigator.clipboard.writeText(postUrl).then(() => toast({title: "Tautan Disalin!"})).catch(e => toast({title:"Gagal menyalin", variant:"destructive"}))}} disabled>
                     <Link2 className="mr-2 h-4 w-4" />
                     <span>Salin Tautan</span>
                   </DropdownMenuItem>
@@ -437,3 +447,4 @@ export function ReelCard({
     </>
   );
 }
+
