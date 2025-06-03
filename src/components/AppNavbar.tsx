@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { Home, PlusSquare, User, Film, LogIn, Search as SearchIconLucide, Bell, Trash2, X as XIcon, MessageSquare, UserCheck, UserX, ShieldQuestion } from 'lucide-react';
+import { Home, PlusSquare, User, Handshake, LogIn, Search as SearchIconLucide, Bell, Trash2, X as XIcon, MessageSquare, UserCheck, UserX, ShieldQuestion } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { usePathname, useRouter } from 'next/navigation';
@@ -113,11 +113,22 @@ export function AppNavbar() {
 
   const handleAcceptFollowRequest = (requesterId: string, notificationId: string) => {
     if (!currentUserId) {
-        toast({ title: "Kesalahan Pengguna", description: "Pengguna saat ini tidak terdefinisi.", variant: "destructive"});
-        return;
+      toast({ title: "Kesalahan Pengguna", description: "Pengguna saat ini tidak terdefinisi.", variant: "destructive" });
+      setNotifications(prevNots => prevNots.map(n => n.id === notificationId ? { ...n, type: 'follow_request_handled' as NotificationType, processedState: 'declined', isRead: true, messageOverride: "Gagal: Pengguna tidak terdefinisi." } : n));
+      return;
     }
 
-    // Immediately update the UI for the clicked notification item
+    const CUIDUser = allUsers.find(u => u.id === currentUserId);
+    const requesterUser = allUsers.find(u => u.id === requesterId);
+
+    if (!CUIDUser || !requesterUser) {
+      const missingUserMsg = `Gagal: ${!CUIDUser ? 'Data Anda' : 'Data pemohon'} tidak lengkap.`;
+      toast({ title: "Kesalahan Data Pengguna", description: missingUserMsg, variant: "destructive" });
+      setNotifications(prevNots => prevNots.map(n => n.id === notificationId ? { ...n, type: 'follow_request_handled' as NotificationType, processedState: 'declined', isRead: true, messageOverride: missingUserMsg } : n));
+      return;
+    }
+    
+    // Prioritize UI update for the clicked notification
     setNotifications(prevNots =>
       prevNots.map(n => {
         if (n.id === notificationId) {
@@ -125,41 +136,24 @@ export function AppNavbar() {
             ...n,
             type: 'follow_request_handled' as NotificationType,
             processedState: 'accepted',
-            isRead: true,
-            // The final message will be set by the render logic based on type and processedState
+            isRead: true, 
           };
         }
         return n;
       })
     );
 
-    // Proceed with data updates
-    const CUIDUser = allUsers.find(u => u.id === currentUserId);
-    const requesterUser = allUsers.find(u => u.id === requesterId);
-
-    if (!CUIDUser || !requesterUser) {
-        toast({ title: "Kesalahan Data Pengguna", description: "Tidak dapat menemukan data pengguna terkait untuk memproses permintaan.", variant: "destructive"});
-        // Update notification with error message if necessary
-        setNotifications(prevNots => prevNots.map(n => {
-            if (n.id === notificationId) { // It's already 'follow_request_handled'
-                return { ...n, messageOverride: `Gagal memproses: data pengguna ${CUIDUser ? 'pemohon' : 'Anda'} tidak lengkap.` };
-            }
-            return n;
-        }));
-        return;
-    }
-
     let usersUpdateError = false;
     try {
       setAllUsers(prevUsers => prevUsers.map(user => {
-        if (user.id === currentUserId) { 
+        if (user.id === currentUserId) {
           return {
             ...user,
             followers: [...new Set([...(user.followers || []), requesterId])],
             pendingFollowRequests: (user.pendingFollowRequests || []).filter(id => id !== requesterId),
           };
         }
-        if (user.id === requesterId) { 
+        if (user.id === requesterId) {
           return {
             ...user,
             following: [...new Set([...(user.following || []), currentUserId])],
@@ -187,8 +181,9 @@ export function AppNavbar() {
             variant: "destructive",
             duration: 7000,
         });
+        // Optionally update the notification message again to reflect partial failure
         setNotifications(prevNots => prevNots.map(n => {
-            if (n.id === notificationId) { // Still 'follow_request_handled'
+            if (n.id === notificationId) {
               return { ...n, messageOverride: `Diterima, tapi gagal memperbarui daftar pengikut/mengikuti.` };
             }
             return n;
@@ -199,6 +194,7 @@ export function AppNavbar() {
   const handleDeclineFollowRequest = (requesterId: string, notificationId: string) => {
     if (!currentUserId) {
         toast({ title: "Kesalahan Pengguna", description: "Pengguna saat ini tidak terdefinisi.", variant: "destructive"});
+        setNotifications(prevNots => prevNots.map(n => n.id === notificationId ? { ...n, type: 'follow_request_handled' as NotificationType, processedState: 'declined', isRead: true, messageOverride: "Gagal: Pengguna tidak terdefinisi." } : n));
         return;
     }
     
@@ -206,19 +202,9 @@ export function AppNavbar() {
     const requesterUser = allUsers.find(u => u.id === requesterId);
 
     if (!CUIDUser || !requesterUser) {
-        toast({ title: "Kesalahan Data Pengguna", description: "Tidak dapat menemukan data pengguna terkait untuk memproses penolakan.", variant: "destructive"});
-        setNotifications(prevNots => prevNots.map(n => {
-          if (n.id === notificationId) {
-            return {
-              ...n,
-              type: 'follow_request_handled' as NotificationType,
-              processedState: 'declined', 
-              isRead: true,
-              messageOverride: `Gagal memproses penolakan untuk ${requesterUser?.username || 'pengguna'} karena data tidak lengkap.`
-            };
-          }
-          return n;
-        }));
+        const missingUserMsg = `Gagal: ${!CUIDUser ? 'Data Anda' : 'Data pemohon'} tidak lengkap.`;
+        toast({ title: "Kesalahan Data Pengguna", description: missingUserMsg, variant: "destructive"});
+        setNotifications(prevNots => prevNots.map(n => n.id === notificationId ? { ...n, type: 'follow_request_handled' as NotificationType, processedState: 'declined', isRead: true, messageOverride: missingUserMsg } : n));
         return;
     }
 
@@ -275,7 +261,7 @@ export function AppNavbar() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <Film className="h-7 w-7 text-primary" />
+            <Handshake className="h-7 w-7 text-primary" />
             <span className="font-headline text-2xl font-semibold text-foreground">Elegance</span>
           </Link>
         </div>
@@ -288,7 +274,7 @@ export function AppNavbar() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-center">
           <Link href="/" className="flex items-center gap-2">
-            <Film className="h-7 w-7 text-primary" />
+            <Handshake className="h-7 w-7 text-primary" />
             <span className="font-headline text-2xl font-semibold text-foreground">Elegance</span>
           </Link>
         </div>
@@ -300,7 +286,7 @@ export function AppNavbar() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between gap-x-4">
         <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-          <Film className="h-7 w-7 text-primary" />
+          <Handshake className="h-7 w-7 text-primary" />
           <span className="font-headline text-2xl font-semibold text-foreground">Elegance</span>
         </Link>
 

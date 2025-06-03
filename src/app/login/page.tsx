@@ -11,7 +11,7 @@ import useLocalStorageState from '@/hooks/useLocalStorageState';
 import type { User } from '@/lib/types';
 import { initialUsers, getCurrentUserId } from '@/lib/data'; 
 import { useToast } from "@/hooks/use-toast";
-import { Film, LogIn } from 'lucide-react';
+import { Handshake, LogIn } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -94,7 +94,7 @@ export default function LoginPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-background to-muted/30 p-4">
       <div className="flex items-center gap-2 mb-8">
-          <Film className="h-10 w-10 text-primary" />
+          <Handshake className="h-10 w-10 text-primary" />
           <span className="font-headline text-4xl sm:text-5xl font-semibold text-foreground">Elegance</span>
       </div>
       <Card className="w-full max-w-md shadow-xl">
