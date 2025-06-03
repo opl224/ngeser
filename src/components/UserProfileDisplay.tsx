@@ -25,6 +25,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuPortal, // Added DropdownMenuPortal
 } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
@@ -345,13 +346,13 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
   const handleLogoutAndDeleteAllData = () => {
     setAllPosts([]);
-    setAllUsers([]); // Set to empty array instead of initialUsers
+    setAllUsers([]); 
     setNotifications([]);
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('authChange'));
       localStorage.removeItem('currentUserId');
       localStorage.setItem('posts', '[]');
-      localStorage.setItem('users', '[]'); // Store empty array
+      localStorage.setItem('users', '[]'); 
       localStorage.setItem('notifications', '[]');
     }
     toast({
@@ -864,3 +865,4 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
+
