@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from './PostCard';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialUsers, initialPosts, initialNotifications, getCurrentUserId } from '@/lib/data';
-import { Settings, UserPlus, UserCheck, Edit3, LogOut, Trash2, Image as ImageIcon, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock } from 'lucide-react';
+import { Settings, UserPlus, UserCheck, Edit3, LogOut, Trash2, Image as ImageIcon, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, ShieldQuestion } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
@@ -111,7 +111,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const canViewProfileContent = useMemo(() => {
     if (!profileUser) return false;
     if (profileUser.accountType === 'public') return true;
-    if (currentSessionUserId === profileUser.id) return true; // Own profile
+    if (currentSessionUserId === profileUser.id) return true; 
     return isCurrentUserFollowingProfile;
   }, [profileUser, currentSessionUserId, isCurrentUserFollowingProfile]);
 
@@ -157,22 +157,22 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         toast({ title: "Mulai Mengikuti", description: `Anda sekarang mengikuti ${profileUser.username}.` });
         createAndAddNotification(setNotifications, { recipientUserId: profileUser.id, actorUserId: currentSessionUserId, type: 'follow' });
       }
-    } else { // Private account logic
-      if (isAlreadyFollowing) { // Unfollow
+    } else { 
+      if (isAlreadyFollowing) { 
         setAllUsers(prevUsers => prevUsers.map(u => {
           if (u.id === currentSessionUserId) return { ...u, following: (u.following || []).filter(id => id !== profileUser.id) };
           if (u.id === profileUser.id) return { ...u, followers: (u.followers || []).filter(id => id !== currentSessionUserId) };
           return u;
         }));
         toast({ title: "Berhenti Mengikuti", description: `Anda tidak lagi mengikuti ${profileUser.username}.` });
-      } else if (hasSentRequest) { // Cancel follow request
+      } else if (hasSentRequest) { 
         setAllUsers(prevUsers => prevUsers.map(u => {
           if (u.id === currentSessionUserId) return { ...u, sentFollowRequests: (u.sentFollowRequests || []).filter(id => id !== profileUser.id) };
           if (u.id === profileUser.id) return { ...u, pendingFollowRequests: (u.pendingFollowRequests || []).filter(id => id !== currentSessionUserId) };
           return u;
         }));
         toast({ title: "Permintaan Dibatalkan", description: `Permintaan mengikuti ${profileUser.username} dibatalkan.` });
-      } else { // Send follow request
+      } else { 
         setAllUsers(prevUsers => prevUsers.map(u => {
           if (u.id === currentSessionUserId) return { ...u, sentFollowRequests: [...(u.sentFollowRequests || []), profileUser.id] };
           if (u.id === profileUser.id) return { ...u, pendingFollowRequests: [...(u.pendingFollowRequests || []), currentSessionUserId] };
@@ -406,15 +406,10 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const isCurrentUserProfile = currentSessionUserId === profileUser.id;
   const isRequested = (currentSessionUser?.sentFollowRequests || []).includes(profileUser.id);
 
-  let followButtonText = "Ikuti";
   let FollowButtonIconComponent: React.ElementType = UserPlus;
 
   if (isCurrentUserFollowingProfile) {
-    followButtonText = "Mengikuti";
     FollowButtonIconComponent = UserCheck;
-  } else if (isRequested) {
-    followButtonText = "Diminta";
-    FollowButtonIconComponent = UserPlus; 
   }
 
 
@@ -424,6 +419,8 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     if (!profileUser) return;
     router.push(`/dm?userId=${profileUser.id}`);
   };
+
+  const followButtonText = isCurrentUserFollowingProfile ? "Mengikuti" : isRequested ? "Diminta" : "Ikuti";
 
 
   return (
@@ -482,7 +479,12 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={handleLogoutAndSaveData}>
+                    <DropdownMenuItem onClick={handleOpenEditModal} className="cursor-pointer">
+                        <ShieldQuestion className="mr-2 h-4 w-4" />
+                        Pengaturan Privasi
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogoutAndSaveData} className="cursor-pointer">
                       <LogOut className="mr-2 h-4 w-4" />
                       Keluar & Simpan Data
                     </DropdownMenuItem>
