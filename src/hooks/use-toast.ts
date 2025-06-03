@@ -1,3 +1,4 @@
+
 "use client"
 
 // Inspired by react-hot-toast library
@@ -9,7 +10,7 @@ import type {
 } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+const TOAST_REMOVE_DELAY = 1000 // Changed from 1000000 to 1000 (1 second)
 
 type ToasterToast = ToastProps & {
   id: string
@@ -143,14 +144,38 @@ function dispatch(action: Action) {
 type Toast = Omit<ToasterToast, "id">
 
 function toast({ ...props }: Toast) {
-  const id = genId()
+  const id = genId();
 
-  const update = (props: ToasterToast) =>
+  let dismissTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  // The actual dispatch for dismissal
+  const _internalDismissDispatch = () => {
+    dispatch({ type: "DISMISS_TOAST", toastId: id });
+  }
+
+  // Function to be called to dismiss this toast, either manually or by timeout
+  const dismissToast = () => {
+    if (dismissTimeoutId) {
+      clearTimeout(dismissTimeoutId);
+      dismissTimeoutId = null;
+    }
+    _internalDismissDispatch();
+  };
+  
+  // Schedule the auto-dismissal
+  dismissTimeoutId = setTimeout(() => {
+    dismissToast();
+  }, 3000); // 3 seconds
+
+  const updateToast = (updateProps: Partial<ToasterToast>) => { // Ensure updateProps type matches Partial<ToasterToast>
     dispatch({
       type: "UPDATE_TOAST",
-      toast: { ...props, id },
-    })
-  const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
+      toast: { ...updateProps, id },
+    });
+    // Optional: If you want the timer to reset on update, uncomment below
+    // if (dismissTimeoutId) clearTimeout(dismissTimeoutId);
+    // dismissTimeoutId = setTimeout(dismissToast, 3000);
+  };
 
   dispatch({
     type: "ADD_TOAST",
@@ -158,17 +183,24 @@ function toast({ ...props }: Toast) {
       ...props,
       id,
       open: true,
+      // This onOpenChange is for the Toast component itself.
+      // When the Toast component's internal state for 'open' changes to false (e.g., due to user clicking 'X'),
+      // it will call this function. We need to ensure our programmatic dismiss (dismissToast) is called.
       onOpenChange: (open) => {
-        if (!open) dismiss()
+        if (!open) {
+          // If the toast is closed by the component (e.g., user interaction),
+          // ensure our programmatic dismiss logic (including timeout clearing) is run.
+          dismissToast();
+        }
       },
     },
-  })
+  });
 
   return {
     id: id,
-    dismiss,
-    update,
-  }
+    dismiss: dismissToast, // Expose the dismiss function that clears the timeout
+    update: updateToast,
+  };
 }
 
 function useToast() {
