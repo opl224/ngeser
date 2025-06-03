@@ -94,7 +94,11 @@ export default function DirectMessagesPage() {
         setConversations(prev => [...prev, newConversation]);
         setSelectedConversationId(newConversationId);
       }
-      router.replace(pathname, { scroll: false });
+      // router.replace(pathname, { scroll: false }); // Caused issues with query persistence
+      const current = new URL(window.location.href);
+      current.searchParams.delete('userId');
+      window.history.replaceState({}, '', current.toString());
+
     }
   }, [authStatus, currentUserId, searchParams, conversations, setConversations, router, pathname]);
 
@@ -295,6 +299,7 @@ export default function DirectMessagesPage() {
             ))
           ) : (
              <div className="p-6 text-center text-muted-foreground flex flex-col items-center justify-center h-full">
+              {/* Header for empty conversation list already included from previous request */}
               <Users className="h-12 w-12 mx-auto mb-3" />
               <p className="text-sm">Belum ada percakapan.</p>
               <p className="text-xs mt-1">Mulai percakapan dari profil pengguna.</p>
@@ -328,7 +333,7 @@ export default function DirectMessagesPage() {
                 const isCurrentUserSender = msg.senderId === currentUserId;
                 const sender = isCurrentUserSender ? currentUser : selectedConversation.otherParticipant;
                 return (
-                  <div key={msg.id} className={cn("group relative flex items-end gap-2 max-w-[85%] sm:max-w-[75%] mb-3", isCurrentUserSender ? "ml-auto flex-row-reverse" : "mr-auto")}>
+                  <div key={msg.id} className={cn("group flex items-end gap-2 max-w-[85%] sm:max-w-[75%] mb-3", isCurrentUserSender ? "ml-auto flex-row-reverse" : "mr-auto")}>
                     {!isCurrentUserSender && (
                        <Avatar className="h-7 w-7 self-start flex-shrink-0 hidden sm:flex">
                          <AvatarImage src={sender?.avatarUrl} alt={sender?.username} data-ai-hint="message sender avatar"/>
@@ -336,7 +341,7 @@ export default function DirectMessagesPage() {
                        </Avatar>
                     )}
                     <div className={cn(
-                        "p-2.5 rounded-xl text-sm leading-relaxed shadow-sm relative",
+                        "p-2.5 rounded-xl text-sm leading-relaxed shadow-sm",
                         isCurrentUserSender ? "bg-primary text-primary-foreground rounded-br-none" : "bg-muted text-foreground rounded-bl-none"
                       )}>
                       {editingMessage?.id === msg.id ? (
@@ -363,8 +368,8 @@ export default function DirectMessagesPage() {
                             variant="ghost"
                             size="icon"
                             className={cn(
-                              "h-6 w-6 p-0.5 absolute rounded-full opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity",
-                              isCurrentUserSender ? "-left-1 top-1/2 -translate-y-1/2 translate-x-[-100%]" : "-right-1 top-1/2 -translate-y-1/2 translate-x-[100%]",
+                              "h-6 w-6 p-0.5 rounded-full opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity",
+                              // Removed absolute positioning classes
                               "data-[state=open]:opacity-100 bg-card/50 hover:bg-card"
                             )}
                           >
