@@ -451,7 +451,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   if (isCurrentUserFollowingProfile) {
     followButtonText = "Mengikuti";
     FollowButtonIconComponent = UserCheck;
-  } else if (isRequestedByCSUtoPU) {
+  } else if (isRequestedByCSUtoPU && profileUser.accountType === 'private') {
     followButtonText = "Diminta";
     FollowButtonIconComponent = UserPlus;
   } else if (isProfileUserFollowingCSU && !isCurrentUserFollowingProfile) {
@@ -461,6 +461,9 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     followButtonText = "Ikuti";
     FollowButtonIconComponent = UserPlus;
   }
+
+  const isFollowButtonDisabled = profileUser.accountType === 'private' && isRequestedByCSUtoPU && !isCurrentUserFollowingProfile;
+
 
   const allProfilePosts = [...userStories, ...userPosts].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
@@ -569,7 +572,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                       onClick={handleFollowToggle}
                       variant={isCurrentUserFollowingProfile ? "secondary" : "default"}
                       size="sm"
-                      disabled={profileUser.accountType === 'private' && !isCurrentUserFollowingProfile && isRequestedByCSUtoPU && !canViewProfileContent}
+                      disabled={isFollowButtonDisabled}
                     >
                       <FollowButtonIconComponent className="mr-2 h-4 w-4" />
                       {followButtonText}
