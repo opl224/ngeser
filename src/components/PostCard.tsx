@@ -171,12 +171,12 @@ export function PostCard({
         <CardHeader className="flex flex-row items-center justify-between p-4">
           <div className="flex items-center gap-3">
             <Link href={`/profile/${author.id}`} className="flex items-center gap-3 group">
-              <Avatar className="h-11 w-11 border-2 border-primary/50 group-hover:border-primary transition-colors">
+              <Avatar className="h-11 w-11 border-2 border-primary/50 md:group-hover:border-primary transition-colors">
                 <AvatarImage src={author.avatarUrl} alt={author.username} data-ai-hint="portrait person" />
                 <AvatarFallback>{author.username.substring(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
               <div>
-                <CardTitle className="text-base font-headline group-hover:text-primary transition-colors">{author.username}</CardTitle>
+                <CardTitle className="text-base font-headline md:group-hover:text-primary transition-colors">{author.username}</CardTitle>
                 <p className="text-xs text-muted-foreground">
                   {formatTimestamp(post.timestamp)}
                 </p>
@@ -246,7 +246,7 @@ export function PostCard({
           {post.hashtags.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {post.hashtags.map(tag => (
-                <Link key={tag} href={`/search?q=${tag}`} className="text-xs text-primary hover:underline font-medium">
+                <Link key={tag} href={`/search?q=${tag}`} className="text-xs text-primary md:hover:underline font-medium">
                   #{tag}
                 </Link>
               ))}
@@ -257,11 +257,11 @@ export function PostCard({
         <CardFooter className="flex flex-col items-start p-4 gap-3">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-x-1 sm:gap-x-2 md:gap-x-3">
-              <Button variant="ghost" size="sm" onClick={() => onLikePost(post.id)} className="flex items-center gap-1.5 px-1.5 sm:px-2 text-muted-foreground hover:text-destructive">
+              <Button variant="ghost" size="sm" onClick={() => onLikePost(post.id)} className="flex items-center gap-1.5 px-1.5 sm:px-2 text-muted-foreground md:hover:text-destructive">
                 <Heart className={`h-5 w-5 ${isLiked ? 'fill-destructive text-destructive' : ''}`} />
                 <span className="text-sm">{post.likes.length}</span>
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => setShowComments(!showComments)} className="flex items-center gap-1.5 px-1.5 sm:px-2 text-muted-foreground hover:text-primary">
+              <Button variant="ghost" size="sm" onClick={() => setShowComments(!showComments)} className="flex items-center gap-1.5 px-1.5 sm:px-2 text-muted-foreground md:hover:text-primary">
                 <MessageCircle className="h-5 w-5" />
                 <span className="text-sm">{post.comments.length}</span>
               </Button>
@@ -271,7 +271,7 @@ export function PostCard({
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="flex items-center gap-1.5 px-1.5 sm:px-2 text-muted-foreground hover:text-accent" disabled>
+                  <Button variant="ghost" size="sm" className="flex items-center gap-1.5 px-1.5 sm:px-2 text-muted-foreground md:hover:text-accent" disabled>
                     <Share2 className="h-5 w-5" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -288,7 +288,7 @@ export function PostCard({
               </DropdownMenu>
             </div>
              {currentUserId && (
-              <Button variant="ghost" size="icon" onClick={() => onToggleSavePost(post.id)} className="text-muted-foreground hover:text-primary">
+              <Button variant="ghost" size="icon" onClick={() => onToggleSavePost(post.id)} className="text-muted-foreground md:hover:text-primary">
                 <Bookmark className={`h-5 w-5 ${isSavedByCurrentUser ? 'fill-primary text-primary' : ''}`} />
               </Button>
             )}
@@ -316,7 +316,7 @@ export function PostCard({
               {post.comments.length > 2 && (
                   <Link 
                     href={`/post/${post.id}`} 
-                    className="text-xs text-primary hover:underline font-medium"
+                    className="text-xs text-primary md:hover:underline font-medium"
                   >
                       Lihat semua {post.comments.length} komentar
                   </Link>
@@ -372,7 +372,7 @@ export function PostCard({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setShowDeleteConfirm(false)}>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeletePost} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction onClick={confirmDeletePost} className="bg-destructive text-destructive-foreground md:hover:bg-destructive/90">
               Ya, Hapus Postingan
             </AlertDialogAction>
           </AlertDialogFooter>

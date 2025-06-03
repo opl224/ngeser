@@ -79,7 +79,7 @@ export function SuggestedHashtagsClient({ onHashtagsSuggested, initialDescriptio
             <h4 className="text-sm font-medium text-foreground">Tagar yang Disarankan:</h4>
             <div className="flex flex-wrap gap-2">
               {suggested.map((tag, index) => (
-                <Badge key={index} variant="secondary" className="cursor-pointer hover:bg-accent" onClick={() => onHashtagsSuggested([tag])}>
+                <Badge key={index} variant="secondary" className="cursor-pointer md:hover:bg-accent" onClick={() => onHashtagsSuggested([tag])}>
                   #{tag}
                 </Badge>
               ))}

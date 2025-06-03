@@ -95,14 +95,14 @@ function SearchPageContent() {
                   <Link
                     href={`/profile/${user.id}`}
                     key={user.id}
-                    className="flex items-center gap-4 p-3 hover:bg-muted/70 rounded-lg transition-colors group border border-transparent hover:border-primary/50"
+                    className="flex items-center gap-4 p-3 md:hover:bg-muted/70 rounded-lg transition-colors group border border-transparent md:hover:border-primary/50"
                   >
-                    <Avatar className="h-14 w-14 border-2 border-primary/30 group-hover:border-primary transition-all">
+                    <Avatar className="h-14 w-14 border-2 border-primary/30 md:group-hover:border-primary transition-all">
                       <AvatarImage src={user.avatarUrl} alt={user.username} data-ai-hint="search result avatar" />
                       <AvatarFallback className="text-xl">{user.username.substring(0, 2).toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <p className="font-semibold font-headline text-lg text-foreground group-hover:text-primary transition-colors">{user.username}</p>
+                      <p className="font-semibold font-headline text-lg text-foreground md:group-hover:text-primary transition-colors">{user.username}</p>
                       {user.bio && <p className="text-sm text-muted-foreground line-clamp-2">{user.bio}</p>}
                     </div>
                   </Link>

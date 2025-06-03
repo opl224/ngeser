@@ -70,7 +70,7 @@ export function BottomNavbar() {
               className={cn(
                 'flex flex-col items-center justify-center p-2 rounded-md flex-grow text-center h-full',
                 isActive ? 'text-primary' : 'text-muted-foreground',
-                'hover:bg-accent hover:text-accent-foreground transition-colors'
+                'md:hover:bg-accent md:hover:text-accent-foreground transition-colors'
               )}
               aria-current={isActive ? 'page' : undefined}
             >

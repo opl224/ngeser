@@ -580,7 +580,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                   variant="outline"
                   size="icon"
                   onClick={handleOpenEditProfileModal}
-                  className="absolute -bottom-2 -right-2 h-9 w-9 rounded-full p-2 bg-background border-2 border-primary/70 shadow-md md:hidden hover:bg-accent"
+                  className="absolute -bottom-2 -right-2 h-9 w-9 rounded-full p-2 bg-background border-2 border-primary/70 shadow-md md:hidden md:hover:bg-accent"
                   aria-label="Edit Profil"
                 >
                   <Edit3 className="h-4 w-4" />
@@ -650,7 +650,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handleLogoutAndDeleteAllData} className={buttonVariants({ variant: "destructive" })}>
+            <AlertDialogAction onClick={handleLogoutAndDeleteAllData} className={cn(buttonVariants({ variant: "destructive" }), "md:hover:bg-destructive/90")}>
               Ya, Hapus Semua &amp; Keluar
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -697,7 +697,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                 type="file"
                 accept="image/*"
                 onChange={handleAvatarFileChange}
-                className="mt-1 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                className="mt-1 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary md:hover:file:bg-primary/20"
               />
             </div>
             {editedAvatarPreview && (
@@ -852,12 +852,12 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
           const user = allUsers.find(u => u.id === id);
           if (!user) return null;
           return (
-            <Link href={`/profile/${user.id}`} key={id} className="flex items-center gap-3 p-3 hover:bg-muted/50 rounded-md transition-colors group">
-              <Avatar className="h-10 w-10 border group-hover:border-primary">
+            <Link href={`/profile/${user.id}`} key={id} className="flex items-center gap-3 p-3 md:hover:bg-muted/50 rounded-md transition-colors group">
+              <Avatar className="h-10 w-10 border md:group-hover:border-primary">
                 <AvatarImage src={user.avatarUrl} alt={user.username} data-ai-hint="portrait person"/>
                 <AvatarFallback>{user.username.substring(0,1).toUpperCase()}</AvatarFallback>
               </Avatar>
-              <span className="font-medium font-headline text-foreground group-hover:text-primary">{user.username}</span>
+              <span className="font-medium font-headline text-foreground md:group-hover:text-primary">{user.username}</span>
             </Link>
           );
         })}
@@ -865,4 +865,3 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
-

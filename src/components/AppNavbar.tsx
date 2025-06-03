@@ -312,7 +312,7 @@ export function AppNavbar() {
             <Input
               type="search"
               placeholder="Cari pengguna..."
-              className="pl-10 pr-3 py-2 text-sm h-9 w-full rounded-md bg-muted/50 hover:bg-muted focus:bg-background"
+              className="pl-10 pr-3 py-2 text-sm h-9 w-full rounded-md bg-muted/50 md:hover:bg-muted focus:bg-background"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               data-ai-hint="search users input"
@@ -331,7 +331,7 @@ export function AppNavbar() {
                 asChild
                 className={cn(
                     "text-sm font-medium px-2 sm:px-3",
-                    isActive ? "text-primary hover:text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground"
+                    isActive ? "text-primary md:hover:text-primary bg-primary/10" : "text-muted-foreground md:hover:text-foreground"
                 )}
                 >
                 <Link href={item.href} className="flex items-center gap-2">
@@ -350,7 +350,7 @@ export function AppNavbar() {
                   size="icon"
                   asChild
                   className={cn(
-                    "relative text-muted-foreground hover:text-foreground", // Added relative for badge positioning
+                    "relative text-muted-foreground md:hover:text-foreground", // Added relative for badge positioning
                     pathname === '/dm' && "text-primary bg-primary/10"
                   )}
                   aria-label="Pesan Langsung"
@@ -374,7 +374,7 @@ export function AppNavbar() {
                       variant="ghost"
                       size="icon"
                       aria-label="Notifikasi"
-                      className="relative text-muted-foreground hover:text-foreground"
+                      className="relative text-muted-foreground md:hover:text-foreground"
                     >
                       <Bell className="h-5 w-5" />
                       {isClient && unreadNotificationCount > 0 && (
@@ -395,7 +395,7 @@ export function AppNavbar() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            className="h-7 w-7 text-muted-foreground md:hover:text-destructive"
                             onClick={(e) => {
                               e.stopPropagation(); 
                               handleClearAllNotifications();
@@ -464,7 +464,7 @@ export function AppNavbar() {
 
                         return (
                           <div key={notification.id} className={cn("group/notif-item relative", !notification.isRead && isClient && notification.type !== 'follow_request_handled' ? 'bg-primary/10' : '')}>
-                            <DropdownMenuItem asChild className={cn("cursor-pointer w-full pr-8", !notification.isRead && isClient && notification.type !== 'follow_request_handled' ? 'hover:!bg-primary/20' : 'hover:!bg-accent/80')}>
+                            <DropdownMenuItem asChild className={cn("cursor-pointer w-full pr-8", !notification.isRead && isClient && notification.type !== 'follow_request_handled' ? 'md:hover:!bg-primary/20' : 'md:hover:!bg-accent/80')}>
                               <Link href={linkHref} className="flex items-start gap-3 p-2 w-full">
                                 <Avatar className="h-8 w-8 mt-0.5 flex-shrink-0">
                                   <AvatarImage src={avatarSrc} alt={actor?.username || 'Notifikasi'} data-ai-hint="notification actor person"/>
@@ -503,7 +503,7 @@ export function AppNavbar() {
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-6 w-6 absolute top-1 right-1 text-muted-foreground hover:text-destructive opacity-0 group-hover/notif-item:opacity-100 focus:opacity-100 transition-opacity"
+                                className="h-6 w-6 absolute top-1 right-1 text-muted-foreground md:hover:text-destructive opacity-0 md:group-hover/notif-item:opacity-100 focus:opacity-100 transition-opacity"
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();

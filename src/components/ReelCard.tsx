@@ -54,14 +54,14 @@ function ReelCommentItem({ comment, allUsers, currentUserId, onReply, level = 0 
         </Avatar>
         <div className="flex-1 bg-black/10 dark:bg-white/5 p-2.5 rounded-lg">
           <div className="flex items-baseline justify-between">
-            <Link href={`/profile/${author?.id}`} className="font-headline text-xs font-semibold hover:underline text-foreground">
+            <Link href={`/profile/${author?.id}`} className="font-headline text-xs font-semibold md:hover:underline text-foreground">
               {author?.username || "Pengguna"}
             </Link>
             <span className="text-xs text-muted-foreground ml-2">{formatTimestamp(comment.timestamp)}</span>
           </div>
           <p className="text-xs font-body mt-0.5 text-foreground/90">{comment.text}</p>
            {currentUserId && level === 0 && (
-            <Button variant="link" size="xs" className="mt-0.5 text-xs text-muted-foreground hover:text-primary p-0 h-auto" onClick={() => setShowReplyForm(!showReplyForm)}>
+            <Button variant="link" size="xs" className="mt-0.5 text-xs text-muted-foreground md:hover:text-primary p-0 h-auto" onClick={() => setShowReplyForm(!showReplyForm)}>
               <CornerUpLeft className="h-2.5 w-2.5 mr-1"/> Balas
             </Button>
           )}
@@ -266,7 +266,7 @@ export function ReelCard({
 
         <button
             onClick={(e) => { e.stopPropagation(); toggleMute(); }}
-            className="absolute top-4 right-4 z-20 p-2 bg-black/40 rounded-full text-white hover:bg-black/60 transition-opacity opacity-0 group-hover/reel:opacity-100 focus-visible:opacity-100"
+            className="absolute top-4 right-4 z-20 p-2 bg-black/40 rounded-full text-white md:hover:bg-black/60 transition-opacity opacity-0 md:group-hover/reel:opacity-100 focus-visible:opacity-100"
             aria-label={isMuted ? "Suarakan video" : "Bisukan video"}
         >
             {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
@@ -295,8 +295,8 @@ export function ReelCard({
                 className={cn(
                   "ml-2 pointer-events-auto text-xs font-semibold text-white px-2.5 py-1 rounded-md transition-colors flex items-center gap-1",
                   isFollowingAuthor
-                    ? "bg-transparent border border-white/50 hover:bg-white/10"
-                    : (hasSentRequestToAuthor ? "bg-gray-500/50 hover:bg-gray-600/50" : "bg-white/20 hover:bg-white/30")
+                    ? "bg-transparent border border-white/50 md:hover:bg-white/10"
+                    : (hasSentRequestToAuthor ? "bg-gray-500/50 md:hover:bg-gray-600/50" : "bg-white/20 md:hover:bg-white/30")
                 )}
               >
                 <CurrentFollowIcon className="h-3 w-3 inline-block" />
@@ -310,7 +310,7 @@ export function ReelCard({
         <div className="absolute right-2 bottom-20 md:bottom-6 flex flex-col items-center gap-3 z-10">
           <button
             onClick={(e) => { e.stopPropagation(); onLikeReel(post.id); }}
-            className="flex flex-col items-center text-white p-2 rounded-full hover:bg-white/10 active:scale-95 transition-transform"
+            className="flex flex-col items-center text-white p-2 rounded-full md:hover:bg-white/10 active:scale-95 transition-transform"
             aria-label="Sukai reel"
           >
             <Heart className={cn("h-7 w-7", isLiked && "fill-red-500 text-red-500")} />
@@ -318,7 +318,7 @@ export function ReelCard({
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); setShowCommentsSheet(true); }}
-            className="flex flex-col items-center text-white p-2 rounded-full hover:bg-white/10 active:scale-95 transition-transform"
+            className="flex flex-col items-center text-white p-2 rounded-full md:hover:bg-white/10 active:scale-95 transition-transform"
             aria-label="Lihat komentar"
           >
             <MessageCircle className="h-7 w-7" />
@@ -326,7 +326,7 @@ export function ReelCard({
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); handleShare(); }}
-            className="flex flex-col items-center text-white p-2 rounded-full hover:bg-white/10 active:scale-95 transition-transform disabled:opacity-50"
+            className="flex flex-col items-center text-white p-2 rounded-full md:hover:bg-white/10 active:scale-95 transition-transform disabled:opacity-50"
             aria-label="Bagikan reel"
             disabled
           >
@@ -334,7 +334,7 @@ export function ReelCard({
           </button>
            <button
             onClick={(e) => { e.stopPropagation(); onToggleSaveReel(post.id); }}
-            className="flex flex-col items-center text-white p-2 rounded-full hover:bg-white/10 active:scale-95 transition-transform"
+            className="flex flex-col items-center text-white p-2 rounded-full md:hover:bg-white/10 active:scale-95 transition-transform"
             aria-label="Simpan reel"
           >
             <Bookmark className={cn("h-7 w-7", isSavedByCurrentUser && "fill-white")} />
@@ -344,7 +344,7 @@ export function ReelCard({
             <DropdownMenuTrigger asChild>
               <button
                 onClick={(e) => e.stopPropagation()}
-                className="flex flex-col items-center text-white p-2 rounded-full hover:bg-white/10 active:scale-95 transition-transform"
+                className="flex flex-col items-center text-white p-2 rounded-full md:hover:bg-white/10 active:scale-95 transition-transform"
                 aria-label="Opsi lainnya"
               >
                 <MoreHorizontal className="h-7 w-7" />

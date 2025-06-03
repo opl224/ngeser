@@ -33,7 +33,7 @@ export function StoryAvatarReel({ usersWithStories, onAvatarClick }: StoryAvatar
               onKeyDown={(e) => e.key === 'Enter' && onAvatarClick(user.id)}
               aria-label={`Lihat cerita ${user.username}`}
             >
-              <div className="relative p-0.5 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-pink-500 group-hover:from-yellow-300 group-hover:via-red-400 group-hover:to-pink-400 transition-all">
+              <div className="relative p-0.5 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-pink-500 md:group-hover:from-yellow-300 md:group-hover:via-red-400 md:group-hover:to-pink-400 transition-all">
                 <Avatar className="h-16 w-16 border-2 border-background">
                   <AvatarImage src={user.avatarUrl} alt={user.username} data-ai-hint="story avatar person"/>
                   <AvatarFallback>{user.username.substring(0, 2).toUpperCase()}</AvatarFallback>
@@ -44,7 +44,7 @@ export function StoryAvatarReel({ usersWithStories, onAvatarClick }: StoryAvatar
                   </div>
                 )}
               </div>
-              <p className="text-xs text-foreground truncate w-full text-center group-hover:text-primary">{user.username}</p>
+              <p className="text-xs text-foreground truncate w-full text-center md:group-hover:text-primary">{user.username}</p>
             </div>
           ))}
         </div>
@@ -53,4 +53,3 @@ export function StoryAvatarReel({ usersWithStories, onAvatarClick }: StoryAvatar
     </div>
   );
 }
-

@@ -130,7 +130,6 @@ export default function LoginPage() {
       </Card>
       <p className="text-xs text-muted-foreground mt-8 text-center">
         &copy; {new Date().getFullYear()} Ngeser Social. Hak cipta dilindungi. <br/>
-        Proyek untuk tujuan demonstrasi.
       </p>
     </div>
   );

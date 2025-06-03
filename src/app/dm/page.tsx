@@ -34,6 +34,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from '@/components/ui/badge';
 
 
 interface ParsedOldReply {
@@ -394,8 +395,8 @@ function DmPageContent() {
               <div
                 key={convo.id}
                 className={cn(
-                  "p-3 hover:bg-muted/50 cursor-pointer border-b border-border/50",
-                  selectedConversationId === convo.id && "bg-primary/10 hover:bg-primary/20"
+                  "p-3 md:hover:bg-muted/50 cursor-pointer border-b border-border/50",
+                  selectedConversationId === convo.id && "bg-primary/10 md:hover:bg-primary/20"
                 )}
                 onClick={() => setSelectedConversationId(convo.id)}
               >
@@ -446,7 +447,7 @@ function DmPageContent() {
                 <AvatarImage src={selectedConversation.otherParticipant?.avatarUrl} alt={selectedConversation.otherParticipant?.username} data-ai-hint="dm chat avatar"/>
                 <AvatarFallback>{selectedConversation.otherParticipant?.username.substring(0,1).toUpperCase() || '?'}</AvatarFallback>
               </Avatar>
-              <Link href={`/profile/${selectedConversation.otherParticipant?.id}`} className="font-headline text-md font-semibold hover:underline">
+              <Link href={`/profile/${selectedConversation.otherParticipant?.id}`} className="font-headline text-md font-semibold md:hover:underline">
                 {selectedConversation.otherParticipant?.username || "Pengguna tidak dikenal"}
               </Link>
             </CardHeader>
@@ -513,8 +514,8 @@ function DmPageContent() {
                             variant="ghost"
                             size="icon"
                             className={cn(
-                              "h-6 w-6 p-0.5 rounded-full opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity",
-                              "data-[state=open]:opacity-100 bg-card/50 hover:bg-card"
+                              "h-6 w-6 p-0.5 rounded-full opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity",
+                              "data-[state=open]:opacity-100 bg-card/50 md:hover:bg-card"
                             )}
                           >
                             <MoreVertical className="h-4 w-4 text-muted-foreground" />
@@ -595,7 +596,7 @@ function DmPageContent() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setShowDeleteConfirm(false)}>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive text-destructive-foreground md:hover:bg-destructive/90">
               Hapus
             </AlertDialogAction>
           </AlertDialogFooter>
