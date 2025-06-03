@@ -2,7 +2,8 @@
 "use client";
 
 import Link from 'next/link';
-import { Home, PlusSquare, User, Handshake, LogIn, Search as SearchIconLucide, Bell, Trash2, X as XIcon, MessageSquare, UserCheck, UserX, ShieldQuestion } from 'lucide-react';
+import Image from 'next/image'; // Added import for Image
+import { Home, PlusSquare, User, LogIn, Search as SearchIconLucide, Bell, Trash2, X as XIcon, MessageSquare, UserCheck, UserX, ShieldQuestion } from 'lucide-react'; // Handshake removed
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { usePathname, useRouter } from 'next/navigation';
@@ -117,17 +118,7 @@ export function AppNavbar() {
       setNotifications(prevNots => prevNots.map(n => n.id === notificationId ? { ...n, type: 'follow_request_handled' as NotificationType, processedState: 'declined', isRead: true, messageOverride: "Gagal: Pengguna tidak terdefinisi." } : n));
       return;
     }
-
-    const CUIDUser = allUsers.find(u => u.id === currentUserId);
-    const requesterUser = allUsers.find(u => u.id === requesterId);
-
-    if (!CUIDUser || !requesterUser) {
-      const missingUserMsg = `Gagal: ${!CUIDUser ? 'Data Anda' : 'Data pemohon'} tidak lengkap.`;
-      toast({ title: "Kesalahan Data Pengguna", description: missingUserMsg, variant: "destructive" });
-      setNotifications(prevNots => prevNots.map(n => n.id === notificationId ? { ...n, type: 'follow_request_handled' as NotificationType, processedState: 'declined', isRead: true, messageOverride: missingUserMsg } : n));
-      return;
-    }
-    
+  
     // Prioritize UI update for the clicked notification
     setNotifications(prevNots =>
       prevNots.map(n => {
@@ -136,28 +127,38 @@ export function AppNavbar() {
             ...n,
             type: 'follow_request_handled' as NotificationType,
             processedState: 'accepted',
-            isRead: true, 
+            isRead: true,
           };
         }
         return n;
       })
     );
-
+  
+    const CUIDUser = allUsers.find(u => u.id === currentUserId);
+    const requesterUser = allUsers.find(u => u.id === requesterId);
+  
+    if (!CUIDUser || !requesterUser) {
+      const missingUserMsg = `Gagal: ${!CUIDUser ? 'Data Anda' : 'Data pemohon'} tidak lengkap.`;
+      toast({ title: "Kesalahan Data Pengguna", description: missingUserMsg, variant: "destructive" });
+      setNotifications(prevNots => prevNots.map(n => n.id === notificationId ? { ...n, messageOverride: missingUserMsg } : n)); // Update existing notification message
+      return;
+    }
+  
     let usersUpdateError = false;
     try {
       setAllUsers(prevUsers => prevUsers.map(user => {
-        if (user.id === currentUserId) {
+        if (user.id === currentUserId) { // Current user (accepting)
           return {
             ...user,
             followers: [...new Set([...(user.followers || []), requesterId])],
             pendingFollowRequests: (user.pendingFollowRequests || []).filter(id => id !== requesterId),
           };
         }
-        if (user.id === requesterId) {
+        if (user.id === requesterId) { // User who sent the request
           return {
             ...user,
-            following: [...new Set([...(user.following || []), currentUserId])],
-            sentFollowRequests: (user.sentFollowRequests || []).filter(id => id !== currentUserId),
+            following: [...new Set([...(user.following || []), currentUserId])], // Corrected: currentUserId, not CUIDUser.id
+            sentFollowRequests: (user.sentFollowRequests || []).filter(id => id !== currentUserId), // Corrected: currentUserId
           };
         }
         return user;
@@ -166,30 +167,30 @@ export function AppNavbar() {
       console.error("Error updating user lists on follow accept:", error);
       usersUpdateError = true;
     }
-    
+  
     if (!usersUpdateError) {
-      createAndAddNotification(setNotifications, { 
-          recipientUserId: requesterId, 
-          actorUserId: currentUserId, 
-          type: 'follow_accepted' 
+      createAndAddNotification(setNotifications, {
+        recipientUserId: requesterId,
+        actorUserId: currentUserId,
+        type: 'follow_accepted'
       });
       toast({ title: "Permintaan Diterima", description: `Kamu sekarang mengizinkan ${requesterUser.username} untuk mengikutimu.` });
     } else {
-         toast({
-            title: "Kesalahan Sebagian",
-            description: `Permintaan dari ${requesterUser.username} diterima, tetapi ada masalah saat memperbarui daftar pengikut/mengikuti.`,
-            variant: "destructive",
-            duration: 7000,
-        });
-        // Optionally update the notification message again to reflect partial failure
-        setNotifications(prevNots => prevNots.map(n => {
-            if (n.id === notificationId) {
-              return { ...n, messageOverride: `Diterima, tapi gagal memperbarui daftar pengikut/mengikuti.` };
-            }
-            return n;
-          }));
+      toast({
+        title: "Kesalahan Sebagian",
+        description: `Permintaan dari ${requesterUser.username} diterima, tetapi ada masalah saat memperbarui daftar pengikut/mengikuti.`,
+        variant: "destructive",
+        duration: 7000,
+      });
+      setNotifications(prevNots => prevNots.map(n => {
+        if (n.id === notificationId) {
+          return { ...n, messageOverride: `Diterima, tapi gagal memperbarui daftar pengikut/mengikuti.` };
+        }
+        return n;
+      }));
     }
   };
+  
 
   const handleDeclineFollowRequest = (requesterId: string, notificationId: string) => {
     if (!currentUserId) {
@@ -261,7 +262,7 @@ export function AppNavbar() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <Handshake className="h-7 w-7 text-primary" />
+             <Image src="/hand.png" alt="Elegance logo" width={28} height={28} /> {/* Changed from Handshake icon */}
             <span className="font-headline text-2xl font-semibold text-foreground">Elegance</span>
           </Link>
         </div>
@@ -274,7 +275,7 @@ export function AppNavbar() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-center">
           <Link href="/" className="flex items-center gap-2">
-            <Handshake className="h-7 w-7 text-primary" />
+             <Image src="/hand.png" alt="Elegance logo" width={28} height={28} /> {/* Changed from Handshake icon */}
             <span className="font-headline text-2xl font-semibold text-foreground">Elegance</span>
           </Link>
         </div>
@@ -286,7 +287,7 @@ export function AppNavbar() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between gap-x-4">
         <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-          <Handshake className="h-7 w-7 text-primary" />
+           <Image src="/hand.png" alt="Elegance logo" width={28} height={28} /> {/* Changed from Handshake icon */}
           <span className="font-headline text-2xl font-semibold text-foreground">Elegance</span>
         </Link>
 

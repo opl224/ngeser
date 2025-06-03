@@ -3,6 +3,7 @@
 
 import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image'; // Added import for Image
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,7 +12,7 @@ import useLocalStorageState from '@/hooks/useLocalStorageState';
 import type { User } from '@/lib/types';
 import { initialUsers, getCurrentUserId } from '@/lib/data'; 
 import { useToast } from "@/hooks/use-toast";
-import { Handshake, LogIn } from 'lucide-react';
+import { LogIn } from 'lucide-react'; // Handshake removed
 
 export default function LoginPage() {
   const router = useRouter();
@@ -94,7 +95,7 @@ export default function LoginPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-background to-muted/30 p-4">
       <div className="flex items-center gap-2 mb-8">
-          <Handshake className="h-10 w-10 text-primary" />
+          <Image src="/hand.png" alt="Elegance logo" width={40} height={40} /> {/* Changed from Handshake icon */}
           <span className="font-headline text-4xl sm:text-5xl font-semibold text-foreground">Elegance</span>
       </div>
       <Card className="w-full max-w-md shadow-xl">
