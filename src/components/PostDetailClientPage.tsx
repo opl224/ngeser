@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Heart, MessageCircle, Share2, MoreHorizontal, Send, PlayCircle, CornerUpLeft, Edit, Trash2, Link2, Eye, Bookmark, GalleryVerticalEnd } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, Send, PlayCircle, CornerUpLeft, Edit, Trash2, Link2, Eye, Bookmark, GalleryVerticalEnd, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
 import React from 'react';
@@ -45,13 +45,12 @@ import { cn, formatTimestamp } from '@/lib/utils';
 import { Badge } from './ui/badge';
 
 
-// Helper function for creating notifications
 function createAndAddNotification(
   setNotifications: Dispatch<SetStateAction<Notification[]>>,
   newNotificationData: Omit<Notification, 'id' | 'timestamp' | 'isRead'>
 ) {
   if (newNotificationData.actorUserId === newNotificationData.recipientUserId) {
-    return; // Don't notify self
+    return; 
   }
   const notification: Notification = {
     ...newNotificationData,
@@ -62,7 +61,6 @@ function createAndAddNotification(
   setNotifications(prev => [notification, ...prev]);
 }
 
-// Helper to find any comment (root or nested) by its ID
 function findComment(comments: CommentType[], targetId: string): CommentType | null {
   for (const comment of comments) {
     if (comment.id === targetId) return comment;
@@ -74,31 +72,25 @@ function findComment(comments: CommentType[], targetId: string): CommentType | n
   return null;
 }
 
-// Helper to find the root parent ID of a comment thread
 function getRootParentId(allRootComments: CommentType[], commentIdToFindRootFor: string): string {
   let safety = 0;
-  const maxDepth = 100; // Safety break for excessively deep (or circular) structures
+  const maxDepth = 100; 
 
   let currentComment = findComment(allRootComments, commentIdToFindRootFor);
 
   if (!currentComment) {
-    // Fallback: if the comment itself is not found, treat it as if it's a root for itself.
-    // This shouldn't happen with valid data.
     return commentIdToFindRootFor;
   }
 
-  // If the comment being replied to is already a root comment, its ID is the root parent ID.
   if (currentComment.parentId === null) {
     return currentComment.id;
   }
-
-  // Otherwise, traverse up to find the ultimate root parent.
+  
   let rootCandidateId = currentComment.parentId; 
   
   while(safety < maxDepth) {
     const parentOfCandidate = findComment(allRootComments, rootCandidateId);
     if (!parentOfCandidate || parentOfCandidate.parentId === null) {
-      // Found the root comment, or parentOfCandidate is itself a root.
       break;
     }
     rootCandidateId = parentOfCandidate.parentId;
@@ -107,7 +99,6 @@ function getRootParentId(allRootComments: CommentType[], commentIdToFindRootFor:
   return rootCandidateId;
 }
 
-// Helper to add a reply to the correct root comment's replies array
 const addReplyToRootComment = (rootComments: CommentType[], rootCommentId: string, newReply: CommentType): CommentType[] => {
   return rootComments.map(comment => {
     if (comment.id === rootCommentId) {
@@ -122,7 +113,7 @@ interface CommentItemProps {
   comment: CommentType;
   allUsers: User[];
   currentUserId: string | null;
-  onReply: (commentId: string, text: string) => void; // commentId is the ID of the comment being replied to
+  onReply: (commentId: string, text: string) => void; 
   level?: number;
 }
 
@@ -133,7 +124,7 @@ function CommentItem({ comment, allUsers, currentUserId, onReply, level = 0 }: C
 
   const handleReplySubmit = () => {
     if (replyText.trim() && currentUserId) {
-      onReply(comment.id, replyText.trim()); // Pass ID of the comment being replied to
+      onReply(comment.id, replyText.trim()); 
       setReplyText('');
       setShowReplyForm(false);
     }
@@ -175,7 +166,6 @@ function CommentItem({ comment, allUsers, currentUserId, onReply, level = 0 }: C
           <Button size="sm" onClick={handleReplySubmit} disabled={!replyText.trim()}><Send className="h-4 w-4"/></Button>
         </div>
       )}
-      {/* Render replies if they exist. With new logic, only level 0 comments will have replies. */}
       {comment.replies && comment.replies.length > 0 && level === 0 && (
         <div className="mt-2">
           {comment.replies.map(reply => (
@@ -211,6 +201,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
   const [showVideoControls, setShowVideoControls] = useState(false);
 
   const [viewCountIncremented, setViewCountIncremented] = useState(false);
+  const [canViewContent, setCanViewContent] = useState(false);
 
   useEffect(() => {
     setViewCountIncremented(false); 
@@ -222,27 +213,45 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
 
     if (postId) {
       const foundPostGlobal = allPosts.find(p => p.id === postId);
-
-      if (foundPostGlobal) {
-        setPost(foundPostGlobal);
-        if (foundPostGlobal.caption !== editedCaption && !isEditingCaption) {
-           setEditedCaption(foundPostGlobal.caption);
-        }
-        setAuthor(users.find(u => u.id === foundPostGlobal.userId) || null);
-        setShowVideoControls(false); 
-
-        if (!viewCountIncremented) {
-          const newViewCount = (foundPostGlobal.viewCount || 0) + 1;
-          setAllPosts(prevGlobalPosts => 
-            prevGlobalPosts.map(p =>
-              p.id === postId ? { ...p, viewCount: newViewCount } : p
-            )
-          );
-          setViewCountIncremented(true); 
-        }
-      } else {
+      if (!foundPostGlobal) {
         toast({ title: "Postingan tidak ditemukan", description: "Postingan yang Anda cari tidak ada atau telah dihapus.", variant: "destructive" });
         router.push('/');
+        return;
+      }
+
+      const postAuthor = users.find(u => u.id === foundPostGlobal.userId);
+      if (!postAuthor) {
+         toast({ title: "Penulis tidak ditemukan", description: "Penulis postingan ini tidak dapat ditemukan.", variant: "destructive" });
+        router.push('/');
+        return;
+      }
+      
+      setPost(foundPostGlobal);
+      setAuthor(postAuthor);
+      
+      if (foundPostGlobal.caption !== editedCaption && !isEditingCaption) {
+        setEditedCaption(foundPostGlobal.caption);
+      }
+      setShowVideoControls(false); 
+
+      const CUIDUser = users.find(u => u.id === CUID);
+      const isAllowedToView = postAuthor.accountType === 'public' || 
+                              postAuthor.id === CUID || 
+                              (CUIDUser?.following?.includes(postAuthor.id) ?? false);
+      setCanViewContent(isAllowedToView);
+
+      if (isAllowedToView && !viewCountIncremented) {
+        const newViewCount = (foundPostGlobal.viewCount || 0) + 1;
+        setAllPosts(prevGlobalPosts => 
+          prevGlobalPosts.map(p =>
+            p.id === postId ? { ...p, viewCount: newViewCount } : p
+          )
+        );
+        setViewCountIncremented(true); 
+      }
+      
+      if (!isAllowedToView) {
+         toast({ title: "Akses Dibatasi", description: "Ini adalah postingan dari akun privat.", variant: "default" });
       }
     }
   }, [postId, allPosts, users, viewCountIncremented, editedCaption, isEditingCaption, router, toast, setAllPosts, setCurrentUserIdState]);
@@ -262,7 +271,6 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
             ? p.likes.filter(uid => uid !== currentUserId)
             : [...p.likes, currentUserId];
           
-          const updatedPostResult = { ...p, likes };
           if (!isAlreadyLiked && p.userId !== currentUserId) {
             createAndAddNotification(setNotifications, {
               recipientUserId: p.userId,
@@ -272,7 +280,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
               postMediaUrl: p.mediaUrl,
             });
           }
-          return updatedPostResult;
+          return { ...p, likes };
         }
         return p;
       });
@@ -288,31 +296,29 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
       userId: currentUserId,
       text: text.trim(),
       timestamp: new Date().toISOString(),
-      parentId: null, // Will be set below
-      replies: [], // New comments (even replies) won't have sub-replies initially
+      parentId: null, 
+      replies: [], 
     };
 
     setAllPosts(prevPosts => {
       return prevPosts.map(p => {
         if (p.id === post.id) {
           let updatedComments;
-          if (replyToCommentId) { // This is a reply action
+          if (replyToCommentId) { 
             const structuralParentId = getRootParentId(p.comments, replyToCommentId);
-            newComment.parentId = structuralParentId; // Reply is structurally child of the root comment
+            newComment.parentId = structuralParentId; 
             updatedComments = addReplyToRootComment(p.comments, structuralParentId, newComment);
             
-            // Notify post author (if not self)
             if (p.userId !== currentUserId) {
               createAndAddNotification(setNotifications, {
                 recipientUserId: p.userId,
                 actorUserId: currentUserId,
-                type: 'comment', // Or 'reply' - for post author, any sub-activity is like a comment
+                type: 'comment', 
                 postId: p.id,
                 commentId: newComment.id,
                 postMediaUrl: p.mediaUrl,
               });
             }
-            // Notify author of the comment that was directly replied to
             const directlyRepliedToComment = findComment(p.comments, replyToCommentId);
             if (directlyRepliedToComment && directlyRepliedToComment.userId !== currentUserId && directlyRepliedToComment.userId !== p.userId) {
               createAndAddNotification(setNotifications, {
@@ -320,14 +326,13 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
                 actorUserId: currentUserId,
                 type: 'reply',
                 postId: p.id,
-                commentId: replyToCommentId, // ID of the comment that received the direct reply
+                commentId: replyToCommentId, 
                 postMediaUrl: p.mediaUrl,
               });
             }
-          } else { // This is a new top-level comment
+          } else { 
             newComment.parentId = null;
             updatedComments = [...p.comments, newComment];
-            // Notify post author (if not self)
              if (p.userId !== currentUserId) {
                 createAndAddNotification(setNotifications, {
                     recipientUserId: p.userId,
@@ -345,7 +350,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
       });
     });
 
-    if (!replyToCommentId) setNewCommentText(''); // Clear main input only if it was a top-level comment
+    if (!replyToCommentId) setNewCommentText(''); 
     toast({ title: "Komentar ditambahkan!", description: "Komentar Anda telah diposting." });
   };
 
@@ -365,8 +370,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
 
   const confirmDeletePostAction = () => {
     if (!post) return;
-    const remainingPosts = allPosts.filter(p => p.id !== post.id);
-    setAllPosts(remainingPosts);
+    setAllPosts(prevPosts => prevPosts.filter(p => p.id !== post.id));
     toast({ title: "Postingan Dihapus", description: "Postingan telah berhasil dihapus.", variant: "destructive" });
     setShowDeleteConfirm(false);
     router.push('/');
@@ -420,7 +424,7 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
   };
 
   const handleMediaClick = () => {
-    if (!post) return;
+    if (!post || !canViewContent) return;
     if (post.type === 'story' && post.mediaMimeType?.startsWith('video/')) {
         setShowVideoControls(true);
     } else if (post.type === 'video' || post.type === 'reel') {
@@ -439,10 +443,26 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
     );
   }
 
+  if (!canViewContent) {
+    return (
+      <div className="w-full max-w-2xl mx-auto py-8 text-center">
+        <Card className="shadow-lg rounded-xl">
+            <CardContent className="py-12 text-center">
+                <Lock className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-xl font-headline text-foreground">Postingan Ini Privat</h3>
+                <p className="text-muted-foreground mt-1">Anda tidak memiliki izin untuk melihat postingan ini.</p>
+                <Button onClick={() => router.push(`/profile/${author.id}`)} variant="link" className="mt-4">
+                    Lihat Profil {author.username}
+                </Button>
+            </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   const isOwner = currentUserId === post.userId;
   const isLiked = currentUserId ? post.likes.includes(currentUserId) : false;
   const isSavedByCurrentUser = (currentUser?.savedPosts || []).includes(post.id);
-  // Filter for top-level comments only for the main list
   const sortedRootComments = [...post.comments.filter(c => c.parentId === null)].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   
   const isVideoContent = post.type === 'video' || post.type === 'reel' || (post.type === 'story' && post.mediaMimeType?.startsWith('video/'));
@@ -687,6 +707,3 @@ export function PostDetailClientPage({ postId }: PostDetailClientPageProps) {
     </>
   );
 }
-    
-
-    

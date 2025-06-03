@@ -21,7 +21,6 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // If user is already logged in, redirect to home
     if (getCurrentUserId()) {
       router.push('/');
     }
@@ -39,12 +38,10 @@ export default function LoginPage() {
     }
     setIsLoading(true);
 
-    // Ensure users is an array before calling find
     const currentUsers = Array.isArray(users) ? users : [];
     let targetUser = currentUsers.find(u => u.username.toLowerCase() === username.trim().toLowerCase());
 
     if (targetUser) {
-      // User found
       if (typeof window !== 'undefined') {
         localStorage.setItem('currentUserId', targetUser.id);
       }
@@ -53,7 +50,6 @@ export default function LoginPage() {
         description: "Anda telah berhasil masuk.",
       });
     } else {
-      // Create new user because an existing one was not found
       const newUserId = `user-${Date.now()}`;
       const newUser: User = {
         id: newUserId,
@@ -63,17 +59,17 @@ export default function LoginPage() {
         followers: [],
         following: [],
         savedPosts: [], 
+        accountType: 'public', // Default to public
+        isVerified: false,
+        pendingFollowRequests: [],
+        sentFollowRequests: [],
       };
       
-      // Add the new user to the existing list of users (or start a new list if it was empty/invalid)
-      // This prevents overwriting all existing users if a find operation fails.
       setUsers(prevUsers => {
         const existingUsers = Array.isArray(prevUsers) ? prevUsers : [];
         return [...existingUsers, newUser];
       }); 
       
-      // Explicitly clear posts from localStorage for this new user session.
-      // This aligns with "bersihkan data dummy" for posts.
       if (typeof window !== 'undefined') {
         localStorage.setItem('posts', JSON.stringify([])); 
       }
@@ -87,7 +83,6 @@ export default function LoginPage() {
       });
     }
     
-    // Dispatch a custom event to notify AppNavbar or other components about auth change
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('authChange'));
     }

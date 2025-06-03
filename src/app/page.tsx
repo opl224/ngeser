@@ -24,13 +24,12 @@ interface UserWithStoryCount extends User {
   latestStoryTimestamp: string;
 }
 
-// Helper function for creating notifications
 function createAndAddNotification(
   setNotifications: Dispatch<SetStateAction<Notification[]>>,
   newNotificationData: Omit<Notification, 'id' | 'timestamp' | 'isRead'>
 ) {
   if (newNotificationData.actorUserId === newNotificationData.recipientUserId) {
-    return; // Don't notify self
+    return; 
   }
   const notification: Notification = {
     ...newNotificationData,
@@ -58,12 +57,11 @@ export default function FeedPage() {
   const [currentUserStories, setCurrentUserStories] = useState<Post[]>([]);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
 
-  // For story comment swipe and video control
   const [storyCommentInputVisible, setStoryCommentInputVisible] = useState(false);
   const [storyCommentText, setStoryCommentText] = useState('');
   const touchStartY = useRef<number | null>(null);
   const touchCurrentY = useRef<number | null>(null);
-  const SWIPE_THRESHOLD = 50; // pixels
+  const SWIPE_THRESHOLD = 50; 
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isStoryVideoManuallyPaused, setIsStoryVideoManuallyPaused] = useState(false);
 
@@ -93,7 +91,7 @@ export default function FeedPage() {
       }
       const storedUsers = localStorage.getItem('users');
       if (storedUsers === null) {
-        localStorage.setItem('users', JSON.stringify(initialUsers));
+        localStorage.setItem('users', JSON.stringify(initialUsers.map(u => ({...u, accountType: 'public', pendingFollowRequests: [], sentFollowRequests: []}))));
       }
       const storedNotifications = localStorage.getItem('notifications');
       if (storedNotifications === null) {
@@ -133,16 +131,20 @@ export default function FeedPage() {
     const usersFound = Object.keys(userStoryData)
         .map(userId => {
             const user = users.find(u => u.id === userId);
-            return user ? {
-                ...user,
-                storyCount: userStoryData[userId].count,
-                latestStoryTimestamp: userStoryData[userId].latestTimestamp
-            } : null;
+            if (user && user.accountType === 'public') return user; // Only show stories from public accounts
+            if (user && user.accountType === 'private' && currentSessionUser?.following.includes(user.id)) return user; // Show if following private account
+            return null;
         })
-        .filter(Boolean) as UserWithStoryCount[];
+        .filter(Boolean)
+        .map(user => ({ // Map to UserWithStoryCount, ensuring user is not null
+            ...(user as User), // Cast as User because filter(Boolean) ensures it's not null
+            storyCount: userStoryData[user!.id].count,
+            latestStoryTimestamp: userStoryData[user!.id].latestTimestamp
+        })) as UserWithStoryCount[];
+
 
     return usersFound.sort((a, b) => new Date(b.latestStoryTimestamp).getTime() - new Date(a.latestStoryTimestamp).getTime());
-  }, [posts, users]);
+  }, [posts, users, currentSessionUser]);
 
 
   const navigateStory = useCallback((direction: 'next' | 'prev') => {
@@ -178,7 +180,6 @@ export default function FeedPage() {
   }, [currentUserStories, currentStoryIndex, storyModalContent]);
 
 
-  // Effect to reset states when story modal closes
   useEffect(() => {
     if (!isStoryModalOpen) {
       setCurrentUserStories([]);
@@ -195,13 +196,12 @@ export default function FeedPage() {
   }, [isStoryModalOpen]);
 
 
-  // Effect for Image Story Progress Timer
   useEffect(() => {
     let imageTimer: NodeJS.Timeout | undefined;
     if (isStoryModalOpen && storyModalContent?.post.mediaMimeType?.startsWith('image/')) {
-      setStoryProgress(0); // Reset progress for the new image story
-      const duration = 7000; // 7 seconds for image stories
-      const interval = 50; // Update progress every 50ms
+      setStoryProgress(0); 
+      const duration = 7000; 
+      const interval = 50; 
       const steps = duration / interval;
       let currentStep = 0;
       
@@ -223,22 +223,19 @@ export default function FeedPage() {
     };
   }, [isStoryModalOpen, storyModalContent?.post.id, currentStoryIndex, navigateStory]); 
 
-  // Effect for Video Story Autoplay/Reset on Story Change
   useEffect(() => {
     if (isStoryModalOpen && storyModalContent?.post.mediaMimeType?.startsWith('video/') && videoRef.current) {
       setIsStoryVideoManuallyPaused(false); 
-      videoRef.current.currentTime = 0; // Reset video to start
+      videoRef.current.currentTime = 0; 
       const playPromise = videoRef.current.play();
       if (playPromise !== undefined) {
         playPromise.catch(error => {
           // console.warn("Video story autoplay failed/blocked:", error);
-          // Autoplay was prevented, user might need to tap to play.
         });
       }
     }
   }, [isStoryModalOpen, storyModalContent?.post.id, storyModalContent?.post.mediaUrl]); 
 
-  // Effect to Pause/Resume Video based on storyCommentInputVisible
   useEffect(() => {
     if (isStoryModalOpen && storyModalContent?.post.mediaMimeType?.startsWith('video/') && videoRef.current) {
       if (storyCommentInputVisible) {
@@ -246,7 +243,6 @@ export default function FeedPage() {
           videoRef.current.pause();
         }
       } else {
-        // Only resume if not manually paused and modal is open
         if (videoRef.current.paused && !isStoryVideoManuallyPaused) {
           videoRef.current.play().catch(e => console.error("Error resuming video:", e));
         }
@@ -368,10 +364,6 @@ export default function FeedPage() {
     }
   };
 
-  const currentUser = useMemo(() => {
-    return users.find(u => u.id === currentUserId);
-  }, [users, currentUserId]);
-
   const handleStoryAvatarClick = (userId: string) => {
     const userWithStoryData = usersWithStories.find(u => u.id === userId);
     if (!userWithStoryData) return;
@@ -451,7 +443,22 @@ export default function FeedPage() {
     );
   }
 
-  const sortedPosts = [...posts.filter(p => p.type !== 'story')].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  const feedPosts = useMemo(() => {
+    if (!currentSessionUser || !users.length || !posts.length) return [];
+    return posts
+      .filter(post => {
+        if (post.type === 'story') return false; // Exclude stories from main feed
+        const author = users.find(u => u.id === post.userId);
+        if (!author) return false; // Should not happen with consistent data
+        if (author.accountType === 'public') return true;
+        if (author.accountType === 'private' && (currentSessionUser.following.includes(author.id) || author.id === currentSessionUser.id)) {
+          return true;
+        }
+        return false;
+      })
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }, [posts, users, currentSessionUser]);
+
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -462,10 +469,10 @@ export default function FeedPage() {
       {usersWithStories.length > 0 && <StoryAvatarReel usersWithStories={usersWithStories} onAvatarClick={handleStoryAvatarClick} />}
 
       <h1 className="font-headline text-3xl text-foreground mb-8 text-center mt-6">Beranda Anda</h1>
-      {sortedPosts.length > 0 ? (
+      {feedPosts.length > 0 ? (
         <div className="space-y-8">
-          {sortedPosts.map(post => {
-            const isSavedByCurrentUser = (currentUser?.savedPosts || []).includes(post.id);
+          {feedPosts.map(post => {
+            const isSavedByCurrentUser = (currentSessionUser?.savedPosts || []).includes(post.id);
             return (
               <PostCard
                 key={post.id}
@@ -489,7 +496,7 @@ export default function FeedPage() {
       {showScrollTop && (
         <Button
           onClick={scrollToTop}
-          className="fixed bottom-20 right-6 rounded-full p-3 h-auto shadow-lg sm:bottom-6" // Adjusted bottom for mobile
+          className="fixed bottom-20 right-6 rounded-full p-3 h-auto shadow-lg sm:bottom-6"
           variant="default"
           size="icon"
         >
@@ -501,9 +508,7 @@ export default function FeedPage() {
         <DialogContent 
           className={cn(
             "p-0 bg-black text-white flex flex-col items-center justify-center overflow-hidden",
-            // Mobile specific: take full width, height from top of screen to above bottom navbar (3.5rem = h-14)
             "fixed inset-x-0 top-0 bottom-[3.5rem]", 
-            // SM and above: revert to centered modal style from base shadcn/ui DialogContent, adjust size
             "sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2",
             "sm:max-w-sm sm:w-full sm:h-auto sm:max-h-[90vh] sm:aspect-[9/16] sm:rounded-lg"
           )}
@@ -528,9 +533,9 @@ export default function FeedPage() {
                            <div className="h-full bg-white rounded-full" style={{ width: `${storyProgress}%` }}></div>
                         )}
                         {index === currentStoryIndex && storyModalContent.post.mediaMimeType?.startsWith('video/') && (
-                           <div className="h-full bg-white rounded-full w-full"></div> // Video progress is handled by video player itself or can be custom later
+                           <div className="h-full bg-white rounded-full w-full"></div> 
                         )}
-                        {index < currentStoryIndex && ( // Story already viewed
+                        {index < currentStoryIndex && ( 
                            <div className="h-full bg-white rounded-full w-full opacity-80"></div>
                         )}
                       </div>
@@ -570,7 +575,7 @@ export default function FeedPage() {
                     alt={storyModalContent.post.caption || 'Story image'}
                     layout="fill"
                     objectFit="contain"
-                    className="rounded-md" // Ensure image itself is rounded if dialog is not on mobile
+                    className="rounded-md" 
                     data-ai-hint="story content image"
                   />
                 ) : storyModalContent.post.mediaMimeType?.startsWith('video/') ? (
@@ -579,7 +584,7 @@ export default function FeedPage() {
                     ref={videoRef}
                     src={storyModalContent.post.mediaUrl} 
                     playsInline 
-                    className="w-full h-full object-contain" // Ensure video itself is rounded if dialog is not on mobile
+                    className="w-full h-full object-contain" 
                     data-ai-hint="story content video"
                     onEnded={() => navigateStory('next')}
                     onClick={handleVideoClick} 
@@ -597,7 +602,7 @@ export default function FeedPage() {
             </div>
           )}
           {isStoryModalOpen && storyModalContent && storyCommentInputVisible && currentSessionUser && ( 
-            <div className="absolute bottom-0 left-0 right-0 p-3 bg-background/80 backdrop-blur-sm z-30 flex items-start gap-2 sm:hidden"> {/* Only show on mobile based on class name */}
+            <div className="absolute bottom-0 left-0 right-0 p-3 bg-background/80 backdrop-blur-sm z-30 flex items-start gap-2 sm:hidden">
               <Avatar className="h-8 w-8 mt-1">
                 <AvatarImage src={currentSessionUser.avatarUrl} alt={currentSessionUser.username} data-ai-hint="user avatar small" />
                 <AvatarFallback>{currentSessionUser.username.substring(0,1).toUpperCase()}</AvatarFallback>

@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Heart, MessageCircle, Share2, MoreHorizontal, Send, PlayCircle, CornerUpLeft, Edit, Trash2, Link2, Eye, Bookmark, GalleryVerticalEnd } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, Send, PlayCircle, CornerUpLeft, Edit, Trash2, Link2, Eye, Bookmark, GalleryVerticalEnd, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -43,13 +43,12 @@ import {
 import { cn, formatTimestamp } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
-// Helper function for creating notifications
 function createAndAddNotification(
   setNotifications: Dispatch<SetStateAction<Notification[]>>,
   newNotificationData: Omit<Notification, 'id' | 'timestamp' | 'isRead'>
 ) {
   if (newNotificationData.actorUserId === newNotificationData.recipientUserId) {
-    return; // Don't notify self
+    return; 
   }
   const notification: Notification = {
     ...newNotificationData,
@@ -60,7 +59,6 @@ function createAndAddNotification(
   setNotifications(prev => [notification, ...prev]);
 }
 
-// Helper to find any comment (root or nested) by its ID
 function findComment(comments: CommentType[], targetId: string): CommentType | null {
   for (const comment of comments) {
     if (comment.id === targetId) return comment;
@@ -72,10 +70,9 @@ function findComment(comments: CommentType[], targetId: string): CommentType | n
   return null;
 }
 
-// Helper to find the root parent ID of a comment thread
 function getRootParentId(allRootComments: CommentType[], commentIdToFindRootFor: string): string {
   let safety = 0;
-  const maxDepth = 100; // Safety break for excessively deep (or circular) structures
+  const maxDepth = 100; 
 
   let currentComment = findComment(allRootComments, commentIdToFindRootFor);
 
@@ -100,7 +97,6 @@ function getRootParentId(allRootComments: CommentType[], commentIdToFindRootFor:
   return rootCandidateId;
 }
 
-// Helper to add a reply to the correct root comment's replies array
 const addReplyToRootComment = (rootComments: CommentType[], rootCommentId: string, newReply: CommentType): CommentType[] => {
   return rootComments.map(comment => {
     if (comment.id === rootCommentId) {
@@ -204,23 +200,38 @@ export default function LatestPostPage() {
   const [showVideoControls, setShowVideoControls] = useState(false);
 
   const [processedPostIdForViewCount, setProcessedPostIdForViewCount] = useState<string | null>(null);
+  const [canViewContent, setCanViewContent] = useState(false);
 
   useEffect(() => {
     const CUID = getCurrentUserId();
     setCurrentUserIdState(CUID);
     setIsLoading(true);
 
-    const feedPosts = allPosts.filter(p => p.type !== 'story');
+    const CUIDUser = users.find(u => u.id === CUID);
+
+    const feedPosts = allPosts.filter(p => {
+        if (p.type === 'story') return false;
+        const postAuthor = users.find(u => u.id === p.userId);
+        if (!postAuthor) return false;
+        if (postAuthor.accountType === 'public') return true;
+        if (postAuthor.id === CUID) return true;
+        if (CUIDUser?.following?.includes(postAuthor.id)) return true;
+        return false;
+    });
+    
     if (feedPosts.length > 0) {
       const sortedPosts = [...feedPosts].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       const latestPostFromData = sortedPosts[0];
 
       if (latestPostFromData) {
+        const postAuthor = users.find(u => u.id === latestPostFromData.userId);
         setPost(latestPostFromData);
+        setAuthor(postAuthor || null);
+        setCanViewContent(true); // Already filtered
+
          if (latestPostFromData.caption !== editedCaption && !isEditingCaption) {
            setEditedCaption(latestPostFromData.caption);
         }
-        setAuthor(users.find(u => u.id === latestPostFromData.userId) || null);
         setShowVideoControls(false);
 
         if (latestPostFromData.id !== processedPostIdForViewCount) {
@@ -235,11 +246,13 @@ export default function LatestPostPage() {
       } else {
         setPost(null);
         setAuthor(null);
+        setCanViewContent(false);
         setProcessedPostIdForViewCount(null); 
       }
     } else {
       setPost(null);
       setAuthor(null);
+      setCanViewContent(false);
       setProcessedPostIdForViewCount(null); 
     }
     setIsLoading(false);
@@ -259,8 +272,7 @@ export default function LatestPostPage() {
           const likes = isAlreadyLiked
             ? p.likes.filter(uid => uid !== currentUserId)
             : [...p.likes, currentUserId];
-          const updatedPostResult = { ...p, likes };
-
+          
           if (!isAlreadyLiked && p.userId !== currentUserId) {
             createAndAddNotification(setNotifications, {
               recipientUserId: p.userId,
@@ -270,7 +282,7 @@ export default function LatestPostPage() {
               postMediaUrl: p.mediaUrl,
             });
           }
-          return updatedPostResult;
+          return { ...p, likes };
         }
         return p;
       });
@@ -359,8 +371,7 @@ export default function LatestPostPage() {
 
   const confirmDeletePostAction = () => {
     if (!post) return;
-    const remainingPosts = allPosts.filter(p => p.id !== post.id);
-    setAllPosts(remainingPosts);
+    setAllPosts(prevPosts => prevPosts.filter(p => p.id !== post.id));
     toast({ title: "Postingan Dihapus", description: "Postingan telah berhasil dihapus.", variant: "destructive" });
     setShowDeleteConfirm(false);
     router.push('/');
@@ -414,7 +425,7 @@ export default function LatestPostPage() {
   };
 
   const handleMediaClick = () => {
-    if (!post) return;
+    if (!post || !canViewContent) return;
     if (post.type === 'story' && post.mediaMimeType?.startsWith('video/')) {
         setShowVideoControls(true);
     } else if (post.type === 'video' || post.type === 'reel') {
@@ -425,12 +436,29 @@ export default function LatestPostPage() {
   };
 
 
-  if (isLoading || !post || !author) {
+  if (isLoading) {
      return (
       <div className="w-full max-w-2xl mx-auto py-8 text-center">
         <p className="font-headline text-xl">Memuat postingan terbaru...</p>
       </div>
     );
+  }
+  
+  if (!post || !author || !canViewContent) {
+    return (
+     <div className="w-full max-w-2xl mx-auto py-8 text-center">
+        <Card className="shadow-lg rounded-xl">
+            <CardContent className="py-12 text-center">
+                <Lock className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-xl font-headline text-foreground">Tidak Ada Postingan Terbaru</h3>
+                <p className="text-muted-foreground mt-1">Tidak ada postingan terbaru yang dapat ditampilkan saat ini atau Anda tidak memiliki izin untuk melihatnya.</p>
+                 <Button onClick={() => router.push('/')} variant="link" className="mt-4">
+                    Kembali ke Beranda
+                </Button>
+            </CardContent>
+        </Card>
+      </div>
+   );
   }
 
 
@@ -682,7 +710,3 @@ export default function LatestPostPage() {
     </>
   );
 }
-
-    
-
-    

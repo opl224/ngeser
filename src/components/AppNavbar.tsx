@@ -2,12 +2,12 @@
 "use client";
 
 import Link from 'next/link';
-import { Home, PlusSquare, User, Film, LogIn, Search as SearchIconLucide, Bell, Trash2, X as XIcon, MessageSquare } from 'lucide-react';
+import { Home, PlusSquare, User, Film, LogIn, Search as SearchIconLucide, Bell, Trash2, X as XIcon, MessageSquare, UserCheck, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn, formatTimestamp } from '@/lib/utils';
-import { useEffect, useState, FormEvent, useMemo } from 'react';
+import { useEffect, useState, FormEvent, useMemo, Dispatch, SetStateAction } from 'react';
 import { getCurrentUserId, initialNotifications, initialUsers } from '@/lib/data';
 import {
   DropdownMenu,
@@ -23,6 +23,24 @@ import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from "@/hooks/use-toast";
 
+// Helper function for creating notifications (copied here, consider moving to a shared util)
+function createAndAddNotification(
+  setNotificationsGlobal: Dispatch<SetStateAction<Notification[]>>, // Use a more specific name for the global setter
+  newNotificationData: Omit<Notification, 'id' | 'timestamp' | 'isRead'>
+) {
+  if (newNotificationData.actorUserId === newNotificationData.recipientUserId) {
+    return; // Don't notify self
+  }
+  const notification: Notification = {
+    ...newNotificationData,
+    id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    timestamp: new Date().toISOString(),
+    isRead: false,
+  };
+  setNotificationsGlobal(prev => [notification, ...prev]);
+}
+
+
 export function AppNavbar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -32,7 +50,7 @@ export function AppNavbar() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const [notifications, setNotifications] = useLocalStorageState<Notification[]>('notifications', initialNotifications);
-  const [allUsers] = useLocalStorageState<UserType[]>('users', initialUsers);
+  const [allUsers, setAllUsers] = useLocalStorageState<UserType[]>('users', initialUsers);
 
   useEffect(() => {
     setIsClient(true);
@@ -90,9 +108,48 @@ export function AppNavbar() {
     setNotifications(prevNotifications =>
       prevNotifications.filter(n => n.id !== notificationId)
     );
-    // Optional: toast for single delete, can be too noisy.
-    // toast({ title: "Notifikasi dihapus." });
   };
+
+  const handleAcceptFollowRequest = (requesterId: string, notificationId: string) => {
+    if (!currentUserId) return;
+    setAllUsers(prevUsers => prevUsers.map(user => {
+      if (user.id === currentUserId) { // Current user (recipient of request)
+        return {
+          ...user,
+          followers: [...(user.followers || []), requesterId],
+          pendingFollowRequests: (user.pendingFollowRequests || []).filter(id => id !== requesterId),
+        };
+      }
+      if (user.id === requesterId) { // Requester
+        return {
+          ...user,
+          following: [...(user.following || []), currentUserId],
+          sentFollowRequests: (user.sentFollowRequests || []).filter(id => id !== currentUserId),
+        };
+      }
+      return user;
+    }));
+    // Mark original follow_request notification as read/handled (or delete it) and send 'follow_accepted'
+    setNotifications(prev => prev.filter(n => n.id !== notificationId)); // Remove the request notif
+    createAndAddNotification(setNotifications, { recipientUserId: requesterId, actorUserId: currentUserId, type: 'follow_accepted' });
+    toast({ title: "Permintaan Diterima", description: `Anda sekarang berteman dengan pengguna tersebut.` });
+  };
+
+  const handleDeclineFollowRequest = (requesterId: string, notificationId: string) => {
+    if (!currentUserId) return;
+     setAllUsers(prevUsers => prevUsers.map(user => {
+      if (user.id === currentUserId) { // Current user
+        return { ...user, pendingFollowRequests: (user.pendingFollowRequests || []).filter(id => id !== requesterId) };
+      }
+      if (user.id === requesterId) { // Requester
+        return { ...user, sentFollowRequests: (user.sentFollowRequests || []).filter(id => id !== currentUserId) };
+      }
+      return user;
+    }));
+    setNotifications(prev => prev.filter(n => n.id !== notificationId)); // Remove the request notif
+    toast({ title: "Permintaan Ditolak" });
+  };
+
 
   const baseNavItems = [
     { href: '/', label: 'Beranda', icon: Home },
@@ -231,7 +288,7 @@ export function AppNavbar() {
                             size="icon"
                             className="h-7 w-7 text-muted-foreground hover:text-destructive"
                             onClick={(e) => {
-                              e.stopPropagation(); // Prevent dropdown from closing
+                              e.stopPropagation(); 
                               handleClearAllNotifications();
                             }}
                             aria-label="Hapus semua notifikasi"
@@ -270,26 +327,57 @@ export function AppNavbar() {
                             message = `${actor?.username || 'Seseorang'} mulai mengikuti Anda.`;
                             linkHref = actor ? `/profile/${actor.id}` : '/';
                             break;
+                          case 'follow_request':
+                            message = `${actor?.username || 'Seseorang'} ingin mengikuti Anda.`;
+                            linkHref = actor ? `/profile/${actor.id}` : '/';
+                            break;
+                          case 'follow_accepted':
+                            message = `${actor?.username || 'Seseorang'} menerima permintaan mengikuti Anda.`;
+                            linkHref = actor ? `/profile/${actor.id}` : '/';
+                            break;
                           default:
                             message = "Notifikasi baru.";
                         }
 
                         return (
-                          <DropdownMenuItem key={notification.id} asChild className={cn("cursor-pointer group/notif-item", !notification.isRead && isClient ? 'bg-primary/10 hover:!bg-primary/20' : 'hover:!bg-accent/80')}>
-                            <Link href={linkHref} className="flex items-start gap-3 p-2 w-full relative">
-                              <Avatar className="h-8 w-8 mt-0.5 flex-shrink-0">
-                                <AvatarImage src={avatarSrc} alt={actor?.username || 'Notifikasi'} data-ai-hint="notification actor person"/>
-                                <AvatarFallback>{avatarFallback}</AvatarFallback>
-                              </Avatar>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs text-foreground/90 leading-tight whitespace-normal break-words">
-                                  {message}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-0.5">
-                                  {isClient && formatTimestamp(notification.timestamp)}
-                                </p>
-                              </div>
-                              <Button
+                          <div key={notification.id} className={cn("group/notif-item relative", !notification.isRead && isClient ? 'bg-primary/10' : '')}>
+                            <DropdownMenuItem asChild className={cn("cursor-pointer w-full pr-8", !notification.isRead && isClient ? 'hover:!bg-primary/20' : 'hover:!bg-accent/80')}>
+                              <Link href={linkHref} className="flex items-start gap-3 p-2 w-full">
+                                <Avatar className="h-8 w-8 mt-0.5 flex-shrink-0">
+                                  <AvatarImage src={avatarSrc} alt={actor?.username || 'Notifikasi'} data-ai-hint="notification actor person"/>
+                                  <AvatarFallback>{avatarFallback}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs text-foreground/90 leading-tight whitespace-normal break-words">
+                                    {message}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    {isClient && formatTimestamp(notification.timestamp)}
+                                  </p>
+                                  {notification.type === 'follow_request' && actor && (
+                                    <div className="mt-1.5 flex gap-2">
+                                      <Button
+                                        size="xs"
+                                        variant="default"
+                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleAcceptFollowRequest(actor.id, notification.id); }}
+                                        className="h-6 px-2 text-xs"
+                                      >
+                                        <UserCheck className="h-3 w-3 mr-1" /> Terima
+                                      </Button>
+                                      <Button
+                                        size="xs"
+                                        variant="outline"
+                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeclineFollowRequest(actor.id, notification.id); }}
+                                        className="h-6 px-2 text-xs"
+                                      >
+                                        <UserX className="h-3 w-3 mr-1" /> Tolak
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
+                              </Link>
+                            </DropdownMenuItem>
+                            <Button
                                 variant="ghost"
                                 size="icon"
                                 className="h-6 w-6 absolute top-1 right-1 text-muted-foreground hover:text-destructive opacity-0 group-hover/notif-item:opacity-100 focus:opacity-100 transition-opacity"
@@ -301,9 +389,8 @@ export function AppNavbar() {
                                 aria-label="Hapus notifikasi ini"
                               >
                                 <XIcon className="h-4 w-4" />
-                              </Button>
-                            </Link>
-                          </DropdownMenuItem>
+                            </Button>
+                          </div>
                         );
                       })
                     ) : (

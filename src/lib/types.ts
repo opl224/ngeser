@@ -7,10 +7,14 @@ export interface User {
   followers: string[]; // array of user IDs
   following: string[]; // array of user IDs
   savedPosts: string[]; // array of post IDs
+  accountType: 'public' | 'private';
+  isVerified?: boolean;
+  pendingFollowRequests: string[]; // User IDs who requested to follow this user
+  sentFollowRequests: string[]; // User IDs this user has requested to follow
 }
 
 export interface Comment {
-  id: string;
+  id:string;
   postId: string;
   userId: string;
   user?: User;
@@ -26,8 +30,8 @@ export interface Post {
   user?: User;
   type: 'photo' | 'video' | 'reel' | 'story';
   mediaUrl: string;
-  mediaMimeType?: string; // Untuk menyimpan tipe MIME asli dari media yang diunggah
-  caption: string; // Diubah dari description ke caption
+  mediaMimeType?: string; 
+  caption: string; 
   hashtags: string[];
   mentions: string[];
   likes: string[];
@@ -37,7 +41,6 @@ export interface Post {
   viewCount: number;
 }
 
-// Untuk suggested hashtags AI
 export type SuggestHashtagsInput = {
   description: string;
 };
@@ -46,39 +49,36 @@ export type SuggestHashtagsOutput = {
   hashtags: string[];
 };
 
-// Notifikasi
-export type NotificationType = 'like' | 'comment' | 'reply' | 'follow';
+export type NotificationType = 'like' | 'comment' | 'reply' | 'follow' | 'follow_request' | 'follow_accepted';
 
 export interface Notification {
   id: string;
-  recipientUserId: string; // User who receives the notification
-  actorUserId: string;     // User who performed the action (e.g., who liked, who commented)
+  recipientUserId: string; 
+  actorUserId: string;     
   type: NotificationType;
-  postId?: string;          // For like, comment, reply on a post
-  commentId?: string;       // For reply to a comment (the parent comment ID)
-  postMediaUrl?: string;    // Optional: for quick preview in notification UI
+  postId?: string;          
+  commentId?: string;       
+  postMediaUrl?: string;    
   timestamp: string;
   isRead: boolean;
 }
 
-// Direct Messages
 export interface Message {
   id: string;
   conversationId: string;
   senderId: string;
-  sender?: User; // Optional: populated for display
+  sender?: User; 
   text: string;
   timestamp: string;
-  isRead?: boolean; // Optional: can be used to track read status by recipient
+  isRead?: boolean; 
 }
 
 export interface Conversation {
   id: string;
-  participantIds: string[]; // Array of user IDs in the conversation
-  participants?: User[]; // Optional: populated for display
-  messages: Message[]; // Array of messages in the conversation
-  lastMessage?: Message; // The last message sent in the conversation
-  timestamp: string; // Timestamp of the last activity (usually last message)
-  unreadCount?: Record<string, number>; // Optional: unread count per user ID
+  participantIds: string[]; 
+  participants?: User[]; 
+  messages: Message[]; 
+  lastMessage?: Message; 
+  timestamp: string; 
+  unreadCount?: Record<string, number>; 
 }
-

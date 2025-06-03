@@ -39,7 +39,7 @@ function ReelCommentItem({ comment, allUsers, currentUserId, onReply, level = 0 
     }
   };
   
-  const paddingClasses = ['pl-0', 'pl-3', 'pl-6', 'pl-9']; // Adjusted padding for sheet
+  const paddingClasses = ['pl-0', 'pl-3', 'pl-6', 'pl-9']; 
   const currentPadding = paddingClasses[level] ?? `pl-${level * 3}`;
   const replyFormPadding = paddingClasses[level + 1] ?? `pl-${(level + 1) * 3}`;
 
@@ -59,7 +59,7 @@ function ReelCommentItem({ comment, allUsers, currentUserId, onReply, level = 0 
             <span className="text-xs text-muted-foreground ml-2">{formatTimestamp(comment.timestamp)}</span>
           </div>
           <p className="text-xs font-body mt-0.5 text-foreground/90">{comment.text}</p>
-           {currentUserId && level === 0 && ( // Allow replying only to top-level comments in Reels
+           {currentUserId && level === 0 && ( 
             <Button variant="link" size="xs" className="mt-0.5 text-xs text-muted-foreground hover:text-primary p-0 h-auto" onClick={() => setShowReplyForm(!showReplyForm)}>
               <CornerUpLeft className="h-2.5 w-2.5 mr-1"/> Balas
             </Button>
@@ -77,7 +77,7 @@ function ReelCommentItem({ comment, allUsers, currentUserId, onReply, level = 0 
           <Button size="icon" className="h-8 w-8" onClick={handleReplySubmit} disabled={!replyText.trim()}><Send className="h-3.5 w-3.5"/></Button>
         </div>
       )}
-      {comment.replies && comment.replies.length > 0 && level === 0 && ( // Show replies only for top-level comments
+      {comment.replies && comment.replies.length > 0 && level === 0 && ( 
         <div className="mt-1.5">
           {comment.replies.map(reply => (
             <ReelCommentItem key={reply.id} comment={reply} allUsers={allUsers} currentUserId={currentUserId} onReply={onReply} level={level + 1} />
@@ -96,6 +96,7 @@ interface ReelCardProps {
   isCurrentlyActive: boolean;
   isSavedByCurrentUser: boolean;
   isFollowingAuthor: boolean;
+  hasSentRequestToAuthor: boolean;
   onLikeReel: (postId: string) => void;
   onAddCommentToReel: (postId: string, text: string, replyToCommentId?: string) => void;
   onDeleteReel: (postId: string) => void;
@@ -112,6 +113,7 @@ export function ReelCard({
   isCurrentlyActive,
   isSavedByCurrentUser,
   isFollowingAuthor,
+  hasSentRequestToAuthor,
   onLikeReel,
   onAddCommentToReel,
   onDeleteReel,
@@ -124,7 +126,7 @@ export function ReelCard({
   const { toast } = useToast();
 
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay policies
+  const [isMuted, setIsMuted] = useState(true); 
   const [showCommentsSheet, setShowCommentsSheet] = useState(false);
   const [newCommentText, setNewCommentText] = useState('');
   
@@ -138,23 +140,20 @@ export function ReelCard({
   useEffect(() => {
     if (videoRef.current) {
       if (isCurrentlyActive) {
-        setIsPlaying(true); // Request to play
+        setIsPlaying(true); 
         videoRef.current.play().catch(error => {
-          // Autoplay was prevented, maybe due to browser policy (e.g., requires interaction or unmute first)
-          // console.warn("Autoplay prevented for reel:", error);
-          setIsPlaying(false); // Update state if play failed
-          setIsMuted(true); // Ensure it's muted if autoplay fails this way
+          setIsPlaying(false); 
+          setIsMuted(true); 
         });
       } else {
         videoRef.current.pause();
         setIsPlaying(false);
-        videoRef.current.currentTime = 0; // Reset video when not active
+        videoRef.current.currentTime = 0; 
       }
       videoRef.current.muted = isMuted;
     }
   }, [isCurrentlyActive, isMuted]);
   
-  // Separate effect for muting, so it doesn't conflict with play/pause from isCurrentlyActive
   useEffect(() => {
     if (videoRef.current) {
         videoRef.current.muted = isMuted;
@@ -179,15 +178,13 @@ export function ReelCard({
 
   const handleCommentSheetOpenChange = (open: boolean) => {
     setShowCommentsSheet(open);
-    if (!open) setNewCommentText(''); // Clear comment text when sheet closes
+    if (!open) setNewCommentText(''); 
   };
 
   const handlePostComment = () => {
     if (newCommentText.trim()) {
       onAddCommentToReel(post.id, newCommentText.trim());
       setNewCommentText('');
-      // Optionally keep sheet open or close based on UX preference
-      // setShowCommentsSheet(false); 
     }
   };
 
@@ -202,8 +199,6 @@ export function ReelCard({
         });
         toast({ title: "Reel Dibagikan!" });
       } catch (error) {
-        // console.error('Error sharing:', error);
-        // Fallback to copy link if share fails or is cancelled
         navigator.clipboard.writeText(postUrl).then(() => {
            toast({ title: "Tautan Disalin!", description: "Tautan reel disalin ke papan klip."});
         }).catch(() => {
@@ -211,7 +206,6 @@ export function ReelCard({
         });
       }
     } else {
-      // Fallback for browsers that don't support navigator.share
       navigator.clipboard.writeText(postUrl).then(() => {
         toast({ title: "Tautan Disalin!", description: "Tautan reel disalin ke papan klip."});
       }).catch(() => {
@@ -240,6 +234,15 @@ export function ReelCard({
   const sortedRootComments = [...post.comments.filter(c => c.parentId === null)].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   const totalCommentsAndReplies = post.comments.length + post.comments.reduce((acc, curr) => acc + (curr.replies?.length || 0), 0);
 
+  let followButtonText = "Ikuti";
+  let followButtonIcon = UserPlus;
+  if (isFollowingAuthor) {
+    followButtonText = "Mengikuti";
+    followButtonIcon = UserCheck;
+  } else if (hasSentRequestToAuthor) {
+    followButtonText = "Diminta";
+  }
+
 
   return (
     <>
@@ -267,40 +270,41 @@ export function ReelCard({
             {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
         </button>
 
-
-        {/* Overlay Content */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 pb-6 z-10 bg-gradient-to-t from-black/50 to-transparent pointer-events-none">
+        <div 
+          className="absolute bottom-0 left-0 right-0 p-4 pb-6 z-10 bg-gradient-to-t from-black/60 to-transparent pointer-events-auto"
+          onClick={(e) => e.stopPropagation()} // Prevent video toggle when clicking overlay
+        >
           <div className="flex items-center gap-2 mb-1.5">
-            <Link href={`/profile/${author.id}`} className="pointer-events-auto">
+            <Link href={`/profile/${author.id}`} className="pointer-events-auto" onClick={(e) => e.stopPropagation()}>
               <Avatar className="h-9 w-9 border-2 border-white/80">
                 <AvatarImage src={author.avatarUrl} alt={author.username} data-ai-hint="user avatar reel"/>
                 <AvatarFallback>{author.username.substring(0,1).toUpperCase()}</AvatarFallback>
               </Avatar>
             </Link>
-            <Link href={`/profile/${author.id}`} className="pointer-events-auto">
+            <Link href={`/profile/${author.id}`} className="pointer-events-auto" onClick={(e) => e.stopPropagation()}>
               <p className="font-semibold text-sm text-white shadow-sm">{author.username}</p>
             </Link>
             {currentUser.id !== author.id && (
               <button
                 onClick={(e) => {
-                  e.stopPropagation(); // Prevent video toggle
+                  e.stopPropagation(); 
                   onFollowAuthor(author.id);
                 }}
                 className={cn(
                   "ml-2 pointer-events-auto text-xs font-semibold text-white px-2.5 py-1 rounded-md transition-colors",
                   isFollowingAuthor 
                     ? "bg-transparent border border-white/50 hover:bg-white/10" 
-                    : "bg-white/20 hover:bg-white/30"
+                    : (hasSentRequestToAuthor ? "bg-gray-500/50 hover:bg-gray-600/50" : "bg-white/20 hover:bg-white/30")
                 )}
               >
-                {isFollowingAuthor ? 'Mengikuti' : 'Ikuti'}
+                <followButtonIcon.type {...followButtonIcon.props} className="h-3 w-3 mr-1 inline-block" />
+                {followButtonText}
               </button>
             )}
           </div>
-          {post.caption && <p className="text-xs text-white/90 shadow-sm line-clamp-2">{post.caption}</p>}
+          {post.caption && <p className="text-xs text-white/90 shadow-sm line-clamp-2 pointer-events-none">{post.caption}</p>}
         </div>
 
-        {/* Action Buttons */}
         <div className="absolute right-2 bottom-20 md:bottom-6 flex flex-col items-center gap-3 z-10">
           <button
             onClick={(e) => { e.stopPropagation(); onLikeReel(post.id); }}
@@ -322,7 +326,7 @@ export function ReelCard({
             onClick={(e) => { e.stopPropagation(); handleShare(); }}
             className="flex flex-col items-center text-white p-2 rounded-full hover:bg-white/10 active:scale-95 transition-transform disabled:opacity-50"
             aria-label="Bagikan reel"
-            disabled
+            disabled 
           >
             <Share2 className="h-7 w-7"/>
           </button>
@@ -374,7 +378,6 @@ export function ReelCard({
         </div>
       </div>
 
-      {/* Comments Sheet */}
       <Sheet open={showCommentsSheet} onOpenChange={handleCommentSheetOpenChange}>
         <SheetContent side="bottom" className="h-[75dvh] flex flex-col bg-card text-card-foreground p-0">
           <SheetHeader className="p-4 border-b text-center">
@@ -422,7 +425,6 @@ export function ReelCard({
         </SheetContent>
       </Sheet>
 
-      {/* Edit Caption Dialog */}
        <Dialog open={isEditCaptionDialogOpen} onOpenChange={setIsEditCaptionDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -447,7 +449,6 @@ export function ReelCard({
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -467,4 +468,3 @@ export function ReelCard({
     </>
   );
 }
-

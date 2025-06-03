@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from './PostCard';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialUsers, initialPosts, initialNotifications, getCurrentUserId } from '@/lib/data';
-import { Settings, UserPlus, UserCheck, Edit3, LogOut, Trash2, Image as ImageIcon, Save, Bookmark, MessageSquare } from 'lucide-react';
+import { Settings, UserPlus, UserCheck, Edit3, LogOut, Trash2, Image as ImageIcon, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
@@ -42,19 +42,20 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { cn } from '@/lib/utils';
 
 
 interface UserProfileDisplayProps {
   userId: string;
 }
 
-// Helper function for creating notifications
 function createAndAddNotification(
   setNotifications: Dispatch<SetStateAction<Notification[]>>,
   newNotificationData: Omit<Notification, 'id' | 'timestamp' | 'isRead'>
 ) {
   if (newNotificationData.actorUserId === newNotificationData.recipientUserId) {
-    return; // Don't notify self
+    return; 
   }
   const notification: Notification = {
     ...newNotificationData,
@@ -81,6 +82,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const [editedUsername, setEditedUsername] = useState('');
   const [editedAvatarFile, setEditedAvatarFile] = useState<File | null>(null);
   const [editedAvatarPreview, setEditedAvatarPreview] = useState<string | null>(null);
+  const [editedAccountType, setEditedAccountType] = useState<'public' | 'private'>('public');
 
 
   useEffect(() => {
@@ -90,12 +92,27 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     setProfileUser(foundUser || null);
     if (foundUser) {
       setEditedUsername(foundUser.username);
-      setEditedAvatarPreview(foundUser.avatarUrl); 
+      setEditedAvatarPreview(foundUser.avatarUrl);
+      setEditedAccountType(foundUser.accountType || 'public');
     }
   }, [userId, allUsers]);
 
+  const isCurrentUserFollowingProfile = useMemo(() => {
+    if (!currentSessionUserId || !profileUser) return false;
+    const CUIDUser = allUsers.find(u => u.id === currentSessionUserId);
+    return CUIDUser?.following.includes(profileUser.id) || false;
+  }, [currentSessionUserId, profileUser, allUsers]);
+
+  const canViewProfileContent = useMemo(() => {
+    if (!profileUser) return false;
+    if (profileUser.accountType === 'public') return true;
+    if (currentSessionUserId === profileUser.id) return true; // Own profile
+    return isCurrentUserFollowingProfile;
+  }, [profileUser, currentSessionUserId, isCurrentUserFollowingProfile]);
+
+
   const userPosts = useMemo(() => allPosts
-    .filter(p => p.userId === userId && p.type !== 'story') // Exclude stories from main post list
+    .filter(p => p.userId === userId && p.type !== 'story')
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()), [allPosts, userId]);
   
   const userStories = useMemo(() => allPosts
@@ -117,54 +134,59 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const handleFollowToggle = () => {
     if (!currentSessionUserId || !profileUser || currentSessionUserId === profileUser.id) return;
 
-    const isCurrentlyFollowing = allUsers.find(u => u.id === currentSessionUserId)?.following.includes(profileUser.id);
+    const CUIDUser = allUsers.find(u => u.id === currentSessionUserId);
+    if (!CUIDUser) return;
 
-    setAllUsers(prevUsers => {
-      return prevUsers.map(u => {
-        if (u.id === currentSessionUserId) { 
-          const isFollowing = u.following.includes(profileUser.id);
-          return {
-            ...u,
-            following: isFollowing 
-              ? u.following.filter(id => id !== profileUser.id) 
-              : [...u.following, profileUser.id]
-          };
+    const isAlreadyFollowing = CUIDUser.following.includes(profileUser.id);
+    const hasSentRequest = CUIDUser.sentFollowRequests.includes(profileUser.id);
+
+    if (profileUser.accountType === 'public') {
+      // Direct follow/unfollow for public accounts
+      setAllUsers(prevUsers => prevUsers.map(u => {
+        if (u.id === currentSessionUserId) {
+          return { ...u, following: isAlreadyFollowing ? u.following.filter(id => id !== profileUser.id) : [...u.following, profileUser.id] };
         }
-        if (u.id === profileUser.id) { 
-          const isFollowedByCurrentUser = u.followers.includes(currentSessionUserId);
-          return {
-            ...u,
-            followers: isFollowedByCurrentUser 
-              ? u.followers.filter(id => id !== currentSessionUserId)
-              : [...u.followers, currentSessionUserId]
-          };
+        if (u.id === profileUser.id) {
+          return { ...u, followers: isAlreadyFollowing ? u.followers.filter(id => id !== currentSessionUserId) : [...u.followers, currentSessionUserId] };
         }
         return u;
-      });
-    });
-    
-    if (isCurrentlyFollowing) {
-        toast({
-            title: "Berhenti Mengikuti",
-            description: `Anda sekarang tidak lagi mengikuti ${profileUser.username}.`
-        });
-    } else {
-        toast({
-            title: "Mulai Mengikuti",
-            description: `Anda sekarang mengikuti ${profileUser.username}.`
-        });
-        // Create notification for the followed user
-        createAndAddNotification(setNotifications, {
-            recipientUserId: profileUser.id,
-            actorUserId: currentSessionUserId,
-            type: 'follow',
-        });
+      }));
+      if (isAlreadyFollowing) {
+        toast({ title: "Berhenti Mengikuti", description: `Anda tidak lagi mengikuti ${profileUser.username}.` });
+      } else {
+        toast({ title: "Mulai Mengikuti", description: `Anda sekarang mengikuti ${profileUser.username}.` });
+        createAndAddNotification(setNotifications, { recipientUserId: profileUser.id, actorUserId: currentSessionUserId, type: 'follow' });
+      }
+    } else { // Private account logic
+      if (isAlreadyFollowing) { // Unfollow
+        setAllUsers(prevUsers => prevUsers.map(u => {
+          if (u.id === currentSessionUserId) return { ...u, following: u.following.filter(id => id !== profileUser.id) };
+          if (u.id === profileUser.id) return { ...u, followers: u.followers.filter(id => id !== currentSessionUserId) };
+          return u;
+        }));
+        toast({ title: "Berhenti Mengikuti", description: `Anda tidak lagi mengikuti ${profileUser.username}.` });
+      } else if (hasSentRequest) { // Cancel follow request
+        setAllUsers(prevUsers => prevUsers.map(u => {
+          if (u.id === currentSessionUserId) return { ...u, sentFollowRequests: u.sentFollowRequests.filter(id => id !== profileUser.id) };
+          if (u.id === profileUser.id) return { ...u, pendingFollowRequests: u.pendingFollowRequests.filter(id => id !== currentSessionUserId) };
+          return u;
+        }));
+        toast({ title: "Permintaan Dibatalkan", description: `Permintaan mengikuti ${profileUser.username} dibatalkan.` });
+      } else { // Send follow request
+        setAllUsers(prevUsers => prevUsers.map(u => {
+          if (u.id === currentSessionUserId) return { ...u, sentFollowRequests: [...u.sentFollowRequests, profileUser.id] };
+          if (u.id === profileUser.id) return { ...u, pendingFollowRequests: [...u.pendingFollowRequests, currentSessionUserId] };
+          return u;
+        }));
+        toast({ title: "Permintaan Terkirim", description: `Permintaan mengikuti ${profileUser.username} telah dikirim.` });
+        createAndAddNotification(setNotifications, { recipientUserId: profileUser.id, actorUserId: currentSessionUserId, type: 'follow_request' });
+      }
     }
   };
 
+
   const handleLikePost = (postId: string) => {
     if (!currentSessionUserId) return;
-    let likedPost: Post | undefined;
     setAllPosts(prevPosts =>
       prevPosts.map(post => {
         if (post.id === postId) {
@@ -173,7 +195,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             ? post.likes.filter(uid => uid !== currentSessionUserId)
             : [...post.likes, currentSessionUserId];
           
-          likedPost = { ...post, likes };
           if (!isAlreadyLiked && post.userId !== currentSessionUserId) {
              createAndAddNotification(setNotifications, {
                 recipientUserId: post.userId,
@@ -183,7 +204,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                 postMediaUrl: post.mediaUrl,
             });
           }
-          return likedPost;
+          return { ...post, likes };
         }
         return post;
       })
@@ -201,11 +222,9 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       parentId: null,
       replies: [],
     };
-    let commentedPost: Post | undefined;
     setAllPosts(prevPosts =>
       prevPosts.map(post => {
         if (post.id === postId) {
-          commentedPost = { ...post, comments: [...post.comments, newComment] };
            if (post.userId !== currentSessionUserId) {
                 createAndAddNotification(setNotifications, {
                     recipientUserId: post.userId,
@@ -216,7 +235,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                     postMediaUrl: post.mediaUrl,
                 });
             }
-          return commentedPost;
+          return { ...post, comments: [...post.comments, newComment] };
         }
         return post;
       })
@@ -291,13 +310,13 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
   const handleLogoutAndDeleteAllData = () => {
     setAllPosts([]); 
-    setAllUsers(initialUsers.map(u => ({...u, followers:[], following:[], savedPosts:[]}))); 
+    setAllUsers(initialUsers.map(u => ({...u, followers:[], following:[], savedPosts:[], accountType: 'public', pendingFollowRequests: [], sentFollowRequests: [] }))); 
     setNotifications([]);
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('authChange'));
       localStorage.removeItem('currentUserId');
       localStorage.setItem('posts', '[]'); 
-      localStorage.setItem('users', JSON.stringify(initialUsers.map(u => ({...u, followers:[], following:[], savedPosts:[]})))); 
+      localStorage.setItem('users', JSON.stringify(initialUsers.map(u => ({...u, followers:[], following:[], savedPosts:[], accountType: 'public', pendingFollowRequests: [], sentFollowRequests: [] })))); 
       localStorage.setItem('notifications', '[]');
     }
     toast({
@@ -312,6 +331,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     if (profileUser) {
       setEditedUsername(profileUser.username);
       setEditedAvatarPreview(profileUser.avatarUrl);
+      setEditedAccountType(profileUser.accountType || 'public');
       setEditedAvatarFile(null); 
       setIsEditModalOpen(true);
     }
@@ -342,7 +362,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       return;
     }
 
-    // Check if username already exists (excluding the current user's username if it hasn't changed)
     const trimmedNewUsername = editedUsername.trim();
     if (trimmedNewUsername.toLowerCase() !== profileUser.username.toLowerCase()) {
         const usernameExists = allUsers.some(
@@ -358,14 +377,14 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         }
     }
 
-
     setAllUsers(prevUsers => 
       prevUsers.map(user => {
         if (user.id === currentSessionUserId) {
           return {
             ...user,
             username: editedUsername.trim(),
-            avatarUrl: editedAvatarPreview || user.avatarUrl, 
+            avatarUrl: editedAvatarPreview || user.avatarUrl,
+            accountType: editedAccountType,
           };
         }
         return user;
@@ -385,7 +404,18 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   }
 
   const isCurrentUserProfile = currentSessionUserId === profileUser.id;
-  const isFollowing = currentSessionUserId ? allUsers.find(u=> u.id === currentSessionUserId)?.following.includes(profileUser.id) : false;
+  const isRequested = currentSessionUser?.sentFollowRequests?.includes(profileUser.id) || false;
+  
+  let followButtonText = "Ikuti";
+  let followButtonIcon = UserPlus;
+  if (isCurrentUserFollowingProfile) {
+    followButtonText = "Mengikuti";
+    followButtonIcon = UserCheck;
+  } else if (isRequested) {
+    followButtonText = "Diminta";
+    // No specific icon for requested, UserPlus can remain or be null
+  }
+
 
   const allProfilePosts = [...userStories, ...userPosts].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
@@ -418,12 +448,15 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               )}
             </div>
             <div className="flex-1 text-center md:text-left">
-              <CardTitle className="font-headline text-3xl md:text-4xl text-foreground">{profileUser.username}</CardTitle>
+              <div className="flex items-center justify-center md:justify-start gap-2">
+                <CardTitle className="font-headline text-3xl md:text-4xl text-foreground">{profileUser.username}</CardTitle>
+                {profileUser.accountType === 'private' && !isCurrentUserProfile && <Lock className="h-6 w-6 text-muted-foreground" />}
+              </div>
               {profileUser.bio && <p className="text-muted-foreground mt-2 font-body text-sm md:text-base">{profileUser.bio}</p>}
               <div className="flex justify-center md:justify-start gap-4 mt-4 text-sm">
-                <div><span className="font-semibold">{allProfilePosts.length}</span> Postingan</div>
-                <div><span className="font-semibold">{profileUser.followers.length}</span> Pengikut</div>
-                <div><span className="font-semibold">{profileUser.following.length}</span> Mengikuti</div>
+                <div><span className="font-semibold">{canViewProfileContent ? allProfilePosts.length : "-"}</span> Postingan</div>
+                <div><span className="font-semibold">{canViewProfileContent ? (profileUser.followers || []).length : "-"}</span> Pengikut</div>
+                <div><span className="font-semibold">{canViewProfileContent ? (profileUser.following || []).length : "-"}</span> Mengikuti</div>
               </div>
             </div>
             {isCurrentUserProfile ? (
@@ -467,9 +500,9 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               </div>
             ) : currentSessionUserId && ( 
                 <div className="flex w-full justify-center items-center gap-2 mt-4 md:w-auto md:absolute md:top-6 md:right-6 md:mt-0">
-                    <Button onClick={handleFollowToggle} variant={isFollowing ? "secondary" : "default"} size="sm">
-                    {isFollowing ? <UserCheck className="mr-2 h-4 w-4" /> : <UserPlus className="mr-2 h-4 w-4" />}
-                    {isFollowing ? 'Mengikuti' : 'Ikuti'}
+                    <Button onClick={handleFollowToggle} variant={isCurrentUserFollowingProfile ? "secondary" : "default"} size="sm" disabled={profileUser.accountType === 'private' && !isCurrentUserFollowingProfile && isRequested && !canViewProfileContent}>
+                      <followButtonIcon.type {...followButtonIcon.props} className="mr-2 h-4 w-4" />
+                      {followButtonText}
                     </Button>
                     <Button onClick={handleSendMessage} variant="outline" size="sm" className="px-3">
                         <MessageSquare className="h-4 w-4 md:mr-2" />
@@ -504,7 +537,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               <Edit3 className="h-6 w-6 text-primary"/>Edit Profil
             </DialogTitle>
             <DialogDescription>
-              Perbarui nama pengguna dan gambar profil Anda di sini. Klik simpan jika sudah selesai.
+              Perbarui nama pengguna, gambar profil, dan pengaturan privasi Anda.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-6 py-4">
@@ -539,6 +572,23 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                 </div>
               </div>
             )}
+            <div className="space-y-3">
+              <Label htmlFor="account-type-switch" className="font-medium">Privasi Akun</Label>
+              <div className="flex items-center space-x-3">
+                <Switch
+                  id="account-type-switch"
+                  checked={editedAccountType === 'private'}
+                  onCheckedChange={(checked) => setEditedAccountType(checked ? 'private' : 'public')}
+                />
+                <Label htmlFor="account-type-switch" className="text-sm flex items-center gap-1.5">
+                  {editedAccountType === 'private' ? <Lock className="h-4 w-4"/> : <ShieldOff className="h-4 w-4"/>}
+                  {editedAccountType === 'private' ? 'Akun Privat' : 'Akun Publik'}
+                </Label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Jika privat, hanya pengikut yang Anda setujui yang dapat melihat postingan Anda. Permintaan mengikuti akan diperlukan.
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Batal</Button>
@@ -547,55 +597,25 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         </DialogContent>
       </Dialog>
 
-
-      <Tabs defaultValue="posts" className="w-full">
-        <TabsList className={`grid w-full mb-6 bg-muted/50 rounded-lg ${isCurrentUserProfile ? 'grid-cols-4' : 'grid-cols-3'}`}>
-          <TabsTrigger value="posts" className="font-headline">Postingan</TabsTrigger>
-          <TabsTrigger value="followers" className="font-headline">Pengikut</TabsTrigger>
-          <TabsTrigger value="following" className="font-headline">Mengikuti</TabsTrigger>
-          {isCurrentUserProfile && <TabsTrigger value="saved" className="font-headline">Disimpan</TabsTrigger>}
-        </TabsList>
-        <TabsContent value="posts">
-          {allProfilePosts.length > 0 ? (
-            <div className="grid grid-cols-1 gap-6">
-              {allProfilePosts.map(post => {
-                const isSavedByCurrentSessUser = (currentSessionUser?.savedPosts || []).includes(post.id);
-                return(
-                <PostCard 
-                  key={post.id} 
-                  post={post} 
-                  onLikePost={handleLikePost} 
-                  onAddComment={handleAddComment} 
-                  onUpdatePostCaption={handleUpdatePostCaptionOnProfile}
-                  onDeletePost={handleDeletePostOnProfile}
-                  onToggleSavePost={handleToggleSavePost}
-                  isSavedByCurrentUser={isSavedByCurrentSessUser}
-                />
-              );
-            })}
-            </div>
-          ) : (
-            <p className="text-center text-muted-foreground py-8 font-body">Belum ada postingan.</p>
-          )}
-        </TabsContent>
-        <TabsContent value="followers">
-          <UserList userIds={profileUser.followers} allUsers={allUsers} listTitle="Pengikut" />
-        </TabsContent>
-        <TabsContent value="following">
-          <UserList userIds={profileUser.following} allUsers={allUsers} listTitle="Mengikuti" />
-        </TabsContent>
-         {isCurrentUserProfile && (
-          <TabsContent value="saved">
-            {savedPostsForCurrentUser.length > 0 ? (
+      {canViewProfileContent ? (
+        <Tabs defaultValue="posts" className="w-full">
+          <TabsList className={`grid w-full mb-6 bg-muted/50 rounded-lg ${isCurrentUserProfile ? 'grid-cols-4' : 'grid-cols-3'}`}>
+            <TabsTrigger value="posts" className="font-headline">Postingan</TabsTrigger>
+            <TabsTrigger value="followers" className="font-headline">Pengikut</TabsTrigger>
+            <TabsTrigger value="following" className="font-headline">Mengikuti</TabsTrigger>
+            {isCurrentUserProfile && <TabsTrigger value="saved" className="font-headline">Disimpan</TabsTrigger>}
+          </TabsList>
+          <TabsContent value="posts">
+            {allProfilePosts.length > 0 ? (
               <div className="grid grid-cols-1 gap-6">
-                {savedPostsForCurrentUser.map(post => {
-                   const isSavedByCurrentSessUser = (currentSessionUser?.savedPosts || []).includes(post.id);
+                {allProfilePosts.map(post => {
+                  const isSavedByCurrentSessUser = (currentSessionUser?.savedPosts || []).includes(post.id);
                   return(
-                  <PostCard
-                    key={post.id}
-                    post={post}
-                    onLikePost={handleLikePost}
-                    onAddComment={handleAddComment}
+                  <PostCard 
+                    key={post.id} 
+                    post={post} 
+                    onLikePost={handleLikePost} 
+                    onAddComment={handleAddComment} 
                     onUpdatePostCaption={handleUpdatePostCaptionOnProfile}
                     onDeletePost={handleDeletePostOnProfile}
                     onToggleSavePost={handleToggleSavePost}
@@ -605,11 +625,50 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               })}
               </div>
             ) : (
-              <p className="text-center text-muted-foreground py-8 font-body">Belum ada postingan yang disimpan.</p>
+              <p className="text-center text-muted-foreground py-8 font-body">Belum ada postingan.</p>
             )}
           </TabsContent>
-        )}
-      </Tabs>
+          <TabsContent value="followers">
+            <UserList userIds={profileUser.followers || []} allUsers={allUsers} listTitle="Pengikut" />
+          </TabsContent>
+          <TabsContent value="following">
+            <UserList userIds={profileUser.following || []} allUsers={allUsers} listTitle="Mengikuti" />
+          </TabsContent>
+          {isCurrentUserProfile && (
+            <TabsContent value="saved">
+              {savedPostsForCurrentUser.length > 0 ? (
+                <div className="grid grid-cols-1 gap-6">
+                  {savedPostsForCurrentUser.map(post => {
+                    const isSavedByCurrentSessUser = (currentSessionUser?.savedPosts || []).includes(post.id);
+                    return(
+                    <PostCard
+                      key={post.id}
+                      post={post}
+                      onLikePost={handleLikePost}
+                      onAddComment={handleAddComment}
+                      onUpdatePostCaption={handleUpdatePostCaptionOnProfile}
+                      onDeletePost={handleDeletePostOnProfile}
+                      onToggleSavePost={handleToggleSavePost}
+                      isSavedByCurrentUser={isSavedByCurrentSessUser}
+                    />
+                  );
+                })}
+                </div>
+              ) : (
+                <p className="text-center text-muted-foreground py-8 font-body">Belum ada postingan yang disimpan.</p>
+              )}
+            </TabsContent>
+          )}
+        </Tabs>
+      ) : (
+        <Card className="mt-6">
+          <CardContent className="py-12 text-center">
+            <Lock className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-xl font-headline text-foreground">Akun Ini Privat</h3>
+            <p className="text-muted-foreground mt-1">Ikuti pengguna ini untuk melihat postingan dan aktivitas mereka.</p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
@@ -647,4 +706,3 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
-

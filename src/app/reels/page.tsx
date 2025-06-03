@@ -12,13 +12,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-// Helper function for creating notifications (can be moved to a shared util if used elsewhere)
 function createAndAddNotification(
   setNotifications: Dispatch<SetStateAction<Notification[]>>,
   newNotificationData: Omit<Notification, 'id' | 'timestamp' | 'isRead'>
 ) {
   if (newNotificationData.actorUserId === newNotificationData.recipientUserId) {
-    return; // Don't notify self
+    return; 
   }
   const notification: Notification = {
     ...newNotificationData,
@@ -29,7 +28,6 @@ function createAndAddNotification(
   setNotifications(prev => [notification, ...prev]);
 }
 
-// Helper to find any comment (root or nested) by its ID
 function findComment(comments: CommentType[], targetId: string): CommentType | null {
   for (const comment of comments) {
     if (comment.id === targetId) return comment;
@@ -41,7 +39,6 @@ function findComment(comments: CommentType[], targetId: string): CommentType | n
   return null;
 }
 
-// Helper to find the root parent ID of a comment thread
 function getRootParentId(allRootComments: CommentType[], commentIdToFindRootFor: string): string {
   let safety = 0;
   const maxDepth = 100; 
@@ -69,7 +66,6 @@ function getRootParentId(allRootComments: CommentType[], commentIdToFindRootFor:
   return rootCandidateId;
 }
 
-// Helper to add a reply to the correct root comment's replies array
 const addReplyToRootComment = (rootComments: CommentType[], rootCommentId: string, newReply: CommentType): CommentType[] => {
   return rootComments.map(comment => {
     if (comment.id === rootCommentId) {
@@ -104,17 +100,28 @@ export default function ReelsPage() {
       setAuthStatus('authenticated');
     }
   }, [router]);
-
-  const reels = useMemo(() => {
-    return allPosts
-      .filter(post => post.type === 'reel') // Only show posts of type 'reel'
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  }, [allPosts]);
-
+  
   const currentUser = useMemo(() => {
     if (!currentUserId) return null;
     return allUsers.find(u => u.id === currentUserId);
   }, [currentUserId, allUsers]);
+
+  const reels = useMemo(() => {
+    if (!currentUser || !allUsers.length || !allPosts.length) return [];
+    return allPosts
+      .filter(post => {
+        if (post.type !== 'reel') return false;
+        const author = allUsers.find(u => u.id === post.userId);
+        if (!author) return false;
+        if (author.accountType === 'public') return true;
+        if (author.accountType === 'private' && (currentUser.following.includes(author.id) || author.id === currentUser.id)) {
+          return true;
+        }
+        return false;
+      })
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }, [allPosts, allUsers, currentUser]);
+
 
   const handleLikeReel = useCallback((postId: string) => {
     if (!currentUserId) return;
@@ -210,10 +217,9 @@ export default function ReelsPage() {
   const handleDeleteReel = useCallback((postId: string) => {
     setAllPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
     toast({ title: "Reel Dihapus", description: "Reel telah berhasil dihapus.", variant: "destructive"});
-    // Adjust activeReelIndex if necessary, e.g., if the last reel was deleted
     if (activeReelIndex >= reels.length - 1 && reels.length > 1) {
         setActiveReelIndex(reels.length - 2);
-    } else if (reels.length === 1) { // If it was the only reel
+    } else if (reels.length === 1) { 
         setActiveReelIndex(0);
     }
   }, [setAllPosts, toast, activeReelIndex, reels.length]);
@@ -228,7 +234,7 @@ export default function ReelsPage() {
   }, [setAllPosts, toast]);
 
   const handleToggleSaveReel = useCallback((postId: string) => {
-    if (!currentUserId) return;
+    if (!currentUserId || !currentUser) return;
     let toastInfoParcel: { title: string; description: string } | null = null;
 
     setAllUsers(prevUsers => {
@@ -255,53 +261,52 @@ export default function ReelsPage() {
     if (toastInfoParcel) {
       toast(toastInfoParcel);
     }
-  }, [currentUserId, setAllUsers, toast]);
+  }, [currentUserId, currentUser, setAllUsers, toast]);
 
   const handleFollowToggleReelAuthor = useCallback((authorId: string) => {
     if (!currentUserId || !currentUser || authorId === currentUserId) return;
+    const authorUser = allUsers.find(u => u.id === authorId);
+    if (!authorUser) return;
 
     const isCurrentlyFollowing = currentUser.following.includes(authorId);
+    const hasSentRequest = currentUser.sentFollowRequests.includes(authorId);
 
-    setAllUsers(prevUsers => 
-      prevUsers.map(u => {
-        if (u.id === currentUserId) { // Update current user's following list
-          return {
-            ...u,
-            following: isCurrentlyFollowing
-              ? u.following.filter(id => id !== authorId)
-              : [...u.following, authorId]
-          };
+    if (authorUser.accountType === 'public') {
+        setAllUsers(prevUsers => prevUsers.map(u => {
+            if (u.id === currentUserId) return { ...u, following: isCurrentlyFollowing ? u.following.filter(id => id !== authorId) : [...u.following, authorId] };
+            if (u.id === authorId) return { ...u, followers: isCurrentlyFollowing ? u.followers.filter(id => id !== currentUserId) : [...u.followers, currentUserId] };
+            return u;
+        }));
+        if (isCurrentlyFollowing) {
+            toast({ title: "Berhenti Mengikuti", description: `Anda tidak lagi mengikuti ${authorUser.username}.` });
+        } else {
+            toast({ title: "Mulai Mengikuti", description: `Anda sekarang mengikuti ${authorUser.username}.` });
+            createAndAddNotification(setNotifications, { recipientUserId: authorId, actorUserId: currentUserId, type: 'follow' });
         }
-        if (u.id === authorId) { // Update target user's followers list
-          return {
-            ...u,
-            followers: isCurrentlyFollowing
-              ? u.followers.filter(id => id !== currentUserId)
-              : [...u.followers, currentUserId]
-          };
+    } else { // Private account
+        if (isCurrentlyFollowing) { // Unfollow
+            setAllUsers(prevUsers => prevUsers.map(u => {
+                if (u.id === currentUserId) return { ...u, following: u.following.filter(id => id !== authorId) };
+                if (u.id === authorId) return { ...u, followers: u.followers.filter(id => id !== currentUserId) };
+                return u;
+            }));
+            toast({ title: "Berhenti Mengikuti", description: `Anda tidak lagi mengikuti ${authorUser.username}.` });
+        } else if (hasSentRequest) { // Cancel request
+            setAllUsers(prevUsers => prevUsers.map(u => {
+                if (u.id === currentUserId) return { ...u, sentFollowRequests: u.sentFollowRequests.filter(id => id !== authorId) };
+                if (u.id === authorId) return { ...u, pendingFollowRequests: u.pendingFollowRequests.filter(id => id !== currentUserId) };
+                return u;
+            }));
+            toast({ title: "Permintaan Dibatalkan" });
+        } else { // Send request
+            setAllUsers(prevUsers => prevUsers.map(u => {
+                if (u.id === currentUserId) return { ...u, sentFollowRequests: [...u.sentFollowRequests, authorId] };
+                if (u.id === authorId) return { ...u, pendingFollowRequests: [...u.pendingFollowRequests, currentUserId] };
+                return u;
+            }));
+            toast({ title: "Permintaan Terkirim" });
+            createAndAddNotification(setNotifications, { recipientUserId: authorId, actorUserId: currentUserId, type: 'follow_request' });
         }
-        return u;
-      })
-    );
-
-    const targetUser = allUsers.find(u => u.id === authorId);
-    if (targetUser) {
-      if (isCurrentlyFollowing) {
-        toast({
-          title: "Berhenti Mengikuti",
-          description: `Anda sekarang tidak lagi mengikuti ${targetUser.username}.`
-        });
-      } else {
-        toast({
-          title: "Mulai Mengikuti",
-          description: `Anda sekarang mengikuti ${targetUser.username}.`
-        });
-        createAndAddNotification(setNotifications, {
-          recipientUserId: authorId,
-          actorUserId: currentUserId,
-          type: 'follow',
-        });
-      }
     }
   }, [currentUserId, currentUser, allUsers, setAllUsers, setNotifications, toast]);
 
@@ -318,7 +323,7 @@ export default function ReelsPage() {
           }
         });
       },
-      { threshold: 0.7 } // Trigger when 70% of the reel is visible
+      { threshold: 0.7 } 
     );
 
     const currentRefs = Array.from(reelRefs.values());
@@ -334,7 +339,7 @@ export default function ReelsPage() {
   }, [reels, reelRefs]);
 
 
-  if (authStatus === 'loading') {
+  if (authStatus === 'loading' || !currentUser) {
     return (
       <div className="flex flex-col justify-center items-center h-dvh bg-black">
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
@@ -344,8 +349,6 @@ export default function ReelsPage() {
   }
 
   if (authStatus === 'unauthenticated') {
-    // This case should ideally be handled by the redirect in the useEffect,
-    // but as a fallback:
     return (
       <div className="flex flex-col justify-center items-center h-dvh bg-black">
         <p className="text-xl font-headline text-muted-foreground">Silakan masuk untuk melihat Reels.</p>
@@ -380,10 +383,11 @@ export default function ReelsPage() {
         const author = allUsers.find(u => u.id === reel.userId);
         const isSaved = currentUser?.savedPosts?.includes(reel.id) || false;
         const isFollowingAuthor = currentUser?.following?.includes(reel.userId) || false;
+        const hasSentRequestToAuthor = currentUser?.sentFollowRequests?.includes(reel.userId) || false;
         return (
           <div
             key={reel.id}
-            id={reel.id} // For IntersectionObserver
+            id={reel.id} 
             ref={el => el ? reelRefs.set(reel.id, el) : reelRefs.delete(reel.id)}
             className="h-dvh snap-start relative flex items-center justify-center"
           >
@@ -395,6 +399,7 @@ export default function ReelsPage() {
                 isCurrentlyActive={index === activeReelIndex}
                 isSavedByCurrentUser={isSaved}
                 isFollowingAuthor={isFollowingAuthor}
+                hasSentRequestToAuthor={hasSentRequestToAuthor}
                 onLikeReel={handleLikeReel}
                 onAddCommentToReel={handleAddCommentToReel}
                 onDeleteReel={handleDeleteReel}
@@ -410,6 +415,3 @@ export default function ReelsPage() {
     </div>
   );
 }
-
-    
-
