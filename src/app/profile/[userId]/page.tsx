@@ -9,12 +9,12 @@ export async function generateStaticParams() {
 
 interface ProfilePageProps {
   params: { userId: string };
-  searchParams: { [key: string]: string | string[] | undefined };
+  // searchParams: { [key: string]: string | string[] | undefined }; // Removed
 }
 
 // Make the Page component async
-export default async function ProfilePage({ params: { userId }, searchParams }: ProfilePageProps) {
-  // searchParams tidak digunakan secara eksplisit, tetapi mendestrukturisasinya membantu Next.js
+export default async function ProfilePage({ params: { userId } }: ProfilePageProps) {
+  // searchParams was not used, so it's removed from props.
   return (
     <div className="container mx-auto py-8">
       <UserProfileDisplay userId={userId} />
