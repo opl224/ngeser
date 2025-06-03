@@ -71,6 +71,7 @@ export interface Message {
   text: string;
   timestamp: string;
   isRead?: boolean; 
+  editedTimestamp?: string; // Untuk menandai pesan yang diedit
 }
 
 export interface Conversation {

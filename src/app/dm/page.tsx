@@ -9,10 +9,11 @@ import type { User, Conversation, Message as MessageType } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+// Textarea tidak lagi digunakan untuk edit inline di bubble
+// import { Textarea } from '@/components/ui/textarea'; 
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, MessageSquare, Send, ArrowLeft, Users, Info, MoreHorizontal, Edit, Trash2, CornerUpLeft, MoreVertical, X } from 'lucide-react';
+import { Loader2, MessageSquare, Send, ArrowLeft, Users, Info, MoreHorizontal, Edit, Trash2, CornerUpLeft, MoreVertical, X, Save } from 'lucide-react'; // Import Save
 import Link from 'next/link';
 import { formatTimestamp } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
@@ -54,9 +55,9 @@ export default function DirectMessagesPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const newMessageInputRef = useRef<HTMLInputElement>(null);
 
-  // State for message actions
-  const [editingMessage, setEditingMessage] = useState<MessageType | null>(null);
-  const [editedText, setEditedText] = useState('');
+  // State untuk message actions
+  const [editingMessage, setEditingMessage] = useState<MessageType | null>(null); // Jika ada, kita edit pesan ini via global input
+  // const [editedText, setEditedText] = useState(''); // Tidak lagi digunakan untuk inline edit
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState<MessageType | null>(null);
   const [replyingToMessage, setReplyingToMessage] = useState<MessageType | null>(null);
@@ -113,10 +114,12 @@ export default function DirectMessagesPage() {
       .map(c => {
         const otherParticipantId = c.participantIds.find(pid => pid !== currentUserId);
         const otherParticipant = allUsers.find(u => u.id === otherParticipantId);
+        const lastMessage = c.messages[c.messages.length - 1];
         return {
           ...c,
           otherParticipant,
-          lastMessageTimestamp: c.lastMessage?.timestamp || c.timestamp,
+          lastMessageTimestamp: lastMessage?.timestamp || c.timestamp,
+          // lastMessageText: lastMessage?.text || "Belum ada pesan", // Dihapus
         };
       })
       .sort((a, b) => new Date(b.lastMessageTimestamp).getTime() - new Date(a.lastMessageTimestamp).getTime());
@@ -137,16 +140,50 @@ export default function DirectMessagesPage() {
     };
   }, [selectedConversationId, conversations, currentUserId, allUsers]);
 
+
+  const handleConfirmGlobalEdit = () => {
+    if (!editingMessage || !newMessageText.trim()) return;
+    setConversations(prevConvos =>
+      prevConvos.map(convo => {
+        if (convo.id === editingMessage.conversationId) {
+          const updatedMessages = convo.messages.map(msg =>
+            msg.id === editingMessage.id ? { ...msg, text: newMessageText.trim(), editedTimestamp: new Date().toISOString() } : msg
+          );
+          let updatedLastMessage = convo.lastMessage;
+          if (convo.lastMessage?.id === editingMessage.id) {
+            updatedLastMessage = { ...updatedLastMessage, text: newMessageText.trim() };
+          }
+          return { ...convo, messages: updatedMessages, lastMessage: updatedLastMessage };
+        }
+        return convo;
+      })
+    );
+    toast({ title: "Pesan Diperbarui", description: "Pesan Anda telah berhasil diedit." });
+    setEditingMessage(null);
+    setNewMessageText('');
+  };
+
   const handleSendMessage = (e?: FormEvent) => {
     e?.preventDefault();
-    if (!newMessageText.trim() || !selectedConversationId || !currentUserId) return;
+    if (!newMessageText.trim() || !currentUserId) return;
+
+    if (editingMessage) {
+      handleConfirmGlobalEdit();
+      return;
+    }
+
+    if (!selectedConversationId) {
+        toast({ title: "Tidak Ada Percakapan", description: "Pilih percakapan untuk mengirim pesan.", variant: "destructive" });
+        return;
+    }
+
 
     let textToSend = newMessageText.trim();
     if (replyingToMessage) {
         const repliedMsgPreview = replyingToMessage.text.length > 30 
             ? `${replyingToMessage.text.substring(0, 30)}...` 
             : replyingToMessage.text;
-        textToSend = `> Membalas: "${repliedMsgPreview}"\n\n${textToSend}`;
+        textToSend = `> Membalas kepada ${allUsers.find(u => u.id === replyingToMessage.senderId)?.username || 'Seseorang'}: "${repliedMsgPreview}"\n\n${textToSend}`;
     }
 
     const messageId = `msg-${Date.now()}-${Math.random().toString(36).substring(2,9)}`;
@@ -165,7 +202,7 @@ export default function DirectMessagesPage() {
             ...convo,
             messages: [...convo.messages, newMessage],
             lastMessage: newMessage,
-            timestamp: newMessage.timestamp,
+            timestamp: newMessage.timestamp, // Update conversation timestamp for sorting
           };
         }
         return convo;
@@ -181,36 +218,22 @@ export default function DirectMessagesPage() {
     }
   }, [selectedConversation?.messages.length]);
 
-  const handleStartEdit = (message: MessageType) => {
+  // Fungsi untuk memulai edit global
+  const handleStartGlobalEdit = (message: MessageType) => {
     setEditingMessage(message);
-    setEditedText(message.text);
+    setNewMessageText(message.text);
     setReplyingToMessage(null); 
+    if (newMessageInputRef.current) {
+      newMessageInputRef.current.focus();
+    }
   };
 
-  const handleCancelEdit = () => {
+  // Fungsi untuk membatalkan edit global
+  const cancelGlobalEdit = () => {
     setEditingMessage(null);
-    setEditedText('');
+    setNewMessageText('');
   };
 
-  const handleSaveEdit = () => {
-    if (!editingMessage || !editedText.trim()) return;
-    setConversations(prevConvos =>
-      prevConvos.map(convo => {
-        if (convo.id === editingMessage.conversationId) {
-          const updatedMessages = convo.messages.map(msg =>
-            msg.id === editingMessage.id ? { ...msg, text: editedText.trim() } : msg
-          );
-          const updatedLastMessage = convo.lastMessage?.id === editingMessage.id 
-            ? { ...convo.lastMessage, text: editedText.trim() } 
-            : convo.lastMessage;
-          return { ...convo, messages: updatedMessages, lastMessage: updatedLastMessage };
-        }
-        return convo;
-      })
-    );
-    toast({ title: "Pesan Diperbarui", description: "Pesan Anda telah berhasil diedit." });
-    handleCancelEdit();
-  };
 
   const handleStartDelete = (message: MessageType) => {
     setMessageToDelete(message);
@@ -235,11 +258,15 @@ export default function DirectMessagesPage() {
     toast({ title: "Pesan Dihapus", description: "Pesan telah dihapus.", variant: "destructive" });
     setShowDeleteConfirm(false);
     setMessageToDelete(null);
+    if (editingMessage?.id === messageToDelete?.id) { // Jika pesan yg dihapus sedang diedit
+        cancelGlobalEdit();
+    }
   };
 
   const handleReplyMessage = (message: MessageType) => {
     setReplyingToMessage(message);
-    setEditingMessage(null); 
+    setEditingMessage(null); // Cancel edit mode if switching to reply
+    setNewMessageText(''); // Clear input for reply
     if (newMessageInputRef.current) {
       newMessageInputRef.current.focus();
     }
@@ -278,10 +305,10 @@ export default function DirectMessagesPage() {
         isMobileViewAndViewingMessages ? "hidden md:flex" : "flex"
       )}>
          <div className="p-3 border-b border-border flex items-center gap-2 sticky top-0 bg-card/30 z-10">
-          <Button variant="ghost" size="icon" onClick={() => router.back()} aria-label="Kembali">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <span className="font-headline text-md font-semibold text-foreground">Pesan</span>
+            <Button variant="ghost" size="icon" onClick={() => router.back()} aria-label="Kembali">
+                <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <span className="font-headline text-md font-semibold text-foreground">Pesan</span>
         </div>
 
         <ScrollArea className="flex-1">
@@ -305,13 +332,13 @@ export default function DirectMessagesPage() {
                       <p className="font-headline text-sm font-semibold truncate">{convo.otherParticipant?.username || "Pengguna tidak dikenal"}</p>
                       <p className="text-xs text-muted-foreground flex-shrink-0 ml-2">{formatTimestamp(convo.lastMessageTimestamp)}</p>
                     </div>
-                    {/* Last message text removed as per request */}
+                     {/* Pratinjau pesan terakhir dihilangkan dari sini */}
                   </div>
                 </div>
               </div>
             ))
           ) : (
-             <div className="p-6 text-center text-muted-foreground flex flex-col items-center justify-center h-full">
+            <div className="p-6 text-center text-muted-foreground flex flex-col items-center justify-center h-full">
               <Users className="h-12 w-12 mx-auto mb-3" />
               <p className="text-sm">Belum ada percakapan.</p>
               <p className="text-xs mt-1">Mulai percakapan dari profil pengguna.</p>
@@ -355,23 +382,11 @@ export default function DirectMessagesPage() {
                         "p-2.5 rounded-xl text-sm leading-relaxed shadow-sm",
                         isCurrentUserSender ? "bg-primary text-primary-foreground rounded-br-none" : "bg-muted text-foreground rounded-bl-none"
                       )}>
-                      {editingMessage?.id === msg.id ? (
-                        <div className="space-y-2 w-64">
-                           <Textarea
-                            value={editedText}
-                            onChange={(e) => setEditedText(e.target.value)}
-                            className="min-h-[60px] text-sm bg-background/20 text-current placeholder:text-current/70"
-                            autoFocus
-                          />
-                          <div className="flex justify-end gap-2">
-                            <Button size="xs" variant="ghost" onClick={handleCancelEdit}>Batal</Button>
-                            <Button size="xs" onClick={handleSaveEdit} disabled={!editedText.trim() || editedText.trim() === editingMessage.text}>Simpan</Button>
-                          </div>
-                        </div>
-                      ) : (
                         <p className="whitespace-pre-wrap">{msg.text}</p>
-                      )}
-                      <p className={cn("text-xs mt-1", isCurrentUserSender ? "text-primary-foreground/70 text-right" : "text-muted-foreground/80 text-left")}>{formatTimestamp(msg.timestamp)}</p>
+                        <p className={cn("text-xs mt-1", isCurrentUserSender ? "text-primary-foreground/70 text-right" : "text-muted-foreground/80 text-left")}>
+                          {formatTimestamp(msg.timestamp)}
+                          {msg.editedTimestamp && <span className="italic text-xs"> (diedit)</span>}
+                        </p>
                     </div>
                      <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -394,7 +409,7 @@ export default function DirectMessagesPage() {
                           {isCurrentUserSender && (
                             <>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleStartEdit(msg)}>
+                              <DropdownMenuItem onClick={() => handleStartGlobalEdit(msg)}>
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit Pesan
                               </DropdownMenuItem>
@@ -412,7 +427,7 @@ export default function DirectMessagesPage() {
               <div ref={messagesEndRef} />
             </ScrollArea>
             <div className="p-3 border-t border-border bg-card/50 sticky bottom-0 z-10">
-              {replyingToMessage && (
+              {replyingToMessage && !editingMessage && ( // Hanya tampilkan jika tidak sedang mengedit
                 <div className="mb-2 p-2 text-xs text-muted-foreground bg-muted/60 rounded-md flex justify-between items-center">
                   <div className="overflow-hidden">
                     Membalas kepada <strong className="text-foreground">{allUsers.find(u => u.id === replyingToMessage.senderId)?.username || 'Seseorang'}</strong>:
@@ -423,18 +438,29 @@ export default function DirectMessagesPage() {
                   </Button>
                 </div>
               )}
+              {editingMessage && ( // Tampilkan jika sedang mengedit
+                <div className="mb-2 p-2 text-xs text-muted-foreground bg-muted/60 rounded-md flex justify-between items-center">
+                  <div className="overflow-hidden">
+                    Mengedit pesan:
+                    <p className="italic truncate">"{editingMessage.text.length > 70 ? editingMessage.text.substring(0, 70) + '...' : editingMessage.text}"</p>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={cancelGlobalEdit} className="h-6 w-6 p-1 ml-2 flex-shrink-0">
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
               <form onSubmit={handleSendMessage} className="flex items-center gap-2">
                 <Input
                   ref={newMessageInputRef}
                   type="text"
-                  placeholder="Ketik pesan..."
+                  placeholder={editingMessage ? "Edit pesan..." : (replyingToMessage ? `Membalas ${allUsers.find(u => u.id === replyingToMessage.senderId)?.username || 'Seseorang'}...` : "Ketik pesan...")}
                   value={newMessageText}
                   onChange={(e) => setNewMessageText(e.target.value)}
                   className="flex-1 h-10"
                   autoComplete="off"
                 />
                 <Button type="submit" size="icon" className="h-10 w-10" disabled={!newMessageText.trim()}>
-                  <Send className="h-4 w-4" />
+                  {editingMessage ? <Save className="h-4 w-4" /> : <Send className="h-4 w-4" />}
                 </Button>
               </form>
             </div>
@@ -467,4 +493,3 @@ export default function DirectMessagesPage() {
     </div>
   );
 }
-
