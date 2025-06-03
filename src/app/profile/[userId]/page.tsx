@@ -12,7 +12,8 @@ interface ProfilePageProps {
   searchParams: { [key: string]: string | string[] | undefined };
 }
 
-export default function ProfilePage({ params: { userId }, searchParams }: ProfilePageProps) {
+// Make the Page component async
+export default async function ProfilePage({ params: { userId }, searchParams }: ProfilePageProps) {
   // searchParams tidak digunakan secara eksplisit, tetapi mendestrukturisasinya membantu Next.js
   return (
     <div className="container mx-auto py-8">
