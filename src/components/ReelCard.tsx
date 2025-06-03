@@ -298,8 +298,9 @@ export function ReelCard({
             onClick={(e) => { e.stopPropagation(); handleShare(); }}
             className="flex flex-col items-center text-white p-2 rounded-full hover:bg-white/10 active:scale-95 transition-transform"
             aria-label="Bagikan reel"
+            disabled
           >
-            <Share2 className="h-7 w-7" />
+            <Share2 className="h-7 w-7"/>
             {/* <span className="text-xs font-medium mt-0.5">Bagikan</span> */}
           </button>
           
@@ -330,7 +331,7 @@ export function ReelCard({
                   Laporkan
                 </DropdownMenuItem>
               )}
-                 <DropdownMenuItem onClick={handleShare}>
+                 <DropdownMenuItem onClick={handleShare} disabled>
                     <Share2 className="mr-2 h-4 w-4" />
                     <span>Bagikan Reel</span>
                   </DropdownMenuItem>
