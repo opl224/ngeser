@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, MessageSquare, Send, ArrowLeft, Users, Info, MoreHorizontal, Edit, Trash2, CornerUpLeft, MoreVertical } from 'lucide-react';
+import { Loader2, MessageSquare, Send, ArrowLeft, Users, Info, MoreHorizontal, Edit, Trash2, CornerUpLeft, MoreVertical, X } from 'lucide-react';
 import Link from 'next/link';
 import { formatTimestamp } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
@@ -59,6 +59,7 @@ export default function DirectMessagesPage() {
   const [editedText, setEditedText] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState<MessageType | null>(null);
+  const [replyingToMessage, setReplyingToMessage] = useState<MessageType | null>(null);
 
 
   useEffect(() => {
@@ -141,12 +142,20 @@ export default function DirectMessagesPage() {
     e?.preventDefault();
     if (!newMessageText.trim() || !selectedConversationId || !currentUserId) return;
 
+    let textToSend = newMessageText.trim();
+    if (replyingToMessage) {
+        const repliedMsgPreview = replyingToMessage.text.length > 30 
+            ? `${replyingToMessage.text.substring(0, 30)}...` 
+            : replyingToMessage.text;
+        textToSend = `> Membalas: "${repliedMsgPreview}"\n\n${textToSend}`;
+    }
+
     const messageId = `msg-${Date.now()}-${Math.random().toString(36).substring(2,9)}`;
     const newMessage: MessageType = {
       id: messageId,
       conversationId: selectedConversationId,
       senderId: currentUserId,
-      text: newMessageText.trim(),
+      text: textToSend,
       timestamp: new Date().toISOString(),
     };
 
@@ -164,6 +173,7 @@ export default function DirectMessagesPage() {
       })
     );
     setNewMessageText('');
+    setReplyingToMessage(null);
   };
   
   useEffect(() => {
@@ -175,6 +185,7 @@ export default function DirectMessagesPage() {
   const handleStartEdit = (message: MessageType) => {
     setEditingMessage(message);
     setEditedText(message.text);
+    setReplyingToMessage(null); // Cancel reply if editing
   };
 
   const handleCancelEdit = () => {
@@ -229,10 +240,15 @@ export default function DirectMessagesPage() {
   };
 
   const handleReplyMessage = (message: MessageType) => {
+    setReplyingToMessage(message);
+    setEditingMessage(null); // Cancel edit if replying
     if (newMessageInputRef.current) {
-      setNewMessageText(prev => `Membalas "${message.text.substring(0, 20)}${message.text.length > 20 ? '...' : ''}": \n` + prev);
       newMessageInputRef.current.focus();
     }
+  };
+
+  const cancelReply = () => {
+    setReplyingToMessage(null);
   };
 
 
@@ -357,7 +373,7 @@ export default function DirectMessagesPage() {
                           </div>
                         </div>
                       ) : (
-                        <p>{msg.text}</p>
+                        <p className="whitespace-pre-wrap">{msg.text}</p>
                       )}
                       <p className={cn("text-xs mt-1", isCurrentUserSender ? "text-primary-foreground/70 text-right" : "text-muted-foreground/80 text-left")}>{formatTimestamp(msg.timestamp)}</p>
                     </div>
@@ -399,20 +415,33 @@ export default function DirectMessagesPage() {
               })}
               <div ref={messagesEndRef} />
             </ScrollArea>
-            <form onSubmit={handleSendMessage} className="p-3 border-t border-border bg-card/50 flex items-center gap-2 sticky bottom-0 z-10">
-              <Input
-                ref={newMessageInputRef}
-                type="text"
-                placeholder="Ketik pesan..."
-                value={newMessageText}
-                onChange={(e) => setNewMessageText(e.target.value)}
-                className="flex-1 h-10"
-                autoComplete="off"
-              />
-              <Button type="submit" size="icon" className="h-10 w-10" disabled={!newMessageText.trim()}>
-                <Send className="h-4 w-4" />
-              </Button>
-            </form>
+            <div className="p-3 border-t border-border bg-card/50 sticky bottom-0 z-10">
+              {replyingToMessage && (
+                <div className="mb-2 p-2 text-xs text-muted-foreground bg-muted/60 rounded-md flex justify-between items-center">
+                  <div className="overflow-hidden">
+                    Membalas kepada <strong className="text-foreground">{allUsers.find(u => u.id === replyingToMessage.senderId)?.username || 'Seseorang'}</strong>:
+                    <p className="italic truncate">"{replyingToMessage.text}"</p>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={cancelReply} className="h-6 w-6 p-1 ml-2 flex-shrink-0">
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+              <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+                <Input
+                  ref={newMessageInputRef}
+                  type="text"
+                  placeholder="Ketik pesan..."
+                  value={newMessageText}
+                  onChange={(e) => setNewMessageText(e.target.value)}
+                  className="flex-1 h-10"
+                  autoComplete="off"
+                />
+                <Button type="submit" size="icon" className="h-10 w-10" disabled={!newMessageText.trim()}>
+                  <Send className="h-4 w-4" />
+                </Button>
+              </form>
+            </div>
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-8 text-muted-foreground">
@@ -443,4 +472,3 @@ export default function DirectMessagesPage() {
     </div>
   );
 }
-
