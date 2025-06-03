@@ -170,8 +170,7 @@ export default function DirectMessagesPage() {
         "w-full md:w-1/3 md:max-w-sm border-r border-border bg-card/30 flex flex-col",
         isMobileViewAndViewingMessages ? "hidden md:flex" : "flex"
       )}>
-        {/* Header for conversation list */}
-         <div className="p-3 border-b border-border flex items-center gap-2 sticky top-0 bg-card/30 z-10">
+        <div className="p-3 border-b border-border flex items-center gap-2 sticky top-0 bg-card/30 z-10">
           <Button variant="ghost" size="icon" onClick={() => router.back()} aria-label="Kembali">
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -198,7 +197,7 @@ export default function DirectMessagesPage() {
                       <p className="font-headline text-sm font-semibold truncate">{convo.otherParticipant?.username || "Pengguna tidak dikenal"}</p>
                       <p className="text-xs text-muted-foreground flex-shrink-0 ml-2">{formatTimestamp(convo.lastMessageTimestamp)}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground truncate">{convo.lastMessageText}</p>
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">{convo.lastMessageText}</p>
                   </div>
                 </div>
               </div>
@@ -232,12 +231,12 @@ export default function DirectMessagesPage() {
                 {selectedConversation.otherParticipant?.username || "Pengguna tidak dikenal"}
               </Link>
             </CardHeader>
-            <ScrollArea className="flex-1 p-4 space-y-3">
+            <ScrollArea className="flex-1 p-4">
               {selectedConversation.messages.map(msg => {
                 const isCurrentUserSender = msg.senderId === currentUserId;
                 const sender = isCurrentUserSender ? currentUser : selectedConversation.otherParticipant;
                 return (
-                  <div key={msg.id} className={cn("flex items-end gap-2 max-w-[85%] sm:max-w-[75%]", isCurrentUserSender ? "ml-auto flex-row-reverse" : "mr-auto")}>
+                  <div key={msg.id} className={cn("flex items-end gap-2 max-w-[85%] sm:max-w-[75%] mb-3", isCurrentUserSender ? "ml-auto flex-row-reverse" : "mr-auto")}>
                     {!isCurrentUserSender && (
                        <Avatar className="h-7 w-7 self-start flex-shrink-0 hidden sm:flex">
                          <AvatarImage src={sender?.avatarUrl} alt={sender?.username} data-ai-hint="message sender avatar"/>
@@ -245,7 +244,7 @@ export default function DirectMessagesPage() {
                        </Avatar>
                     )}
                     <div className={cn(
-                        "p-2.5 rounded-xl text-sm leading-relaxed",
+                        "p-2.5 rounded-xl text-sm leading-relaxed shadow-sm",
                         isCurrentUserSender ? "bg-primary text-primary-foreground rounded-br-none" : "bg-muted text-foreground rounded-bl-none"
                       )}>
                       <p>{msg.text}</p>
@@ -281,3 +280,4 @@ export default function DirectMessagesPage() {
     </div>
   );
 }
+
