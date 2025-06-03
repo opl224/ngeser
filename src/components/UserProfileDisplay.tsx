@@ -98,11 +98,15 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     }
   }, [userId, allUsers]);
 
+  const currentSessionUser = useMemo(() => {
+    if (!currentSessionUserId) return null;
+    return allUsers.find(u => u.id === currentSessionUserId);
+  }, [allUsers, currentSessionUserId]);
+
   const isCurrentUserFollowingProfile = useMemo(() => {
-    if (!currentSessionUserId || !profileUser) return false;
-    const CUIDUser = allUsers.find(u => u.id === currentSessionUserId);
-    return CUIDUser?.following.includes(profileUser.id) || false;
-  }, [currentSessionUserId, profileUser, allUsers]);
+    if (!currentSessionUserId || !profileUser || !currentSessionUser) return false;
+    return (currentSessionUser.following || []).includes(profileUser.id);
+  }, [currentSessionUserId, profileUser, currentSessionUser]);
 
   const canViewProfileContent = useMemo(() => {
     if (!profileUser) return false;
@@ -121,10 +125,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()), [allPosts, userId]);
 
 
-  const currentSessionUser = useMemo(() => {
-    return allUsers.find(u => u.id === currentSessionUserId);
-  }, [allUsers, currentSessionUserId]);
-
   const savedPostsForCurrentUser = useMemo(() => {
     if (!currentSessionUser) return [];
     return allPosts.filter(post => (currentSessionUser.savedPosts || []).includes(post.id))
@@ -138,16 +138,16 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     const CUIDUser = allUsers.find(u => u.id === currentSessionUserId);
     if (!CUIDUser) return;
 
-    const isAlreadyFollowing = CUIDUser.following.includes(profileUser.id);
-    const hasSentRequest = CUIDUser.sentFollowRequests.includes(profileUser.id);
+    const isAlreadyFollowing = (CUIDUser.following || []).includes(profileUser.id);
+    const hasSentRequest = (CUIDUser.sentFollowRequests || []).includes(profileUser.id);
 
     if (profileUser.accountType === 'public') {
       setAllUsers(prevUsers => prevUsers.map(u => {
         if (u.id === currentSessionUserId) {
-          return { ...u, following: isAlreadyFollowing ? u.following.filter(id => id !== profileUser.id) : [...u.following, profileUser.id] };
+          return { ...u, following: isAlreadyFollowing ? (u.following || []).filter(id => id !== profileUser.id) : [...(u.following || []), profileUser.id] };
         }
         if (u.id === profileUser.id) {
-          return { ...u, followers: isAlreadyFollowing ? u.followers.filter(id => id !== currentSessionUserId) : [...u.followers, currentSessionUserId] };
+          return { ...u, followers: isAlreadyFollowing ? (u.followers || []).filter(id => id !== currentSessionUserId) : [...(u.followers || []), currentSessionUserId] };
         }
         return u;
       }));
@@ -160,22 +160,22 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     } else { // Private account logic
       if (isAlreadyFollowing) { // Unfollow
         setAllUsers(prevUsers => prevUsers.map(u => {
-          if (u.id === currentSessionUserId) return { ...u, following: u.following.filter(id => id !== profileUser.id) };
-          if (u.id === profileUser.id) return { ...u, followers: u.followers.filter(id => id !== currentSessionUserId) };
+          if (u.id === currentSessionUserId) return { ...u, following: (u.following || []).filter(id => id !== profileUser.id) };
+          if (u.id === profileUser.id) return { ...u, followers: (u.followers || []).filter(id => id !== currentSessionUserId) };
           return u;
         }));
         toast({ title: "Berhenti Mengikuti", description: `Anda tidak lagi mengikuti ${profileUser.username}.` });
       } else if (hasSentRequest) { // Cancel follow request
         setAllUsers(prevUsers => prevUsers.map(u => {
-          if (u.id === currentSessionUserId) return { ...u, sentFollowRequests: u.sentFollowRequests.filter(id => id !== profileUser.id) };
-          if (u.id === profileUser.id) return { ...u, pendingFollowRequests: u.pendingFollowRequests.filter(id => id !== currentSessionUserId) };
+          if (u.id === currentSessionUserId) return { ...u, sentFollowRequests: (u.sentFollowRequests || []).filter(id => id !== profileUser.id) };
+          if (u.id === profileUser.id) return { ...u, pendingFollowRequests: (u.pendingFollowRequests || []).filter(id => id !== currentSessionUserId) };
           return u;
         }));
         toast({ title: "Permintaan Dibatalkan", description: `Permintaan mengikuti ${profileUser.username} dibatalkan.` });
       } else { // Send follow request
         setAllUsers(prevUsers => prevUsers.map(u => {
-          if (u.id === currentSessionUserId) return { ...u, sentFollowRequests: [...u.sentFollowRequests, profileUser.id] };
-          if (u.id === profileUser.id) return { ...u, pendingFollowRequests: [...u.pendingFollowRequests, currentSessionUserId] };
+          if (u.id === currentSessionUserId) return { ...u, sentFollowRequests: [...(u.sentFollowRequests || []), profileUser.id] };
+          if (u.id === profileUser.id) return { ...u, pendingFollowRequests: [...(u.pendingFollowRequests || []), currentSessionUserId] };
           return u;
         }));
         toast({ title: "Permintaan Terkirim", description: `Permintaan mengikuti ${profileUser.username} telah dikirim.` });
@@ -404,7 +404,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   }
 
   const isCurrentUserProfile = currentSessionUserId === profileUser.id;
-  const isRequested = currentSessionUser?.sentFollowRequests?.includes(profileUser.id) || false;
+  const isRequested = (currentSessionUser?.sentFollowRequests || []).includes(profileUser.id);
 
   let followButtonText = "Ikuti";
   let FollowButtonIconComponent: React.ElementType = UserPlus;
@@ -414,7 +414,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     FollowButtonIconComponent = UserCheck;
   } else if (isRequested) {
     followButtonText = "Diminta";
-    FollowButtonIconComponent = UserPlus; // Or a different icon for "Requested" if desired
+    FollowButtonIconComponent = UserPlus; 
   }
 
 
