@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from './PostCard';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialUsers, initialPosts, initialNotifications, getCurrentUserId } from '@/lib/data';
-import { Settings, UserPlus, UserCheck, Edit3, LogOut, Trash2, ImageIcon, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, ShieldQuestion } from 'lucide-react';
+import { Settings, UserPlus, UserCheck, Edit3, LogOut, Trash2, ImageIcon, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, ShieldQuestion, Moon, Sun, Laptop } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
@@ -20,6 +20,11 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
@@ -46,6 +51,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from '@/lib/utils';
 import type React from 'react';
+import { useTheme } from 'next-themes';
 
 
 interface UserProfileDisplayProps {
@@ -78,6 +84,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   
   const { toast } = useToast();
   const router = useRouter();
+  const { theme, setTheme, themes } = useTheme();
 
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
   const [isPrivacySettingsModalOpen, setIsPrivacySettingsModalOpen] = useState(false);
@@ -338,13 +345,13 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
   const handleLogoutAndDeleteAllData = () => {
     setAllPosts([]);
-    setAllUsers(initialUsers.map(u => ({...u, followers:[], following:[], savedPosts:[], accountType: 'public', pendingFollowRequests: [], sentFollowRequests: [] })));
+    setAllUsers([]); // Set to empty array instead of initialUsers
     setNotifications([]);
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('authChange'));
       localStorage.removeItem('currentUserId');
       localStorage.setItem('posts', '[]');
-      localStorage.setItem('users', JSON.stringify(initialUsers.map(u => ({...u, followers:[], following:[], savedPosts:[], accountType: 'public', pendingFollowRequests: [], sentFollowRequests: [] }))));
+      localStorage.setItem('users', '[]'); // Store empty array
       localStorage.setItem('notifications', '[]');
     }
     toast({
@@ -493,6 +500,33 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
   const SettingsMenuItemsContent = () => (
     <>
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger>
+          {theme === 'light' && <Sun className="mr-2 h-4 w-4" />}
+          {theme === 'dark' && <Moon className="mr-2 h-4 w-4" />}
+          {theme === 'system' && <Laptop className="mr-2 h-4 w-4" />}
+          Tema
+        </DropdownMenuSubTrigger>
+        <DropdownMenuPortal>
+          <DropdownMenuSubContent>
+            <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
+              <DropdownMenuRadioItem value="light">
+                <Sun className="mr-2 h-4 w-4" />
+                Cerah
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="dark">
+                <Moon className="mr-2 h-4 w-4" />
+                Gelap
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="system">
+                <Laptop className="mr-2 h-4 w-4" />
+                Sistem
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </DropdownMenuSubContent>
+        </DropdownMenuPortal>
+      </DropdownMenuSub>
+      <DropdownMenuSeparator />
       <DropdownMenuItem onClick={handleOpenPrivacySettingsModal} className="cursor-pointer">
         <ShieldQuestion className="mr-2 h-4 w-4" />
         Pengaturan Privasi
@@ -830,4 +864,3 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
-
