@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from './PostCard';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialUsers, initialPosts, initialNotifications, getCurrentUserId } from '@/lib/data';
-import { Settings, UserPlus, UserCheck, Edit3, LogOut, Trash2, Image as ImageIcon, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, ShieldQuestion } from 'lucide-react';
+import { Settings, UserPlus, UserCheck, Edit3, LogOut, Trash2, ImageIcon, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, ShieldQuestion } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
@@ -79,7 +79,9 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const { toast } = useToast();
   const router = useRouter();
 
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
+  const [isPrivacySettingsModalOpen, setIsPrivacySettingsModalOpen] = useState(false);
+
   const [editedUsername, setEditedUsername] = useState('');
   const [editedAvatarFile, setEditedAvatarFile] = useState<File | null>(null);
   const [editedAvatarPreview, setEditedAvatarPreview] = useState<string | null>(null);
@@ -327,13 +329,20 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     router.push('/login');
   };
 
-  const handleOpenEditModal = () => {
+  const handleOpenEditProfileModal = () => {
     if (profileUser) {
       setEditedUsername(profileUser.username);
       setEditedAvatarPreview(profileUser.avatarUrl);
-      setEditedAccountType(profileUser.accountType || 'public');
+      // Account type is handled in its own modal now
       setEditedAvatarFile(null);
-      setIsEditModalOpen(true);
+      setIsEditProfileModalOpen(true);
+    }
+  };
+  
+  const handleOpenPrivacySettingsModal = () => {
+    if (profileUser) {
+        setEditedAccountType(profileUser.accountType || 'public');
+        setIsPrivacySettingsModalOpen(true);
     }
   };
 
@@ -395,7 +404,8 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       title: "Profil Diperbarui",
       description: "Informasi profil Anda telah berhasil diperbarui.",
     });
-    setIsEditModalOpen(false);
+    setIsEditProfileModalOpen(false);
+    setIsPrivacySettingsModalOpen(false);
   };
 
 
@@ -437,7 +447,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={handleOpenEditModal}
+                  onClick={handleOpenEditProfileModal}
                   className="absolute -bottom-2 -right-2 h-9 w-9 rounded-full p-2 bg-background border-2 border-primary/70 shadow-md md:hidden hover:bg-accent"
                   aria-label="Edit Profil"
                 >
@@ -462,7 +472,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleOpenEditModal}
+                  onClick={handleOpenEditProfileModal}
                   className="hidden md:inline-flex"
                 >
                   <Edit3 className="h-4 w-4 md:mr-2" />
@@ -479,7 +489,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={handleOpenEditModal} className="cursor-pointer">
+                    <DropdownMenuItem onClick={handleOpenPrivacySettingsModal} className="cursor-pointer">
                         <ShieldQuestion className="mr-2 h-4 w-4" />
                         Pengaturan Privasi
                     </DropdownMenuItem>
@@ -533,14 +543,15 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         </AlertDialogContent>
       </AlertDialog>
 
-      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+      {/* Edit Profile Dialog */}
+      <Dialog open={isEditProfileModalOpen} onOpenChange={setIsEditProfileModalOpen}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
             <DialogTitle className="font-headline text-2xl flex items-center gap-2">
               <Edit3 className="h-6 w-6 text-primary"/>Edit Profil
             </DialogTitle>
             <DialogDescription>
-              Perbarui nama pengguna, gambar profil, dan pengaturan privasi Anda.
+              Perbarui nama pengguna dan gambar profil Anda.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-6 py-4">
@@ -575,26 +586,46 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                 </div>
               </div>
             )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditProfileModalOpen(false)}>Batal</Button>
+            <Button onClick={handleSaveChanges}><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Privacy Settings Dialog */}
+      <Dialog open={isPrivacySettingsModalOpen} onOpenChange={setIsPrivacySettingsModalOpen}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle className="font-headline text-2xl flex items-center gap-2">
+                <ShieldQuestion className="h-6 w-6 text-primary" />Pengaturan Privasi Akun
+            </DialogTitle>
+            <DialogDescription>
+              Kelola siapa yang dapat melihat konten Anda.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6 py-4">
             <div className="space-y-3">
               <Label htmlFor="account-type-switch" className="font-medium">Privasi Akun</Label>
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-3 p-3 border rounded-md bg-muted/30">
                 <Switch
                   id="account-type-switch"
                   checked={editedAccountType === 'private'}
                   onCheckedChange={(checked) => setEditedAccountType(checked ? 'private' : 'public')}
                 />
-                <Label htmlFor="account-type-switch" className="text-sm flex items-center gap-1.5">
+                <Label htmlFor="account-type-switch" className="text-sm flex items-center gap-1.5 cursor-pointer">
                   {editedAccountType === 'private' ? <Lock className="h-4 w-4"/> : <ShieldOff className="h-4 w-4"/>}
                   {editedAccountType === 'private' ? 'Akun Privat' : 'Akun Publik'}
                 </Label>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Jika privat, hanya pengikut yang Anda setujui yang dapat melihat postingan Anda. Permintaan mengikuti akan diperlukan.
+              <p className="text-xs text-muted-foreground px-1">
+                Jika akun privat, hanya pengikut yang Anda setujui yang dapat melihat postingan Anda. Permintaan mengikuti akan diperlukan untuk pengguna baru yang ingin mengikuti Anda.
               </p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Batal</Button>
+            <Button variant="outline" onClick={() => setIsPrivacySettingsModalOpen(false)}>Batal</Button>
             <Button onClick={handleSaveChanges}><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
           </DialogFooter>
         </DialogContent>
@@ -709,5 +740,3 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
-
-    
