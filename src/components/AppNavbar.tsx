@@ -18,18 +18,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import type { Notification, User as UserType } from '@/lib/types';
+import type { Notification, User as UserType, NotificationType } from '@/lib/types';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from "@/hooks/use-toast";
 
-// Helper function for creating notifications (copied here, consider moving to a shared util)
+// Helper function for creating notifications
 function createAndAddNotification(
-  setNotificationsGlobal: Dispatch<SetStateAction<Notification[]>>, // Use a more specific name for the global setter
+  setNotificationsGlobal: Dispatch<SetStateAction<Notification[]>>, 
   newNotificationData: Omit<Notification, 'id' | 'timestamp' | 'isRead'>
 ) {
   if (newNotificationData.actorUserId === newNotificationData.recipientUserId) {
-    return; // Don't notify self
+    return; 
   }
   const notification: Notification = {
     ...newNotificationData,
@@ -70,7 +70,7 @@ export function AppNavbar() {
 
   const unreadNotifications = useMemo(() => {
     if (!currentUserId || !isClient) return [];
-    return notifications.filter(n => n.recipientUserId === currentUserId && !n.isRead);
+    return notifications.filter(n => n.recipientUserId === currentUserId && !n.isRead && n.type !== 'follow_request_handled');
   }, [notifications, currentUserId, isClient]);
 
   const unreadCount = unreadNotifications.length;
@@ -112,15 +112,17 @@ export function AppNavbar() {
 
   const handleAcceptFollowRequest = (requesterId: string, notificationId: string) => {
     if (!currentUserId) return;
+    const requesterUser = allUsers.find(u => u.id === requesterId);
+
     setAllUsers(prevUsers => prevUsers.map(user => {
-      if (user.id === currentUserId) { // Current user (recipient of request)
+      if (user.id === currentUserId) { 
         return {
           ...user,
           followers: [...new Set([...(user.followers || []), requesterId])],
           pendingFollowRequests: (user.pendingFollowRequests || []).filter(id => id !== requesterId),
         };
       }
-      if (user.id === requesterId) { // Requester
+      if (user.id === requesterId) { 
         return {
           ...user,
           following: [...new Set([...(user.following || []), currentUserId])],
@@ -129,24 +131,51 @@ export function AppNavbar() {
       }
       return user;
     }));
-    // Mark original follow_request notification as read/handled (or delete it) and send 'follow_accepted'
-    setNotifications(prev => prev.filter(n => n.id !== notificationId)); // Remove the request notif
-    createAndAddNotification(setNotifications, { recipientUserId: requesterId, actorUserId: currentUserId, type: 'follow_accepted' });
-    toast({ title: "Permintaan Diterima", description: `Anda sekarang berteman dengan pengguna tersebut.` });
+    
+    setNotifications(prevNots => prevNots.map(n => {
+      if (n.id === notificationId) {
+        return {
+          ...n,
+          type: 'follow_request_handled' as NotificationType,
+          processedState: 'accepted',
+          isRead: true, 
+        };
+      }
+      return n;
+    }));
+    
+    createAndAddNotification(setNotifications, { 
+        recipientUserId: requesterId, 
+        actorUserId: currentUserId, 
+        type: 'follow_accepted' 
+    });
+    
+    toast({ title: "Permintaan Diterima", description: `Anda sekarang mengikuti ${requesterUser?.username || 'pengguna tersebut'}.` });
   };
 
   const handleDeclineFollowRequest = (requesterId: string, notificationId: string) => {
     if (!currentUserId) return;
      setAllUsers(prevUsers => prevUsers.map(user => {
-      if (user.id === currentUserId) { // Current user
+      if (user.id === currentUserId) { 
         return { ...user, pendingFollowRequests: (user.pendingFollowRequests || []).filter(id => id !== requesterId) };
       }
-      if (user.id === requesterId) { // Requester
+      if (user.id === requesterId) { 
         return { ...user, sentFollowRequests: (user.sentFollowRequests || []).filter(id => id !== currentUserId) };
       }
       return user;
     }));
-    setNotifications(prev => prev.filter(n => n.id !== notificationId)); // Remove the request notif
+
+    setNotifications(prevNots => prevNots.map(n => {
+      if (n.id === notificationId) {
+        return {
+          ...n,
+          type: 'follow_request_handled' as NotificationType,
+          processedState: 'declined',
+          isRead: true,
+        };
+      }
+      return n;
+    }));
     toast({ title: "Permintaan Ditolak" });
   };
 
@@ -335,13 +364,23 @@ export function AppNavbar() {
                             message = `${actor?.username || 'Seseorang'} menerima permintaan mengikuti Anda.`;
                             linkHref = actor ? `/profile/${actor.id}` : '/';
                             break;
+                          case 'follow_request_handled':
+                            if (notification.processedState === 'accepted') {
+                                message = `Anda menerima permintaan mengikuti dari ${actor?.username || 'Seseorang'}.`;
+                            } else if (notification.processedState === 'declined') {
+                                message = `Anda menolak permintaan mengikuti dari ${actor?.username || 'Seseorang'}.`;
+                            } else {
+                                message = `Permintaan mengikuti dari ${actor?.username || 'Seseorang'} telah diproses.`;
+                            }
+                            linkHref = actor ? `/profile/${actor.id}` : '/';
+                            break;
                           default:
                             message = "Notifikasi baru.";
                         }
 
                         return (
-                          <div key={notification.id} className={cn("group/notif-item relative", !notification.isRead && isClient ? 'bg-primary/10' : '')}>
-                            <DropdownMenuItem asChild className={cn("cursor-pointer w-full pr-8", !notification.isRead && isClient ? 'hover:!bg-primary/20' : 'hover:!bg-accent/80')}>
+                          <div key={notification.id} className={cn("group/notif-item relative", !notification.isRead && isClient && notification.type !== 'follow_request_handled' ? 'bg-primary/10' : '')}>
+                            <DropdownMenuItem asChild className={cn("cursor-pointer w-full pr-8", !notification.isRead && isClient && notification.type !== 'follow_request_handled' ? 'hover:!bg-primary/20' : 'hover:!bg-accent/80')}>
                               <Link href={linkHref} className="flex items-start gap-3 p-2 w-full">
                                 <Avatar className="h-8 w-8 mt-0.5 flex-shrink-0">
                                   <AvatarImage src={avatarSrc} alt={actor?.username || 'Notifikasi'} data-ai-hint="notification actor person"/>

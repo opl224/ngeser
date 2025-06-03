@@ -49,7 +49,14 @@ export type SuggestHashtagsOutput = {
   hashtags: string[];
 };
 
-export type NotificationType = 'like' | 'comment' | 'reply' | 'follow' | 'follow_request' | 'follow_accepted';
+export type NotificationType = 
+  | 'like' 
+  | 'comment' 
+  | 'reply' 
+  | 'follow' 
+  | 'follow_request' 
+  | 'follow_accepted'
+  | 'follow_request_handled'; // New type for recipient's view after action
 
 export interface Notification {
   id: string;
@@ -61,6 +68,8 @@ export interface Notification {
   postMediaUrl?: string;    
   timestamp: string;
   isRead: boolean;
+  // Optional field to store the outcome if the original notification is transformed
+  processedState?: 'accepted' | 'declined'; 
 }
 
 export interface Message {
