@@ -112,18 +112,27 @@ export function AppNavbar() {
   };
 
   const handleAcceptFollowRequest = (requesterId: string, notificationId: string) => {
-    if (!currentUserId) {
-        toast({ title: "Kesalahan Pengguna", description: "Pengguna saat ini tidak terdefinisi.", variant: "destructive"});
-        setNotifications(prevNots => prevNots.map(n => n.id === notificationId ? { ...n, type: 'follow_request_handled' as NotificationType, processedState: 'declined', isRead: true, messageOverride: "Gagal: Pengguna tidak terdefinisi." } : n));
-        return;
-    }
-
     const CUIDUser = allUsers.find(u => u.id === currentUserId);
     const requesterUser = allUsers.find(u => u.id === requesterId);
 
+    if (!currentUserId) {
+        toast({ title: "Kesalahan Pengguna", description: "Pengguna saat ini tidak terdefinisi.", variant: "destructive"});
+        return;
+    }
     if (!CUIDUser || !requesterUser) {
-        toast({ title: "Kesalahan Data Pengguna", description: "Tidak dapat menemukan data pengguna terkait.", variant: "destructive"});
-        setNotifications(prevNots => prevNots.map(n => n.id === notificationId ? { ...n, type: 'follow_request_handled' as NotificationType, processedState: 'declined', isRead: true, messageOverride: `Gagal memproses untuk ${requesterUser?.username || 'pengguna tak dikenal'}. Data tak lengkap.` } : n));
+        toast({ title: "Kesalahan Data Pengguna", description: "Tidak dapat menemukan data pengguna terkait untuk memproses permintaan.", variant: "destructive"});
+        setNotifications(prevNots => prevNots.map(n => {
+          if (n.id === notificationId) {
+            return {
+              ...n,
+              type: 'follow_request_handled' as NotificationType,
+              processedState: 'accepted', 
+              isRead: true, 
+              messageOverride: `Gagal memproses penerimaan untuk ${requesterUser?.username || 'pengguna'} karena data tidak lengkap.`
+            };
+          }
+          return n;
+        }));
         return;
     }
 
@@ -151,20 +160,18 @@ export function AppNavbar() {
       usersUpdateError = true;
     }
     
-    setNotifications(prevNots =>
-      prevNots.map(n => {
-        if (n.id === notificationId) {
-          return {
-            ...n,
-            type: 'follow_request_handled' as NotificationType,
-            processedState: 'accepted',
-            isRead: true, 
-            messageOverride: usersUpdateError ? `Permintaan dari ${requesterUser.username} diterima, namun ada masalah internal saat memperbarui daftar pengikut/mengikuti.` : undefined
-          };
-        }
-        return n;
-      })
-    );
+    setNotifications(prevNots => prevNots.map(n => {
+      if (n.id === notificationId) {
+        return {
+          ...n,
+          type: 'follow_request_handled' as NotificationType,
+          processedState: 'accepted',
+          isRead: true, 
+          messageOverride: usersUpdateError ? `Permintaan dari ${requesterUser.username} diterima, tetapi ada masalah saat memperbarui daftar pengikut/mengikuti.` : undefined
+        };
+      }
+      return n;
+    }));
     
     if (!usersUpdateError) {
       createAndAddNotification(setNotifications, { 
@@ -176,7 +183,7 @@ export function AppNavbar() {
     } else {
          toast({
             title: "Kesalahan Sebagian",
-            description: `Permintaan dari ${requesterUser.username} diterima, tapi ada masalah memperbarui daftar pengikut/mengikuti. Notifikasi telah diperbarui.`,
+            description: `Permintaan dari ${requesterUser.username} diterima, tetapi ada masalah saat memperbarui daftar pengikut/mengikuti. Notifikasi UI diperbarui.`,
             variant: "destructive",
             duration: 7000,
         });
@@ -184,17 +191,27 @@ export function AppNavbar() {
   };
 
   const handleDeclineFollowRequest = (requesterId: string, notificationId: string) => {
-     if (!currentUserId) {
-        toast({ title: "Kesalahan", description: "Tidak dapat memproses permintaan, pengguna tidak dikenal.", variant: "destructive"});
-        setNotifications(prevNots => prevNots.map(n => n.id === notificationId ? { ...n, type: 'follow_request_handled' as NotificationType, processedState: 'declined', isRead: true, messageOverride: "Gagal: Pengguna tidak terdefinisi." } : n));
-        return;
-    }
-    const CUIDUser = allUsers.find(u => u.id === currentUserId); // Not strictly needed for decline logic, but good for consistency
+    const CUIDUser = allUsers.find(u => u.id === currentUserId);
     const requesterUser = allUsers.find(u => u.id === requesterId);
 
-    if (!CUIDUser || !requesterUser) { // Check if users exist for messaging, even if not critical for decline logic itself
-        toast({ title: "Kesalahan Data Pengguna", description: "Data pengguna terkait tidak lengkap untuk penolakan.", variant: "destructive"});
-         setNotifications(prevNots => prevNots.map(n => n.id === notificationId ? { ...n, type: 'follow_request_handled' as NotificationType, processedState: 'declined', isRead: true, messageOverride: `Gagal memproses penolakan untuk ${requesterUser?.username || 'pengguna tak dikenal'} sepenuhnya.` } : n));
+    if (!currentUserId) {
+        toast({ title: "Kesalahan", description: "Tidak dapat memproses permintaan, pengguna tidak dikenal.", variant: "destructive"});
+        return;
+    }
+    if (!CUIDUser || !requesterUser) {
+        toast({ title: "Kesalahan Data Pengguna", description: "Tidak dapat menemukan data pengguna terkait untuk memproses penolakan.", variant: "destructive"});
+         setNotifications(prevNots => prevNots.map(n => {
+          if (n.id === notificationId) {
+            return {
+              ...n,
+              type: 'follow_request_handled' as NotificationType,
+              processedState: 'declined', 
+              isRead: true,
+              messageOverride: `Gagal memproses penolakan untuk ${requesterUser?.username || 'pengguna'} sepenuhnya, tetapi permintaan ditandai ditolak.`
+            };
+          }
+          return n;
+        }));
         return;
     }
 
@@ -220,7 +237,7 @@ export function AppNavbar() {
       }
       return n;
     }));
-    toast({ title: "Permintaan Ditolak", description: `Kamu menolak permintaan mengikuti dari ${requesterUser.username}.` });
+    toast({ title: "Permintaan Ditolak" });
   };
 
 
@@ -375,59 +392,56 @@ export function AppNavbar() {
                     {sortedNotificationsForDisplay.length > 0 ? (
                       sortedNotificationsForDisplay.map(notification => {
                         const actor = allUsers.find(u => u.id === notification.actorUserId);
-                        let message = "";
+                        let message = notification.messageOverride || "";
                         let linkHref = "#";
                         let avatarSrc = actor?.avatarUrl;
                         let avatarFallback = actor?.username?.substring(0,1).toUpperCase() || 'N';
 
-                        
-                        if (notification.messageOverride) {
-                            message = notification.messageOverride;
-                            linkHref = actor ? `/profile/${actor.id}` : '/';
-                        } else {
-                            switch (notification.type) {
-                                case 'like':
-                                message = `${actor?.username || 'Seseorang'} menyukai postingan Kamu.`;
-                                linkHref = notification.postId ? `/post/${notification.postId}` : '/';
-                                if (!actor?.avatarUrl && notification.postMediaUrl) avatarSrc = notification.postMediaUrl;
-                                break;
-                                case 'comment':
-                                message = `${actor?.username || 'Seseorang'} mengomentari postingan Kamu.`;
-                                linkHref = notification.postId ? `/post/${notification.postId}` : '/';
-                                if (!actor?.avatarUrl && notification.postMediaUrl) avatarSrc = notification.postMediaUrl;
-                                break;
-                                case 'reply':
-                                message = `${actor?.username || 'Seseorang'} membalas komentar Kamu.`;
-                                linkHref = notification.postId ? `/post/${notification.postId}` : '/';
-                                if (!actor?.avatarUrl && notification.postMediaUrl) avatarSrc = notification.postMediaUrl;
-                                break;
-                                case 'follow':
-                                message = `${actor?.username || 'Seseorang'} mulai mengikuti Kamu.`;
-                                linkHref = actor ? `/profile/${actor.id}` : '/';
-                                break;
-                                case 'follow_request':
-                                message = `${actor?.username || 'Seseorang'} ingin mengikuti Kamu.`;
-                                linkHref = actor ? `/profile/${actor.id}` : '/';
-                                break;
-                                case 'follow_accepted':
-                                message = `${actor?.username || 'Seseorang'} menerima permintaan mengikuti Kamu.`;
-                                linkHref = actor ? `/profile/${actor.id}` : '/';
-                                break;
-                                case 'follow_request_handled':
-                                    if (notification.processedState === 'accepted') {
-                                        message = `Kamu menerima permintaan mengikuti dari ${actor?.username || 'Seseorang'}.`;
-                                    } else if (notification.processedState === 'declined') {
-                                        message = `Kamu menolak permintaan mengikuti dari ${actor?.username || 'Seseorang'}.`;
-                                    } else { 
-                                        message = `Permintaan mengikuti dari ${actor?.username || 'Seseorang'} telah diproses.`;
-                                    }
-                                linkHref = actor ? `/profile/${actor.id}` : '/';
-                                break;
-                                default:
-                                message = "Notifikasi baru.";
-                            }
+                        if (!message) { 
+                          switch (notification.type) {
+                            case 'like':
+                              message = `${actor?.username || 'Seseorang'} menyukai postingan Kamu.`;
+                              linkHref = notification.postId ? `/post/${notification.postId}` : '/';
+                              if (!actor?.avatarUrl && notification.postMediaUrl) avatarSrc = notification.postMediaUrl;
+                              break;
+                            case 'comment':
+                              message = `${actor?.username || 'Seseorang'} mengomentari postingan Kamu.`;
+                              linkHref = notification.postId ? `/post/${notification.postId}` : '/';
+                               if (!actor?.avatarUrl && notification.postMediaUrl) avatarSrc = notification.postMediaUrl;
+                              break;
+                            case 'reply':
+                              message = `${actor?.username || 'Seseorang'} membalas komentar Kamu.`;
+                              linkHref = notification.postId ? `/post/${notification.postId}` : '/';
+                               if (!actor?.avatarUrl && notification.postMediaUrl) avatarSrc = notification.postMediaUrl;
+                              break;
+                            case 'follow':
+                              message = `${actor?.username || 'Seseorang'} mulai mengikuti Kamu.`;
+                              linkHref = actor ? `/profile/${actor.id}` : '/';
+                              break;
+                            case 'follow_request':
+                              message = `${actor?.username || 'Seseorang'} ingin mengikuti Kamu.`;
+                              linkHref = actor ? `/profile/${actor.id}` : '/';
+                              break;
+                            case 'follow_accepted':
+                              message = `${actor?.username || 'Seseorang'} menerima permintaan mengikuti Kamu.`;
+                              linkHref = actor ? `/profile/${actor.id}` : '/';
+                              break;
+                            case 'follow_request_handled':
+                              if (notification.processedState === 'accepted') {
+                                  message = `Kamu menerima permintaan mengikuti dari ${actor?.username || 'Seseorang'}.`;
+                              } else if (notification.processedState === 'declined') {
+                                  message = `Kamu menolak permintaan mengikuti dari ${actor?.username || 'Seseorang'}.`;
+                              } else if (notification.messageOverride) { 
+                                  message = notification.messageOverride;
+                              } else { 
+                                  message = `Permintaan mengikuti dari ${actor?.username || 'Seseorang'} telah diproses.`;
+                              }
+                              linkHref = actor ? `/profile/${actor.id}` : '/';
+                              break;
+                            default:
+                              message = "Notifikasi baru.";
+                          }
                         }
-
 
                         return (
                           <div key={notification.id} className={cn("group/notif-item relative", !notification.isRead && isClient && notification.type !== 'follow_request_handled' ? 'bg-primary/10' : '')}>
@@ -448,7 +462,7 @@ export function AppNavbar() {
                                     <div className="mt-1.5 flex gap-2">
                                       <Button
                                         size="xs"
-                                        variant="outline"
+                                        variant="default"
                                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleAcceptFollowRequest(actor.id, notification.id); }}
                                         className="h-6 px-2 text-xs"
                                       >

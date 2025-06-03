@@ -167,21 +167,48 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         return u;
       }));
       toast({ title: "Berhenti Mengikuti", description: `Anda tidak lagi mengikuti ${targetProfileUser.username}.` });
-    } else if (hasSentRequest) { // CANCEL REQUEST action (if button were enabled)
+    } else if (hasSentRequest) { // CANCEL REQUEST action
       setAllUsers(prevUsers => prevUsers.map(u => {
         if (u.id === currentSessionUserId) return { ...u, sentFollowRequests: (u.sentFollowRequests || []).filter(id => id !== targetProfileUser.id) };
         if (u.id === targetProfileUser.id) return { ...u, pendingFollowRequests: (u.pendingFollowRequests || []).filter(reqId => reqId !== currentSessionUserId) };
         return u;
       }));
       toast({ title: "Permintaan Dibatalkan", description: `Permintaan mengikuti ${targetProfileUser.username} dibatalkan.` });
-    } else { // SEND REQUEST action (new default for "follow" if not already following/requested)
-      setAllUsers(prevUsers => prevUsers.map(u => {
-        if (u.id === currentSessionUserId) return { ...u, sentFollowRequests: [...new Set([...(u.sentFollowRequests || []), targetProfileUser.id])] };
-        if (u.id === targetProfileUser.id) return { ...u, pendingFollowRequests: [...new Set([...(u.pendingFollowRequests || []), currentSessionUserId])] };
-        return u;
-      }));
-      toast({ title: "Permintaan Terkirim", description: `Permintaan mengikuti ${targetProfileUser.username} telah dikirim.` });
-      createAndAddNotification(setNotifications, { recipientUserId: targetProfileUser.id, actorUserId: currentSessionUserId, type: 'follow_request' });
+    } else { 
+      // New follow action: could be "Ikuti" or "Ikuti Balik"
+      if (isProfileUserFollowingCSU && !isCurrentUserFollowingProfile) {
+        // This is "Ikuti Balik" scenario - ProfileUser already follows CurrentSessionUser
+        // Perform a DIRECT FOLLOW
+        setAllUsers(prevUsers => prevUsers.map(u => {
+          if (u.id === currentSessionUserId) { // CurrentSessionUser starts following targetProfileUser
+            return { ...u, following: [...new Set([...(u.following || []), targetProfileUser.id])] };
+          }
+          if (u.id === targetProfileUser.id) { // targetProfileUser gets CurrentSessionUser as a follower
+            return { ...u, followers: [...new Set([...(u.followers || []), currentSessionUserId])] };
+          }
+          return u;
+        }));
+        toast({ title: "Mulai Mengikuti", description: `Anda sekarang mengikuti ${targetProfileUser.username}.` });
+        createAndAddNotification(setNotifications, { 
+          recipientUserId: targetProfileUser.id, 
+          actorUserId: currentSessionUserId, 
+          type: 'follow' 
+        });
+      } else {
+        // This is a standard "Ikuti" for a user not followed back yet, or first time follow.
+        // Send a FOLLOW REQUEST
+        setAllUsers(prevUsers => prevUsers.map(u => {
+          if (u.id === currentSessionUserId) return { ...u, sentFollowRequests: [...new Set([...(u.sentFollowRequests || []), targetProfileUser.id])] };
+          if (u.id === targetProfileUser.id) return { ...u, pendingFollowRequests: [...new Set([...(u.pendingFollowRequests || []), currentSessionUserId])] };
+          return u;
+        }));
+        toast({ title: "Permintaan Terkirim", description: `Permintaan mengikuti ${targetProfileUser.username} telah dikirim.` });
+        createAndAddNotification(setNotifications, { 
+          recipientUserId: targetProfileUser.id, 
+          actorUserId: currentSessionUserId, 
+          type: 'follow_request' 
+        });
+      }
     }
   };
 
@@ -443,7 +470,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   if (isCurrentUserFollowingProfile) {
     followButtonText = "Mengikuti";
     FollowButtonIconComponent = UserCheck;
-  } else if (isRequestedByCSUtoPU) { // No longer check profileUser.accountType here
+  } else if (isRequestedByCSUtoPU) { 
     followButtonText = "Diminta";
     FollowButtonIconComponent = UserPlus;
   } else if (isProfileUserFollowingCSU && !isCurrentUserFollowingProfile) {
