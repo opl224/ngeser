@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image'; // Added import for Image
-import { Home, PlusSquare, User, LogIn, Search as SearchIconLucide, Bell, Trash2, X as XIcon, MessageSquare, UserCheck, UserX, ShieldQuestion } from 'lucide-react'; // Handshake removed
+import { Home, PlusSquare, User, LogIn, Search as SearchIconLucide, Bell, Trash2, X as XIcon, MessageSquare, UserCheck, UserX, ShieldQuestion, Film } from 'lucide-react'; // Handshake removed, Film added
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { usePathname, useRouter } from 'next/navigation';
@@ -240,6 +240,7 @@ export function AppNavbar() {
 
   const authNavItems = [
     { href: '/upload', label: 'Unggah', icon: PlusSquare },
+    { href: '/reels', label: 'Reels', icon: Film },
     { href: '/profile', label: 'Profil', icon: User },
   ];
 
@@ -307,14 +308,16 @@ export function AppNavbar() {
 
         <div className="flex items-center gap-x-1 sm:gap-x-2">
             <nav className="items-center gap-1 sm:gap-0 flex-shrink-0 hidden sm:flex">
-            {allNavItems.map((item) => (
+            {allNavItems.map((item) => {
+              const isActive = pathname === item.href || (item.href === '/reels' && pathname.startsWith('/reels'));
+              return (
                 <Button
                 key={item.label}
                 variant="ghost"
                 asChild
                 className={cn(
                     "text-sm font-medium px-2 sm:px-3",
-                    pathname === item.href ? "text-primary hover:text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground"
+                    isActive ? "text-primary hover:text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground"
                 )}
                 >
                 <Link href={item.href} className="flex items-center gap-2">
@@ -322,7 +325,8 @@ export function AppNavbar() {
                     <span className="inline">{item.label}</span>
                 </Link>
                 </Button>
-            ))}
+              );
+            })}
             </nav>
 
             {currentUserId && (
