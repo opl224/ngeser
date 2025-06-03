@@ -75,7 +75,7 @@ export default function FeedPage() {
     return users.find(u => u.id === currentUserId);
   }, [currentUserId, users]);
 
-  const usersWithStories = useMemo(() => {
+   const usersWithStories = useMemo(() => {
     if (!posts || !users || users.length === 0) return [];
     const userStoryData: Record<string, { count: number; latestTimestamp: string }> = {};
 
@@ -97,15 +97,12 @@ export default function FeedPage() {
         .map(userId => {
             const user = users.find(u => u.id === userId);
             if (!user) return null;
-            // User can always see their own stories
-            if (user.id === CUID) return user;
-            // Public accounts' stories are visible
+            if (user.id === CUID) return user; 
             if (user.accountType === 'public') return user;
-            // Private accounts' stories are visible if CUID is following them
-            if (user.accountType === 'private' && currentSessionUser?.following.includes(user.id)) return user;
+            if (user.accountType === 'private' && CUID && currentSessionUser?.following.includes(user.id)) return user;
             return null;
         })
-        .filter((user): user is User => user !== null) // Type guard to ensure user is not null
+        .filter((user): user is User => user !== null)
         .map(user => ({
             ...user,
             storyCount: userStoryData[user.id].count,
@@ -459,6 +456,10 @@ export default function FeedPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleNavigateToReelFeed = (postId: string) => {
+    router.push('/reels');
+  };
+
   // Conditional returns after all hooks are defined
   if (authStatus === 'loading') {
     return (
@@ -497,6 +498,7 @@ export default function FeedPage() {
                 onDeletePost={handleDeletePost}
                 onToggleSavePost={handleToggleSavePost}
                 isSavedByCurrentUser={isSavedByCurrentUser}
+                onReelClick={post.type === 'reel' ? handleNavigateToReelFeed : undefined}
               />
             );
           })}
@@ -521,9 +523,8 @@ export default function FeedPage() {
       <Dialog open={isStoryModalOpen} onOpenChange={setIsStoryModalOpen}>
         <DialogContent
           className={cn(
-            "p-0 bg-black text-white flex flex-col items-center justify-center overflow-hidden", // Styles for the content *within* the dialog
-            "max-w-sm w-full h-auto max-h-[90vh] aspect-[9/16] rounded-lg" // Specific sizing, aspect ratio, and rounding for the story modal itself
-            // The default DialogContent from shadcn/ui already handles fixed positioning and centering.
+            "p-0 bg-black text-white flex flex-col items-center justify-center overflow-hidden",
+            "max-w-sm w-full h-auto max-h-[90vh] aspect-[9/16] rounded-lg"
           )}
         >
           {storyModalContent && currentUserStories.length > 0 && (

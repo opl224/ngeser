@@ -51,6 +51,7 @@ interface PostCardProps {
   onDeletePost: (postId: string) => void;
   onToggleSavePost: (postId: string) => void;
   isSavedByCurrentUser: boolean;
+  onReelClick?: (postId: string) => void; // New prop
 }
 
 export function PostCard({
@@ -60,7 +61,8 @@ export function PostCard({
   onUpdatePostCaption,
   onDeletePost,
   onToggleSavePost,
-  isSavedByCurrentUser
+  isSavedByCurrentUser,
+  onReelClick, // Destructure new prop
 }: PostCardProps) {
   const [author, setAuthor] = useState<User | undefined>(undefined);
   const [showComments, setShowComments] = useState(false);
@@ -122,11 +124,16 @@ export function PostCard({
   };
 
   const handleMediaClick = () => {
+    if (post.type === 'reel' && onReelClick) {
+      onReelClick(post.id);
+      return; 
+    }
+
     if (post.type === 'story' && post.mediaMimeType?.startsWith('video/')) {
         setShowVideoControls(true);
-    } else if (post.type === 'reel') { // Removed post.type === 'video'
+    } else if (post.type === 'reel') { 
         setShowVideoControls(true);
-    } else { // photo or image story
+    } else { 
         setIsMediaModalOpen(true);
     }
   };
