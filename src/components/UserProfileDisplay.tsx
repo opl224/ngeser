@@ -432,7 +432,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             fullName: editedFullName.trim(),
             bio: editedBio.trim(),
             avatarUrl: editedAvatarPreview || user.avatarUrl,
-            // username tidak diubah di sini lagi
+            // username tidak diubah di sini karena read-only
           };
         }
         return user;
@@ -792,16 +792,15 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               {isCurrentUserProfile && <TabsTrigger value="saved" className="font-headline"><Bookmark className="h-4 w-4 mr-2"/>Disimpan</TabsTrigger>}
             </TabsList>
             <TabsContent value="posts">
-              <ScrollArea className="w-full mb-4 whitespace-nowrap">
+              <div className="mb-4">
                 <Tabs defaultValue="all" onValueChange={(value) => setPostFilterType(value as 'all' | 'photo' | 'reel')}>
-                  <TabsList className="inline-flex h-10 items-center justify-start p-1 text-muted-foreground bg-muted/50 rounded-lg">
+                  <TabsList className="grid w-full grid-cols-3 h-10 items-center p-1 text-muted-foreground bg-muted/50 rounded-lg">
                     <TabsTrigger value="all" className="font-headline"><LayoutGrid className="h-3.5 w-3.5 mr-1.5"/>Semua</TabsTrigger>
                     <TabsTrigger value="photo" className="font-headline"><ImageIconLucide className="h-3.5 w-3.5 mr-1.5"/>Foto</TabsTrigger>
                     <TabsTrigger value="reel" className="font-headline"><Video className="h-3.5 w-3.5 mr-1.5"/>Reels</TabsTrigger>
                   </TabsList>
                 </Tabs>
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
+              </div>
                 {filteredDisplayPosts.length > 0 ? (
                   <div className="grid grid-cols-1 gap-6">
                     {filteredDisplayPosts.map(post => {
