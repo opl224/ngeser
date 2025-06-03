@@ -78,8 +78,13 @@ export default function SearchPage() {
           className="flex-grow h-11 text-base"
           data-ai-hint="search input on page"
         />
-        <Button type="submit" size="lg">
-          <SearchIcon className="mr-2 h-5 w-5" /> Cari
+        <Button
+          type="submit"
+          variant="default" // Explicitly set variant
+          className="h-11 w-11 p-0 sm:w-auto sm:px-8" // Custom responsive classes
+        >
+          <SearchIcon className="h-5 w-5" />
+          <span className="hidden sm:ml-2 sm:inline">Cari</span>
         </Button>
       </form>
 
