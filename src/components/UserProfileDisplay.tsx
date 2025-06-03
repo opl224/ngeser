@@ -43,7 +43,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea"; // Added import for Textarea
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from '@/lib/utils';
 import type React from 'react';
 
@@ -162,22 +162,22 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         toast({ title: "Mulai Mengikuti", description: `Anda sekarang mengikuti ${profileUser.username}.` });
         createAndAddNotification(setNotifications, { recipientUserId: profileUser.id, actorUserId: currentSessionUserId, type: 'follow' });
       }
-    } else {
-      if (isAlreadyFollowing) {
+    } else { // Private account
+      if (isAlreadyFollowing) { // Unfollow action
         setAllUsers(prevUsers => prevUsers.map(u => {
           if (u.id === currentSessionUserId) return { ...u, following: (u.following || []).filter(id => id !== profileUser.id) };
           if (u.id === profileUser.id) return { ...u, followers: (u.followers || []).filter(id => id !== currentSessionUserId) };
           return u;
         }));
         toast({ title: "Berhenti Mengikuti", description: `Anda tidak lagi mengikuti ${profileUser.username}.` });
-      } else if (hasSentRequest) {
+      } else if (hasSentRequest) { // Cancel follow request action
         setAllUsers(prevUsers => prevUsers.map(u => {
           if (u.id === currentSessionUserId) return { ...u, sentFollowRequests: (u.sentFollowRequests || []).filter(id => id !== profileUser.id) };
-          if (u.id === profileUser.id) return { ...u, pendingFollowRequests: (u.pendingFollowRequests || []).filter(id => id !== currentSessionUserId) };
+          if (u.id === profileUser.id) return { ...u, pendingFollowRequests: (u.pendingFollowRequests || []).filter(reqId => reqId !== currentSessionUserId) };
           return u;
         }));
         toast({ title: "Permintaan Dibatalkan", description: `Permintaan mengikuti ${profileUser.username} dibatalkan.` });
-      } else {
+      } else { // Send follow request action
         setAllUsers(prevUsers => prevUsers.map(u => {
           if (u.id === currentSessionUserId) return { ...u, sentFollowRequests: [...new Set([...(u.sentFollowRequests || []), profileUser.id])] };
           if (u.id === profileUser.id) return { ...u, pendingFollowRequests: [...new Set([...(u.pendingFollowRequests || []), currentSessionUserId])] };
@@ -397,7 +397,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             username: editedUsername.trim(),
             bio: editedBio.trim(),
             avatarUrl: editedAvatarPreview || user.avatarUrl,
-            // accountType will be saved by its own dialog's save function if changed
           };
         }
         return user;
@@ -437,13 +436,34 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   }
 
   const isCurrentUserProfile = currentSessionUserId === profileUser.id;
-  const isRequested = (currentSessionUser?.sentFollowRequests || []).includes(profileUser.id);
 
+  const isProfileUserFollowingCSU = useMemo(() => {
+    if (!currentSessionUser || !profileUser) return false;
+    return (profileUser.following || []).includes(currentSessionUser.id);
+  }, [profileUser, currentSessionUser]);
+
+  const isRequestedByCSUtoPU = useMemo(() => {
+    if (!currentSessionUser || !profileUser) return false;
+    return (currentSessionUser.sentFollowRequests || []).includes(profileUser.id);
+  }, [currentSessionUser, profileUser]);
+
+
+  let followButtonText = "Ikuti";
   let FollowButtonIconComponent: React.ElementType = UserPlus;
-  if (isCurrentUserFollowingProfile) {
-    FollowButtonIconComponent = UserCheck;
-  }
 
+  if (isCurrentUserFollowingProfile) {
+    followButtonText = "Mengikuti";
+    FollowButtonIconComponent = UserCheck;
+  } else if (isRequestedByCSUtoPU) {
+    followButtonText = "Diminta";
+    FollowButtonIconComponent = UserPlus;
+  } else if (isProfileUserFollowingCSU) {
+    followButtonText = "Ikuti Balik";
+    FollowButtonIconComponent = UserPlus;
+  } else {
+    followButtonText = "Ikuti";
+    FollowButtonIconComponent = UserPlus;
+  }
 
   const allProfilePosts = [...userStories, ...userPosts].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
@@ -452,9 +472,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     router.push(`/dm?userId=${profileUser.id}`);
   };
 
-  const followButtonText = isCurrentUserFollowingProfile ? "Mengikuti" : isRequested ? "Diminta" : "Ikuti";
-
-  // Component for Settings Dropdown Menu Items
   const SettingsMenuItemsContent = () => (
     <>
       <DropdownMenuItem onClick={handleOpenPrivacySettingsModal} className="cursor-pointer">
@@ -485,6 +502,20 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       <AlertDialog>
         <Card className="mb-8 shadow-lg rounded-xl overflow-hidden">
           <CardHeader className="relative p-6 bg-card flex flex-col md:flex-row items-center gap-6">
+             <div className="absolute top-4 right-4 md:hidden">
+              {isCurrentUserProfile && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-9 w-9">
+                      <Settings className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <SettingsMenuItemsContent />
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
             <div className="relative">
               <Avatar className="h-28 w-28 md:h-36 md:w-36 border-4 border-primary shadow-md">
                 <AvatarImage src={profileUser.avatarUrl} alt={profileUser.username} data-ai-hint="portrait person large" />
@@ -505,7 +536,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             <div className="flex-1 text-center md:text-left">
               <div className="flex items-center justify-center md:justify-start gap-2">
                 <CardTitle className="font-headline text-3xl md:text-4xl text-foreground">{profileUser.username}</CardTitle>
-                {profileUser.accountType === 'private' && !isCurrentUserProfile && <Lock className="h-6 w-6 text-muted-foreground" />}
+                {profileUser.accountType === 'private' && !isCurrentUserProfile && !isCurrentUserFollowingProfile && <Lock className="h-6 w-6 text-muted-foreground" />}
               </div>
               {profileUser.bio && <p className="text-muted-foreground mt-2 font-body text-sm md:text-base">{profileUser.bio}</p>}
               <div className="flex justify-center md:justify-start gap-4 mt-4 text-sm">
@@ -515,21 +546,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               </div>
             </div>
             {isCurrentUserProfile ? (
-              <>
-                <div className="absolute top-4 right-4 md:hidden"> {/* Only on mobile */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-9 w-9">
-                        <Settings className="h-5 w-5" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <SettingsMenuItemsContent />
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-
-                <div className="hidden md:flex md:items-center md:gap-2 md:absolute md:top-6 md:right-6"> {/* Only on desktop */}
+                <div className="hidden md:flex md:items-center md:gap-2 md:absolute md:top-6 md:right-6">
                   <Button
                     variant="outline"
                     size="sm"
@@ -549,10 +566,14 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-              </>
             ) : currentSessionUserId && (
                 <div className="flex w-full justify-center items-center gap-2 mt-4 md:w-auto md:absolute md:top-6 md:right-6 md:mt-0">
-                    <Button onClick={handleFollowToggle} variant={isCurrentUserFollowingProfile ? "secondary" : "default"} size="sm" disabled={profileUser.accountType === 'private' && !isCurrentUserFollowingProfile && isRequested && !canViewProfileContent}>
+                    <Button
+                      onClick={handleFollowToggle}
+                      variant={isCurrentUserFollowingProfile ? "secondary" : "default"}
+                      size="sm"
+                      disabled={profileUser.accountType === 'private' && !isCurrentUserFollowingProfile && isRequestedByCSUtoPU && !canViewProfileContent}
+                    >
                       <FollowButtonIconComponent className="mr-2 h-4 w-4" />
                       {followButtonText}
                     </Button>
