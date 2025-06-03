@@ -2,6 +2,9 @@
 export interface User {
   id: string;
   username: string;
+  fullName?: string; // Added for display name
+  email: string; // Added for registration and potential future use
+  password?: string; // Added for authentication (plaintext for prototype)
   avatarUrl: string;
   bio?: string;
   followers: string[]; // array of user IDs
@@ -30,8 +33,8 @@ export interface Post {
   user?: User;
   type: 'photo' | 'reel' | 'story';
   mediaUrl: string;
-  mediaMimeType?: string; 
-  caption: string; 
+  mediaMimeType?: string;
+  caption: string;
   hashtags: string[];
   mentions: string[];
   likes: string[];
@@ -49,26 +52,26 @@ export type SuggestHashtagsOutput = {
   hashtags: string[];
 };
 
-export type NotificationType = 
-  | 'like' 
-  | 'comment' 
-  | 'reply' 
-  | 'follow' 
-  | 'follow_request' 
+export type NotificationType =
+  | 'like'
+  | 'comment'
+  | 'reply'
+  | 'follow'
+  | 'follow_request'
   | 'follow_accepted'
   | 'follow_request_handled';
 
 export interface Notification {
   id: string;
-  recipientUserId: string; 
-  actorUserId: string;     
+  recipientUserId: string;
+  actorUserId: string;
   type: NotificationType;
-  postId?: string;          
-  commentId?: string;       
-  postMediaUrl?: string;    
+  postId?: string;
+  commentId?: string;
+  postMediaUrl?: string;
   timestamp: string;
   isRead: boolean;
-  processedState?: 'accepted' | 'declined'; 
+  processedState?: 'accepted' | 'declined';
   messageOverride?: string; // Optional: for specific messages when normal processing fails partially
 }
 
@@ -76,26 +79,24 @@ export interface Message {
   id: string;
   conversationId: string;
   senderId: string;
-  sender?: User; 
-  text: string; 
+  sender?: User;
+  text: string;
   timestamp: string;
-  isRead?: boolean; 
-  editedTimestamp?: string; 
+  isRead?: boolean;
+  editedTimestamp?: string;
   replyToInfo?: {
     originalSenderUsername: string;
     originalMessagePreview: string;
-    originalMessageId: string; 
+    originalMessageId: string;
   };
 }
 
 export interface Conversation {
   id: string;
-  participantIds: string[]; 
-  participants?: User[]; 
-  messages: Message[]; 
-  lastMessage?: Message; 
-  timestamp: string; 
-  unreadCount?: Record<string, number>; 
+  participantIds: string[];
+  participants?: User[];
+  messages: Message[];
+  lastMessage?: Message;
+  timestamp: string;
+  unreadCount?: Record<string, number>;
 }
-
-    

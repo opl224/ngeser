@@ -5,6 +5,9 @@ export const initialUsers: User[] = [
   {
     id: 'user-001',
     username: 'NatureExplorer',
+    fullName: 'Nature Explorer',
+    email: 'nature@example.com',
+    password: 'password123',
     avatarUrl: 'https://placehold.co/100x100.png?text=NE',
     bio: 'Wandering where the WiFi is weak. 🌲🏔️',
     followers: ['user-002', 'user-currentUser'],
@@ -18,6 +21,9 @@ export const initialUsers: User[] = [
   {
     id: 'user-002',
     username: 'CityArtLover',
+    fullName: 'City ArtLover',
+    email: 'art@example.com',
+    password: 'password123',
     avatarUrl: 'https://placehold.co/100x100.png?text=CA',
     bio: 'Street art, gallery hops, and cityscapes. 🎨🏙️',
     followers: ['user-001'],
@@ -30,6 +36,9 @@ export const initialUsers: User[] = [
   {
     id: 'user-003',
     username: 'FoodieAdventures',
+    fullName: 'Foodie Adventures',
+    email: 'foodie@example.com',
+    password: 'password123',
     avatarUrl: 'https://placehold.co/100x100.png?text=FA',
     bio: 'Eating my way around the world, one dish at a time. 🍜🌮🍣',
     followers: ['user-currentUser'],
@@ -42,6 +51,9 @@ export const initialUsers: User[] = [
   {
     id: 'user-currentUser',
     username: 'CurrentUser',
+    fullName: 'Current User',
+    email: 'current@example.com',
+    password: 'password123',
     avatarUrl: 'https://placehold.co/100x100.png?text=CU',
     bio: 'Just me, exploring this app!',
     followers: ['user-001'],
@@ -54,6 +66,9 @@ export const initialUsers: User[] = [
    {
     id: 'user-urbanDancer',
     username: 'UrbanDancer',
+    fullName: 'Urban Dancer',
+    email: 'dancer@example.com',
+    password: 'password123',
     avatarUrl: 'https://placehold.co/100x100.png?text=UD',
     bio: 'Dancing through life, one beat at a time. 💃🕺',
     followers: [],
@@ -243,9 +258,6 @@ export const initialConversations: Conversation[] = [
 export const getCurrentUserId = (): string | null => {
   if (typeof window !== 'undefined') {
     const storedId = localStorage.getItem('currentUserId');
-    // For easier testing with initial data, if no one is logged in, default to 'user-currentUser'
-    // In a real app, you might remove this default or handle it differently.
-    // return storedId || 'user-currentUser';
     return storedId;
   }
   return null;
