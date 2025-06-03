@@ -30,6 +30,7 @@ export const initialUsers: User[] = [
     following: ['user-001', 'user-currentUser'],
     savedPosts: [],
     accountType: 'public',
+    isVerified: false,
     pendingFollowRequests: [],
     sentFollowRequests: [],
   },
@@ -45,6 +46,7 @@ export const initialUsers: User[] = [
     following: ['user-001'],
     savedPosts: ['post-001'],
     accountType: 'private',
+    isVerified: false,
     pendingFollowRequests: [],
     sentFollowRequests: ['user-002'],
   },
@@ -60,6 +62,7 @@ export const initialUsers: User[] = [
     following: ['user-001', 'user-002'],
     savedPosts: ['post-003'],
     accountType: 'public',
+    isVerified: true,
     pendingFollowRequests: [],
     sentFollowRequests: [],
   },
@@ -133,7 +136,7 @@ export const initialPosts: Post[] = [
     id: 'post-reel-001',
     userId: 'user-urbanDancer',
     type: 'reel',
-    mediaUrl: 'https://placehold.co/400x600.mp4', // Placeholder, actual video needed for playback
+    mediaUrl: 'https://placehold.co/400x600.mp4', 
     mediaMimeType: 'video/mp4',
     caption: 'Grooving to the city beats! 🎶 #dance #reel #citylife',
     hashtags: ['dance', 'reel', 'citylife'],
@@ -142,7 +145,7 @@ export const initialPosts: Post[] = [
     comments: [
       { id: 'comment-reel-001', postId: 'post-reel-001', userId: 'user-001', text: 'Awesome moves!', timestamp: new Date(Date.now() - 1000 * 60 * 10).toISOString(), replies: [] },
     ],
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 1).toISOString(), // 1 hour ago
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 1).toISOString(), 
     shareCount: 10,
     viewCount: 250,
   },
@@ -157,9 +160,9 @@ export const initialPosts: Post[] = [
     mentions: [],
     likes: [],
     comments: [],
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(), // 3 hours ago
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(), 
     shareCount: 0,
-    viewCount: 0, // View count for stories might be tracked differently
+    viewCount: 0, 
   },
   {
     id: 'story-002-user001',
@@ -172,7 +175,7 @@ export const initialPosts: Post[] = [
     mentions: [],
     likes: [],
     comments: [],
-    timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutes ago
+    timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(), 
     shareCount: 0,
     viewCount: 0,
   },
@@ -187,7 +190,7 @@ export const initialPosts: Post[] = [
     mentions: [],
     likes: [],
     comments: [],
-    timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), // 5 minutes ago
+    timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), 
     shareCount: 0,
     viewCount: 0,
   }
@@ -197,8 +200,8 @@ export const initialNotifications: Notification[] = [
    {
     id: 'notif-welcome-currentUser',
     recipientUserId: 'user-currentUser',
-    actorUserId: 'system', // Special ID for system notifications
-    type: 'follow_accepted', // Using a common type that shows a message
+    actorUserId: 'system', 
+    type: 'follow_accepted', 
     messageOverride: 'Selamat datang di Ngeser! Jelajahi dan bagikan momen Anda.',
     timestamp: new Date().toISOString(),
     isRead: false,
@@ -208,9 +211,9 @@ export const initialNotifications: Notification[] = [
     recipientUserId: 'user-currentUser',
     actorUserId: 'user-001',
     type: 'like',
-    postId: 'post-003', // Assuming post-003 belongs to user-currentUser
+    postId: 'post-003', 
     postMediaUrl: 'https://placehold.co/400x300.png',
-    timestamp: new Date(Date.now() - 1000 * 60 * 2).toISOString(), // 2 minutes ago
+    timestamp: new Date(Date.now() - 1000 * 60 * 2).toISOString(), 
     isRead: true,
   },
   {
@@ -218,7 +221,7 @@ export const initialNotifications: Notification[] = [
     recipientUserId: 'user-currentUser',
     actorUserId: 'user-002',
     type: 'follow',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(), // 1 hour ago
+    timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(), 
     isRead: false,
   }
 ];
@@ -235,7 +238,7 @@ export const initialConversations: Conversation[] = [
     lastMessage: { id: 'msg-c1-003', conversationId: 'conv-001', senderId: 'user-001', text: 'Did you see my latest post about the mountains?', timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), isRead: false },
     timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
     unreadCount: {
-      'user-currentUser': 1, // currentUser has 1 unread message from user-001
+      'user-currentUser': 1, 
       'user-001': 0
     }
   },

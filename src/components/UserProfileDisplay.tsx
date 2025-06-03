@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from './PostCard';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialUsers, initialPosts, initialNotifications, getCurrentUserId } from '@/lib/data';
-import { Settings, UserPlus, UserCheck, Edit3, LogOut, Trash2, ImageIcon, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, ShieldQuestion, Moon, Sun, Laptop, LayoutGrid, Image as ImageIconLucide, Video } from 'lucide-react';
+import { Settings, UserPlus, UserCheck, Edit3, LogOut, Trash2, ImageIcon as ImageIconLucide, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, ShieldQuestion, Moon, Sun, Laptop, LayoutGrid, Video, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
@@ -44,7 +44,7 @@ import {
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle as EditDialogTitle, // Renamed to avoid conflict with CardTitle
+  DialogTitle as EditDialogTitle, 
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,7 +52,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from '@/lib/utils';
-import type React_dot_FC from 'react'; // Changed React to React_dot_FC to avoid conflict
+import type React_dot_FC from 'react'; 
 import { useTheme } from 'next-themes';
 
 
@@ -97,6 +97,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const [editedAvatarFile, setEditedAvatarFile] = useState<File | null>(null);
   const [editedAvatarPreview, setEditedAvatarPreview] = useState<string | null>(null);
   const [editedAccountType, setEditedAccountType] = useState<'public' | 'private'>('public');
+  const [editedIsVerified, setEditedIsVerified] = useState(false); 
   const [postFilterType, setPostFilterType] = useState<'all' | 'photo' | 'reel'>('all');
 
 
@@ -111,6 +112,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       setEditedBio(foundUser.bio || '');
       setEditedAvatarPreview(foundUser.avatarUrl);
       setEditedAccountType(foundUser.accountType || 'public');
+      setEditedIsVerified(foundUser.isVerified || false); 
     }
   }, [userId, allUsers]);
 
@@ -135,7 +137,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     .filter(p => p.userId === userId && p.type !== 'story')
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()), [allPosts, userId]);
 
-  // This remains the base for display, already filtering out stories.
+  
   const allProfilePostsNonStory = useMemo(() => allPosts
     .filter(p => p.userId === userId && p.type !== 'story')
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()), [allPosts, userId]);
@@ -181,14 +183,14 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     const isAlreadyFollowing = (CUIDUser.following || []).includes(targetProfileUser.id);
     const hasSentRequest = (CUIDUser.sentFollowRequests || []).includes(targetProfileUser.id);
 
-    if (isAlreadyFollowing) { // UNFOLLOW action
+    if (isAlreadyFollowing) { 
       setAllUsers(prevUsers => prevUsers.map(u => {
         if (u.id === currentSessionUserId) return { ...u, following: (u.following || []).filter(id => id !== targetProfileUser.id) };
         if (u.id === targetProfileUser.id) return { ...u, followers: (u.followers || []).filter(id => id !== currentSessionUserId) };
         return u;
       }));
       toast({ title: "Berhenti Mengikuti", description: `Anda tidak lagi mengikuti ${targetProfileUser.username}.` });
-    } else if (hasSentRequest) { // CANCEL REQUEST action
+    } else if (hasSentRequest) { 
       setAllUsers(prevUsers => prevUsers.map(u => {
         if (u.id === currentSessionUserId) return { ...u, sentFollowRequests: (u.sentFollowRequests || []).filter(id => id !== targetProfileUser.id) };
         if (u.id === targetProfileUser.id) return { ...u, pendingFollowRequests: (u.pendingFollowRequests || []).filter(reqId => reqId !== currentSessionUserId) };
@@ -196,15 +198,14 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       }));
       toast({ title: "Permintaan Dibatalkan", description: `Permintaan mengikuti ${targetProfileUser.username} dibatalkan.` });
     } else { 
-      // New follow action: could be "Ikuti" or "Ikuti Balik"
+      
       if (isProfileUserFollowingCSU && !isCurrentUserFollowingProfile) {
-        // This is "Ikuti Balik" scenario - ProfileUser already follows CurrentSessionUser
-        // Perform a DIRECT FOLLOW
+        
         setAllUsers(prevUsers => prevUsers.map(u => {
-          if (u.id === currentSessionUserId) { // CurrentSessionUser starts following targetProfileUser
+          if (u.id === currentSessionUserId) { 
             return { ...u, following: [...new Set([...(u.following || []), targetProfileUser.id])] };
           }
-          if (u.id === targetProfileUser.id) { // targetProfileUser gets CurrentSessionUser as a follower
+          if (u.id === targetProfileUser.id) { 
             return { ...u, followers: [...new Set([...(u.followers || []), currentSessionUserId])] };
           }
           return u;
@@ -216,8 +217,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           type: 'follow' 
         });
       } else {
-        // This is a standard "Ikuti" for a user not followed back yet, or first time follow.
-        // Send a FOLLOW REQUEST
+        
         setAllUsers(prevUsers => prevUsers.map(u => {
           if (u.id === currentSessionUserId) return { ...u, sentFollowRequests: [...new Set([...(u.sentFollowRequests || []), targetProfileUser.id])] };
           if (u.id === targetProfileUser.id) return { ...u, pendingFollowRequests: [...new Set([...(u.pendingFollowRequests || []), currentSessionUserId])] };
@@ -390,6 +390,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const handleOpenPrivacySettingsModal = () => {
     if (profileUser) {
         setEditedAccountType(profileUser.accountType || 'public');
+        setEditedIsVerified(profileUser.isVerified || false);
         setIsPrivacySettingsModalOpen(true);
     }
   };
@@ -423,6 +424,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       });
       return;
     }
+    
 
     setAllUsers(prevUsers =>
       prevUsers.map(user => {
@@ -432,7 +434,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             fullName: editedFullName.trim(),
             bio: editedBio.trim(),
             avatarUrl: editedAvatarPreview || user.avatarUrl,
-            // username tidak diubah di sini karena read-only
           };
         }
         return user;
@@ -454,6 +455,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           return {
             ...user,
             accountType: editedAccountType,
+            isVerified: editedIsVerified,
           };
         }
         return user;
@@ -461,7 +463,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     );
     toast({
       title: "Pengaturan Privasi Diperbarui",
-      description: "Pengaturan privasi akun Anda telah disimpan.",
+      description: "Pengaturan privasi dan verifikasi akun Anda telah disimpan.",
     });
     setIsPrivacySettingsModalOpen(false);
   };
@@ -590,7 +592,12 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             </div>
             <div className="flex-1 text-center md:text-left">
               <div className="flex flex-col items-center md:items-start">
-                {profileUser.fullName && <CardTitle className="font-headline text-3xl md:text-4xl text-foreground">{profileUser.fullName}</CardTitle>}
+                {profileUser.fullName && 
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="font-headline text-3xl md:text-4xl text-foreground">{profileUser.fullName}</CardTitle>
+                    {profileUser.isVerified && <CheckCircle2 className="h-6 w-6 md:h-7 md:w-7 text-primary" />}
+                  </div>
+                }
                 <div className="flex items-center gap-1 text-muted-foreground mt-0.5">
                     <p className="text-lg">@{profileUser.username}</p>
                     {profileUser.accountType === 'private' && !isCurrentUserProfile && !isCurrentUserFollowingProfile && <Lock className="h-4 w-4" />}
@@ -671,7 +678,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               <Edit3 className="h-6 w-6 text-primary"/>Edit Profil
             </EditDialogTitle>
             <DialogDescription>
-               Perbarui informasi profil Anda. Email dan Nama Pengguna tidak dapat diubah.
+               Perbarui informasi profil Anda. Email dan Nama Pengguna tidak dapat diubah di sini.
             </DialogDescription>
           </DialogHeader>
           <ScrollArea className="max-h-[70vh] -mx-6 px-6">
@@ -753,7 +760,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                 <ShieldQuestion className="h-6 w-6 text-primary" />Pengaturan Privasi Akun
             </EditDialogTitle>
             <DialogDescription>
-              Kelola siapa yang dapat melihat konten Anda.
+              Kelola siapa yang dapat melihat konten Anda dan status verifikasi akun.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-6 py-4">
@@ -772,6 +779,23 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               </div>
               <p className="text-xs text-muted-foreground px-1">
                 Jika akun privat, hanya pengikut yang Anda setujui yang dapat melihat postingan Anda. Permintaan mengikuti akan diperlukan untuk pengguna baru yang ingin mengikuti Anda.
+              </p>
+            </div>
+            <div className="space-y-3">
+              <Label htmlFor="account-verified-switch" className="font-medium">Verifikasi Akun (Centang Biru)</Label>
+              <div className="flex items-center space-x-3 p-3 border rounded-md bg-muted/30">
+                <Switch
+                  id="account-verified-switch"
+                  checked={editedIsVerified}
+                  onCheckedChange={setEditedIsVerified}
+                />
+                <Label htmlFor="account-verified-switch" className="text-sm flex items-center gap-1.5 cursor-pointer">
+                  {editedIsVerified ? <CheckCircle2 className="h-4 w-4 text-primary"/> : <CheckCircle2 className="h-4 w-4 text-muted"/>}
+                  {editedIsVerified ? 'Akun Terverifikasi' : 'Akun Belum Terverifikasi'}
+                </Label>
+              </div>
+              <p className="text-xs text-muted-foreground px-1">
+                Aktifkan untuk menampilkan lencana verifikasi (centang biru) di profil Anda.
               </p>
             </div>
           </div>
@@ -896,7 +920,10 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
                 <AvatarImage src={user.avatarUrl} alt={user.username} data-ai-hint="portrait person"/>
                 <AvatarFallback>{user.username.substring(0,1).toUpperCase()}</AvatarFallback>
               </Avatar>
-              <span className="font-medium font-headline text-foreground md:group-hover:text-primary">{user.username}</span>
+              <div className="flex items-center gap-1.5">
+                <span className="font-medium font-headline text-foreground md:group-hover:text-primary">{user.username}</span>
+                {user.isVerified && <CheckCircle2 className="h-4 w-4 text-primary" />}
+              </div>
             </Link>
           );
         })}
@@ -904,4 +931,3 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
-
