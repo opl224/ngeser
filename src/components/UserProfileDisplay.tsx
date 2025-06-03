@@ -415,7 +415,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         if (user.id === currentSessionUserId) {
           return {
             ...user,
-            // username: editedUsername, // username tidak diubah
             fullName: editedFullName.trim(),
             bio: editedBio.trim(),
             avatarUrl: editedAvatarPreview || user.avatarUrl,
@@ -597,14 +596,14 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                     variant="outline"
                     size="sm"
                     onClick={handleOpenEditProfileModal}
-                    className="md:md:hover:bg-accent md:md:hover:text-accent-foreground"
+                    className="md:hover:bg-accent md:hover:text-accent-foreground"
                   >
                     <Edit3 className="h-4 w-4 md:mr-2" />
                     <span className="hidden md:inline">Edit Profil</span>
                   </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="px-2 w-9 md:md:hover:bg-accent md:md:hover:text-accent-foreground">
+                      <Button variant="ghost" size="sm" className="px-2 w-9 md:hover:bg-accent md:hover:text-accent-foreground">
                         <Settings className="h-5 w-5" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -620,12 +619,12 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                       variant={isCurrentUserFollowingProfile ? "secondary" : "default"}
                       size="sm"
                       disabled={isFollowButtonDisabled}
-                      className="md:md:hover:bg-primary/90"
+                      className="md:hover:bg-primary/90"
                     >
                       <FollowButtonIconComponent className="mr-2 h-4 w-4" />
                       {followButtonText}
                     </Button>
-                    <Button onClick={handleSendMessage} variant="outline" size="sm" className="px-3 md:md:hover:bg-accent md:md:hover:text-accent-foreground">
+                    <Button onClick={handleSendMessage} variant="outline" size="sm" className="px-3 md:hover:bg-accent md:hover:text-accent-foreground">
                         <MessageSquare className="h-4 w-4 md:mr-2" />
                         <span className="hidden md:inline">Pesan</span>
                     </Button>
@@ -644,7 +643,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handleLogoutAndDeleteAllData} className={cn(buttonVariants({ variant: "destructive" }), "md:md:hover:bg-destructive/90")}>
+            <AlertDialogAction onClick={handleLogoutAndDeleteAllData} className={cn(buttonVariants({ variant: "destructive" }), "md:hover:bg-destructive/90")}>
               Ya, Hapus Semua &amp; Keluar
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -659,7 +658,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               <Edit3 className="h-6 w-6 text-primary"/>Edit Profil
             </EditDialogTitle>
             <DialogDescription>
-              Perbarui informasi profil Anda. Email dan Nama Pengguna tidak dapat diubah.
+              Perbarui informasi profil Anda. Email dan Nama Pengguna tidak dapat diubah di sini.
             </DialogDescription>
           </DialogHeader>
           <ScrollArea className="max-h-[70vh] -mx-6 px-6">
@@ -710,7 +709,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                   type="file"
                   accept="image/*"
                   onChange={handleAvatarFileChange}
-                  className="mt-1 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary md:md:hover:file:bg-primary/20"
+                  className="mt-1 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary md:hover:file:bg-primary/20"
                 />
               </div>
               {editedAvatarPreview && (
@@ -727,8 +726,8 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             </div>
           </ScrollArea>
           <DialogFooter className="mt-2 pt-4 border-t">
-            <Button variant="outline" onClick={() => setIsEditProfileModalOpen(false)} className="md:md:hover:bg-accent md:md:hover:text-accent-foreground">Batal</Button>
-            <Button onClick={handleSaveChanges} className="md:md:hover:bg-primary/90"><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
+            <Button variant="outline" onClick={() => setIsEditProfileModalOpen(false)} className="md:hover:bg-accent md:hover:text-accent-foreground">Batal</Button>
+            <Button onClick={handleSaveChanges} className="md:hover:bg-primary/90"><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -764,54 +763,25 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsPrivacySettingsModalOpen(false)} className="md:md:hover:bg-accent md:md:hover:text-accent-foreground">Batal</Button>
-            <Button onClick={handleSavePrivacySettings} className="md:md:hover:bg-primary/90"><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
+            <Button variant="outline" onClick={() => setIsPrivacySettingsModalOpen(false)} className="md:hover:bg-accent md:hover:text-accent-foreground">Batal</Button>
+            <Button onClick={handleSavePrivacySettings} className="md:hover:bg-primary/90"><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {canViewProfileContent ? (
-        <Tabs defaultValue="posts" className="w-full">
-          <TabsList className={`grid w-full mb-6 bg-muted/50 rounded-lg ${isCurrentUserProfile ? 'grid-cols-4' : 'grid-cols-3'}`}>
-            <TabsTrigger value="posts" className="font-headline">Postingan</TabsTrigger>
-            <TabsTrigger value="followers" className="font-headline">Pengikut</TabsTrigger>
-            <TabsTrigger value="following" className="font-headline">Mengikuti</TabsTrigger>
-            {isCurrentUserProfile && <TabsTrigger value="saved" className="font-headline">Disimpan</TabsTrigger>}
-          </TabsList>
-          <TabsContent value="posts">
-            {allProfilePosts.length > 0 ? (
-              <div className="grid grid-cols-1 gap-6">
-                {allProfilePosts.map(post => {
-                  const isSavedByCurrentSessUser = (currentSessionUser?.savedPosts || []).includes(post.id);
-                  return(
-                  <PostCard
-                    key={post.id}
-                    post={post}
-                    onLikePost={handleLikePost}
-                    onAddComment={handleAddComment}
-                    onUpdatePostCaption={handleUpdatePostCaptionOnProfile}
-                    onDeletePost={handleDeletePostOnProfile}
-                    onToggleSavePost={handleToggleSavePost}
-                    isSavedByCurrentUser={isSavedByCurrentSessUser}
-                  />
-                );
-              })}
-              </div>
-            ) : (
-              <p className="text-center text-muted-foreground py-8 font-body">Belum ada postingan.</p>
-            )}
-          </TabsContent>
-          <TabsContent value="followers">
-            <UserList userIds={profileUser.followers || []} allUsers={allUsers} listTitle="Pengikut" />
-          </TabsContent>
-          <TabsContent value="following">
-            <UserList userIds={profileUser.following || []} allUsers={allUsers} listTitle="Mengikuti" />
-          </TabsContent>
-          {isCurrentUserProfile && (
-            <TabsContent value="saved">
-              {savedPostsForCurrentUser.length > 0 ? (
+      <div className="mt-8 w-full max-w-2xl mx-auto">
+        {canViewProfileContent ? (
+          <Tabs defaultValue="posts" className="w-full">
+            <TabsList className={`grid w-full mb-6 bg-muted/50 rounded-lg ${isCurrentUserProfile ? 'grid-cols-4' : 'grid-cols-3'}`}>
+              <TabsTrigger value="posts" className="font-headline">Postingan</TabsTrigger>
+              <TabsTrigger value="followers" className="font-headline">Pengikut</TabsTrigger>
+              <TabsTrigger value="following" className="font-headline">Mengikuti</TabsTrigger>
+              {isCurrentUserProfile && <TabsTrigger value="saved" className="font-headline">Disimpan</TabsTrigger>}
+            </TabsList>
+            <TabsContent value="posts">
+              {allProfilePosts.length > 0 ? (
                 <div className="grid grid-cols-1 gap-6">
-                  {savedPostsForCurrentUser.map(post => {
+                  {allProfilePosts.map(post => {
                     const isSavedByCurrentSessUser = (currentSessionUser?.savedPosts || []).includes(post.id);
                     return(
                     <PostCard
@@ -828,20 +798,51 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                 })}
                 </div>
               ) : (
-                <p className="text-center text-muted-foreground py-8 font-body">Belum ada postingan yang disimpan.</p>
+                <p className="text-center text-muted-foreground py-8 font-body">Belum ada postingan.</p>
               )}
             </TabsContent>
-          )}
-        </Tabs>
-      ) : (
-        <Card className="mt-6">
-          <CardContent className="py-12 text-center">
-            <Lock className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-headline text-foreground">Akun Ini Privat</h3>
-            <p className="text-muted-foreground mt-1">Ikuti pengguna ini untuk melihat postingan dan aktivitas mereka.</p>
-          </CardContent>
-        </Card>
-      )}
+            <TabsContent value="followers">
+              <UserList userIds={profileUser.followers || []} allUsers={allUsers} listTitle="Pengikut" />
+            </TabsContent>
+            <TabsContent value="following">
+              <UserList userIds={profileUser.following || []} allUsers={allUsers} listTitle="Mengikuti" />
+            </TabsContent>
+            {isCurrentUserProfile && (
+              <TabsContent value="saved">
+                {savedPostsForCurrentUser.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-6">
+                    {savedPostsForCurrentUser.map(post => {
+                      const isSavedByCurrentSessUser = (currentSessionUser?.savedPosts || []).includes(post.id);
+                      return(
+                      <PostCard
+                        key={post.id}
+                        post={post}
+                        onLikePost={handleLikePost}
+                        onAddComment={handleAddComment}
+                        onUpdatePostCaption={handleUpdatePostCaptionOnProfile}
+                        onDeletePost={handleDeletePostOnProfile}
+                        onToggleSavePost={handleToggleSavePost}
+                        isSavedByCurrentUser={isSavedByCurrentSessUser}
+                      />
+                    );
+                  })}
+                  </div>
+                ) : (
+                  <p className="text-center text-muted-foreground py-8 font-body">Belum ada postingan yang disimpan.</p>
+                )}
+              </TabsContent>
+            )}
+          </Tabs>
+        ) : (
+          <Card className="w-full">
+            <CardContent className="py-12 text-center">
+              <Lock className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-xl font-headline text-foreground">Akun Ini Privat</h3>
+              <p className="text-muted-foreground mt-1">Ikuti pengguna ini untuk melihat postingan dan aktivitas mereka.</p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }
@@ -866,12 +867,12 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
           const user = allUsers.find(u => u.id === id);
           if (!user) return null;
           return (
-            <Link href={`/profile/${user.id}`} key={id} className="flex items-center gap-3 p-3 md:md:hover:bg-muted/50 rounded-md transition-colors group">
-              <Avatar className="h-10 w-10 border md:md:group-hover:border-primary">
+            <Link href={`/profile/${user.id}`} key={id} className="flex items-center gap-3 p-3 md:hover:bg-muted/50 rounded-md transition-colors group">
+              <Avatar className="h-10 w-10 border md:group-hover:border-primary">
                 <AvatarImage src={user.avatarUrl} alt={user.username} data-ai-hint="portrait person"/>
                 <AvatarFallback>{user.username.substring(0,1).toUpperCase()}</AvatarFallback>
               </Avatar>
-              <span className="font-medium font-headline text-foreground md:md:group-hover:text-primary">{user.username}</span>
+              <span className="font-medium font-headline text-foreground md:group-hover:text-primary">{user.username}</span>
             </Link>
           );
         })}
