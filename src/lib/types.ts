@@ -56,7 +56,7 @@ export type NotificationType =
   | 'follow' 
   | 'follow_request' 
   | 'follow_accepted'
-  | 'follow_request_handled'; // New type for recipient's view after action
+  | 'follow_request_handled';
 
 export interface Notification {
   id: string;
@@ -68,8 +68,8 @@ export interface Notification {
   postMediaUrl?: string;    
   timestamp: string;
   isRead: boolean;
-  // Optional field to store the outcome if the original notification is transformed
   processedState?: 'accepted' | 'declined'; 
+  messageOverride?: string; // Optional: for specific messages when normal processing fails partially
 }
 
 export interface Message {
@@ -97,3 +97,5 @@ export interface Conversation {
   timestamp: string; 
   unreadCount?: Record<string, number>; 
 }
+
+    
