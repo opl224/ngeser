@@ -68,10 +68,15 @@ export interface Message {
   conversationId: string;
   senderId: string;
   sender?: User; 
-  text: string;
+  text: string; 
   timestamp: string;
   isRead?: boolean; 
-  editedTimestamp?: string; // Untuk menandai pesan yang diedit
+  editedTimestamp?: string; 
+  replyToInfo?: {
+    originalSenderUsername: string;
+    originalMessagePreview: string;
+    originalMessageId: string; 
+  };
 }
 
 export interface Conversation {

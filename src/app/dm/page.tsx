@@ -9,11 +9,9 @@ import type { User, Conversation, Message as MessageType } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-// Textarea tidak lagi digunakan untuk edit inline di bubble
-// import { Textarea } from '@/components/ui/textarea'; 
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, MessageSquare, Send, ArrowLeft, Users, Info, MoreHorizontal, Edit, Trash2, CornerUpLeft, MoreVertical, X, Save } from 'lucide-react'; // Import Save
+import { Loader2, MessageSquare, Send, ArrowLeft, Users, Info, MoreHorizontal, Edit, Trash2, CornerUpLeft, MoreVertical, X, Save } from 'lucide-react'; 
 import Link from 'next/link';
 import { formatTimestamp } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
@@ -38,6 +36,25 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 
+interface ParsedOldReply {
+  repliedToUsername: string;
+  quotedTextPreview: string;
+  actualReplyText: string;
+}
+
+function parseOldReply(text: string): ParsedOldReply | null {
+  const oldReplyRegex = /^> Membalas kepada (.*?): "(.*?)"\n\n([\s\S]*)$/;
+  const match = text.match(oldReplyRegex);
+  if (match) {
+    return {
+      repliedToUsername: match[1],
+      quotedTextPreview: match[2],
+      actualReplyText: match[3],
+    };
+  }
+  return null;
+}
+
 export default function DirectMessagesPage() {
   const router = useRouter();
   const pathname = usePathname();
@@ -55,9 +72,7 @@ export default function DirectMessagesPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const newMessageInputRef = useRef<HTMLInputElement>(null);
 
-  // State untuk message actions
-  const [editingMessage, setEditingMessage] = useState<MessageType | null>(null); // Jika ada, kita edit pesan ini via global input
-  // const [editedText, setEditedText] = useState(''); // Tidak lagi digunakan untuk inline edit
+  const [editingMessage, setEditingMessage] = useState<MessageType | null>(null); 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState<MessageType | null>(null);
   const [replyingToMessage, setReplyingToMessage] = useState<MessageType | null>(null);
@@ -119,7 +134,6 @@ export default function DirectMessagesPage() {
           ...c,
           otherParticipant,
           lastMessageTimestamp: lastMessage?.timestamp || c.timestamp,
-          // lastMessageText: lastMessage?.text || "Belum ada pesan", // Dihapus
         };
       })
       .sort((a, b) => new Date(b.lastMessageTimestamp).getTime() - new Date(a.lastMessageTimestamp).getTime());
@@ -143,15 +157,31 @@ export default function DirectMessagesPage() {
 
   const handleConfirmGlobalEdit = () => {
     if (!editingMessage || !newMessageText.trim()) return;
+
     setConversations(prevConvos =>
       prevConvos.map(convo => {
         if (convo.id === editingMessage.conversationId) {
-          const updatedMessages = convo.messages.map(msg =>
-            msg.id === editingMessage.id ? { ...msg, text: newMessageText.trim(), editedTimestamp: new Date().toISOString() } : msg
-          );
+          const updatedMessages = convo.messages.map(msg => {
+            if (msg.id === editingMessage.id) {
+              let updatedText = newMessageText.trim();
+              // If it's an old-style reply being edited, reconstruct its full text
+              if (!editingMessage.replyToInfo && parseOldReply(editingMessage.text)) {
+                const oldParsed = parseOldReply(editingMessage.text)!;
+                updatedText = `> Membalas kepada ${oldParsed.repliedToUsername}: "${oldParsed.quotedTextPreview}"\n\n${newMessageText.trim()}`;
+              }
+              return { ...msg, text: updatedText, editedTimestamp: new Date().toISOString() };
+            }
+            return msg;
+          });
+          
           let updatedLastMessage = convo.lastMessage;
           if (convo.lastMessage?.id === editingMessage.id) {
-            updatedLastMessage = { ...updatedLastMessage, text: newMessageText.trim() };
+            let lastMsgText = newMessageText.trim();
+            if (!editingMessage.replyToInfo && parseOldReply(editingMessage.text)) {
+                const oldParsed = parseOldReply(editingMessage.text)!;
+                lastMsgText = `> Membalas kepada ${oldParsed.repliedToUsername}: "${oldParsed.quotedTextPreview}"\n\n${newMessageText.trim()}`;
+            }
+            updatedLastMessage = { ...updatedLastMessage, text: lastMsgText };
           }
           return { ...convo, messages: updatedMessages, lastMessage: updatedLastMessage };
         }
@@ -177,23 +207,34 @@ export default function DirectMessagesPage() {
         return;
     }
 
-
-    let textToSend = newMessageText.trim();
-    if (replyingToMessage) {
-        const repliedMsgPreview = replyingToMessage.text.length > 30 
-            ? `${replyingToMessage.text.substring(0, 30)}...` 
-            : replyingToMessage.text;
-        textToSend = `> Membalas kepada ${allUsers.find(u => u.id === replyingToMessage.senderId)?.username || 'Seseorang'}: "${repliedMsgPreview}"\n\n${textToSend}`;
-    }
-
     const messageId = `msg-${Date.now()}-${Math.random().toString(36).substring(2,9)}`;
-    const newMessage: MessageType = {
-      id: messageId,
-      conversationId: selectedConversationId,
-      senderId: currentUserId,
-      text: textToSend,
-      timestamp: new Date().toISOString(),
-    };
+    let newMessage: MessageType;
+
+    if (replyingToMessage) {
+        const repliedMsgTextForPreview = replyingToMessage.replyToInfo ? replyingToMessage.text : (parseOldReply(replyingToMessage.text)?.actualReplyText || replyingToMessage.text);
+        const preview = repliedMsgTextForPreview.length > 60 ? `${repliedMsgTextForPreview.substring(0, 60)}...` : repliedMsgTextForPreview;
+
+        newMessage = {
+            id: messageId,
+            conversationId: selectedConversationId,
+            senderId: currentUserId,
+            text: newMessageText.trim(),
+            timestamp: new Date().toISOString(),
+            replyToInfo: {
+                originalSenderUsername: allUsers.find(u => u.id === replyingToMessage.senderId)?.username || 'Seseorang',
+                originalMessagePreview: preview,
+                originalMessageId: replyingToMessage.id,
+            }
+        };
+    } else {
+        newMessage = {
+            id: messageId,
+            conversationId: selectedConversationId,
+            senderId: currentUserId,
+            text: newMessageText.trim(),
+            timestamp: new Date().toISOString(),
+        };
+    }
 
     setConversations(prevConvos =>
       prevConvos.map(convo => {
@@ -202,7 +243,7 @@ export default function DirectMessagesPage() {
             ...convo,
             messages: [...convo.messages, newMessage],
             lastMessage: newMessage,
-            timestamp: newMessage.timestamp, // Update conversation timestamp for sorting
+            timestamp: newMessage.timestamp, 
           };
         }
         return convo;
@@ -218,17 +259,20 @@ export default function DirectMessagesPage() {
     }
   }, [selectedConversation?.messages.length]);
 
-  // Fungsi untuk memulai edit global
   const handleStartGlobalEdit = (message: MessageType) => {
     setEditingMessage(message);
-    setNewMessageText(message.text);
+    if (message.replyToInfo) {
+      setNewMessageText(message.text);
+    } else {
+      const oldParsed = parseOldReply(message.text);
+      setNewMessageText(oldParsed ? oldParsed.actualReplyText : message.text);
+    }
     setReplyingToMessage(null); 
     if (newMessageInputRef.current) {
       newMessageInputRef.current.focus();
     }
   };
 
-  // Fungsi untuk membatalkan edit global
   const cancelGlobalEdit = () => {
     setEditingMessage(null);
     setNewMessageText('');
@@ -258,15 +302,15 @@ export default function DirectMessagesPage() {
     toast({ title: "Pesan Dihapus", description: "Pesan telah dihapus.", variant: "destructive" });
     setShowDeleteConfirm(false);
     setMessageToDelete(null);
-    if (editingMessage?.id === messageToDelete?.id) { // Jika pesan yg dihapus sedang diedit
+    if (editingMessage?.id === messageToDelete?.id) { 
         cancelGlobalEdit();
     }
   };
 
   const handleReplyMessage = (message: MessageType) => {
     setReplyingToMessage(message);
-    setEditingMessage(null); // Cancel edit mode if switching to reply
-    setNewMessageText(''); // Clear input for reply
+    setEditingMessage(null); 
+    setNewMessageText(''); 
     if (newMessageInputRef.current) {
       newMessageInputRef.current.focus();
     }
@@ -304,11 +348,11 @@ export default function DirectMessagesPage() {
         "w-full md:w-1/3 md:max-w-sm border-r border-border bg-card/30 flex flex-col",
         isMobileViewAndViewingMessages ? "hidden md:flex" : "flex"
       )}>
-         <div className="p-3 border-b border-border flex items-center gap-2 sticky top-0 bg-card/30 z-10">
-            <Button variant="ghost" size="icon" onClick={() => router.back()} aria-label="Kembali">
-                <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <span className="font-headline text-md font-semibold text-foreground">Pesan</span>
+        <div className="p-3 border-b border-border flex items-center gap-2 sticky top-0 bg-card/30 z-10">
+          <Button variant="ghost" size="icon" onClick={() => router.back()} aria-label="Kembali">
+              <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <span className="font-headline text-md font-semibold text-foreground">Pesan</span>
         </div>
 
         <ScrollArea className="flex-1">
@@ -332,13 +376,12 @@ export default function DirectMessagesPage() {
                       <p className="font-headline text-sm font-semibold truncate">{convo.otherParticipant?.username || "Pengguna tidak dikenal"}</p>
                       <p className="text-xs text-muted-foreground flex-shrink-0 ml-2">{formatTimestamp(convo.lastMessageTimestamp)}</p>
                     </div>
-                     {/* Pratinjau pesan terakhir dihilangkan dari sini */}
                   </div>
                 </div>
               </div>
             ))
           ) : (
-            <div className="p-6 text-center text-muted-foreground flex flex-col items-center justify-center h-full">
+             <div className="p-6 text-center text-muted-foreground flex flex-col items-center justify-center h-full">
               <Users className="h-12 w-12 mx-auto mb-3" />
               <p className="text-sm">Belum ada percakapan.</p>
               <p className="text-xs mt-1">Mulai percakapan dari profil pengguna.</p>
@@ -370,6 +413,41 @@ export default function DirectMessagesPage() {
               {selectedConversation.messages.map(msg => {
                 const isCurrentUserSender = msg.senderId === currentUserId;
                 const sender = isCurrentUserSender ? currentUser : selectedConversation.otherParticipant;
+                const oldParsedReply = !msg.replyToInfo ? parseOldReply(msg.text) : null;
+                
+                let messageDisplayContent;
+                if (msg.replyToInfo) {
+                    messageDisplayContent = (
+                        <>
+                          <div className="bg-muted/30 p-2 rounded-md mb-1.5 border-l-4 border-primary/60 text-xs shadow">
+                            <p className="font-semibold text-foreground/80">
+                              {msg.replyToInfo.originalSenderUsername}
+                            </p>
+                            <p className="italic truncate text-muted-foreground/90">
+                              "{msg.replyToInfo.originalMessagePreview}"
+                            </p>
+                          </div>
+                          <p className="whitespace-pre-wrap">{msg.text}</p>
+                        </>
+                    );
+                } else if (oldParsedReply) {
+                    messageDisplayContent = (
+                        <>
+                          <div className="bg-muted/30 p-2 rounded-md mb-1.5 border-l-4 border-primary/60 text-xs shadow">
+                            <p className="font-semibold text-foreground/80">
+                              {oldParsedReply.repliedToUsername}
+                            </p>
+                            <p className="italic truncate text-muted-foreground/90">
+                              "{oldParsedReply.quotedTextPreview}"
+                            </p>
+                          </div>
+                          <p className="whitespace-pre-wrap">{oldParsedReply.actualReplyText}</p>
+                        </>
+                    );
+                } else {
+                    messageDisplayContent = <p className="whitespace-pre-wrap">{msg.text}</p>;
+                }
+
                 return (
                   <div key={msg.id} className={cn("group flex items-center gap-2 max-w-[85%] sm:max-w-[75%] mb-3", isCurrentUserSender ? "ml-auto flex-row-reverse" : "mr-auto")}>
                     {!isCurrentUserSender && (
@@ -382,7 +460,7 @@ export default function DirectMessagesPage() {
                         "p-2.5 rounded-xl text-sm leading-relaxed shadow-sm",
                         isCurrentUserSender ? "bg-primary text-primary-foreground rounded-br-none" : "bg-muted text-foreground rounded-bl-none"
                       )}>
-                        <p className="whitespace-pre-wrap">{msg.text}</p>
+                        {messageDisplayContent}
                         <p className={cn("text-xs mt-1", isCurrentUserSender ? "text-primary-foreground/70 text-right" : "text-muted-foreground/80 text-left")}>
                           {formatTimestamp(msg.timestamp)}
                           {msg.editedTimestamp && <span className="italic text-xs"> (diedit)</span>}
@@ -427,22 +505,26 @@ export default function DirectMessagesPage() {
               <div ref={messagesEndRef} />
             </ScrollArea>
             <div className="p-3 border-t border-border bg-card/50 sticky bottom-0 z-10">
-              {replyingToMessage && !editingMessage && ( // Hanya tampilkan jika tidak sedang mengedit
-                <div className="mb-2 p-2 text-xs text-muted-foreground bg-muted/60 rounded-md flex justify-between items-center">
+              {replyingToMessage && !editingMessage && ( 
+                <div className="bg-muted/30 p-2.5 rounded-lg mb-2 border-l-4 border-primary shadow-sm text-sm flex justify-between items-start">
                   <div className="overflow-hidden">
-                    Membalas kepada <strong className="text-foreground">{allUsers.find(u => u.id === replyingToMessage.senderId)?.username || 'Seseorang'}</strong>:
-                    <p className="italic truncate">"{replyingToMessage.text}"</p>
+                    <p className="font-semibold text-foreground">Membalas kepada {allUsers.find(u => u.id === replyingToMessage.senderId)?.username || 'Seseorang'}</p>
+                    <p className="italic truncate text-muted-foreground text-xs">
+                      "{replyingToMessage.replyToInfo ? replyingToMessage.text : (parseOldReply(replyingToMessage.text)?.actualReplyText || replyingToMessage.text).substring(0,60) + ((replyingToMessage.replyToInfo ? replyingToMessage.text : (parseOldReply(replyingToMessage.text)?.actualReplyText || replyingToMessage.text)).length > 60 ? '...' : '')}"
+                    </p>
                   </div>
                   <Button variant="ghost" size="icon" onClick={cancelReply} className="h-6 w-6 p-1 ml-2 flex-shrink-0">
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
               )}
-              {editingMessage && ( // Tampilkan jika sedang mengedit
-                <div className="mb-2 p-2 text-xs text-muted-foreground bg-muted/60 rounded-md flex justify-between items-center">
+              {editingMessage && ( 
+                <div className="bg-muted/30 p-2.5 rounded-lg mb-2 border-l-4 border-accent shadow-sm text-sm flex justify-between items-start">
                   <div className="overflow-hidden">
-                    Mengedit pesan:
-                    <p className="italic truncate">"{editingMessage.text.length > 70 ? editingMessage.text.substring(0, 70) + '...' : editingMessage.text}"</p>
+                    <p className="font-semibold text-foreground">Mengedit pesan:</p>
+                    <p className="italic truncate text-muted-foreground text-xs">
+                        "{editingMessage.text.length > 70 ? editingMessage.text.substring(0, 70) + '...' : editingMessage.text}"
+                    </p>
                   </div>
                   <Button variant="ghost" size="icon" onClick={cancelGlobalEdit} className="h-6 w-6 p-1 ml-2 flex-shrink-0">
                     <X className="h-4 w-4" />
