@@ -29,7 +29,7 @@ function createAndAddNotification(
   newNotificationData: Omit<Notification, 'id' | 'timestamp' | 'isRead'>
 ) {
   if (newNotificationData.actorUserId === newNotificationData.recipientUserId) {
-    return; 
+    return;
   }
   const notification: Notification = {
     ...newNotificationData,
@@ -42,8 +42,10 @@ function createAndAddNotification(
 
 
 export default function FeedPage() {
+  // Hooks are ordered: state, refs, other hooks (router, toast), memo, callback, effects
   const router = useRouter();
   const { toast } = useToast();
+
   const [posts, setPosts] = useLocalStorageState<Post[]>('posts', initialPosts);
   const [users, setUsers] = useLocalStorageState<User[]>('users', initialUsers);
   const [notifications, setNotifications] = useLocalStorageState<Notification[]>('notifications', initialNotifications);
@@ -59,58 +61,19 @@ export default function FeedPage() {
 
   const [storyCommentInputVisible, setStoryCommentInputVisible] = useState(false);
   const [storyCommentText, setStoryCommentText] = useState('');
-  const touchStartY = useRef<number | null>(null);
-  const touchCurrentY = useRef<number | null>(null);
-  const SWIPE_THRESHOLD = 50; 
-  const videoRef = useRef<HTMLVideoElement>(null);
   const [isStoryVideoManuallyPaused, setIsStoryVideoManuallyPaused] = useState(false);
 
+  const touchStartY = useRef<number | null>(null);
+  const touchCurrentY = useRef<number | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null); // Keep if used by PostCard or other components rendered here
+
+  const SWIPE_THRESHOLD = 50;
 
   const currentSessionUser = useMemo(() => {
     if (!currentUserId || !users) return null;
     return users.find(u => u.id === currentUserId);
   }, [currentUserId, users]);
-
-
-  useEffect(() => {
-    const id = getCurrentUserId();
-    if (!id) {
-      setAuthStatus('unauthenticated');
-      router.push('/login');
-    } else {
-      setCurrentUserIdState(id);
-      setAuthStatus('authenticated');
-    }
-  }, [router]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedPosts = localStorage.getItem('posts');
-      if (storedPosts === null) {
-        localStorage.setItem('posts', JSON.stringify(initialPosts));
-      }
-      const storedUsers = localStorage.getItem('users');
-      if (storedUsers === null) {
-        localStorage.setItem('users', JSON.stringify(initialUsers.map(u => ({...u, accountType: 'public', pendingFollowRequests: [], sentFollowRequests: []}))));
-      }
-      const storedNotifications = localStorage.getItem('notifications');
-      if (storedNotifications === null) {
-        localStorage.setItem('notifications', JSON.stringify(initialNotifications));
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 300) {
-        setShowScrollTop(true);
-      } else {
-        setShowScrollTop(false);
-      }
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   const usersWithStories = useMemo(() => {
     if (!posts || !users) return [];
@@ -142,10 +105,24 @@ export default function FeedPage() {
             latestStoryTimestamp: userStoryData[user!.id].latestTimestamp
         })) as UserWithStoryCount[];
 
-
     return usersFound.sort((a, b) => new Date(b.latestStoryTimestamp).getTime() - new Date(a.latestStoryTimestamp).getTime());
   }, [posts, users, currentSessionUser]);
 
+  const feedPosts = useMemo(() => {
+    if (!currentSessionUser || !users.length || !posts.length) return [];
+    return posts
+      .filter(post => {
+        if (post.type === 'story') return false; // Exclude stories from main feed
+        const author = users.find(u => u.id === post.userId);
+        if (!author) return false; // Should not happen with consistent data
+        if (author.accountType === 'public') return true;
+        if (author.accountType === 'private' && (currentSessionUser.following.includes(author.id) || author.id === currentSessionUser.id)) {
+          return true;
+        }
+        return false;
+      })
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }, [posts, users, currentSessionUser]);
 
   const navigateStory = useCallback((direction: 'next' | 'prev') => {
     if (!storyModalContent || currentUserStories.length === 0) {
@@ -179,6 +156,53 @@ export default function FeedPage() {
     }
   }, [currentUserStories, currentStoryIndex, storyModalContent]);
 
+  useEffect(() => {
+    const id = getCurrentUserId();
+    if (!id) {
+      setAuthStatus('unauthenticated');
+      // router.push('/login') will be called, but render cycle continues.
+      // The conditional return below handles the UI for 'unauthenticated'.
+    } else {
+      setCurrentUserIdState(id);
+      setAuthStatus('authenticated');
+    }
+  }, [router]); // No change needed to this useEffect's logic itself
+
+  useEffect(() => {
+    if (authStatus === 'unauthenticated' && !getCurrentUserId()) {
+      router.push('/login');
+    }
+  }, [authStatus, router]);
+
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedPosts = localStorage.getItem('posts');
+      if (storedPosts === null) {
+        localStorage.setItem('posts', JSON.stringify(initialPosts));
+      }
+      const storedUsers = localStorage.getItem('users');
+      if (storedUsers === null) {
+        localStorage.setItem('users', JSON.stringify(initialUsers.map(u => ({...u, accountType: 'public', pendingFollowRequests: [], sentFollowRequests: []}))));
+      }
+      const storedNotifications = localStorage.getItem('notifications');
+      if (storedNotifications === null) {
+        localStorage.setItem('notifications', JSON.stringify(initialNotifications));
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 300) {
+        setShowScrollTop(true);
+      } else {
+        setShowScrollTop(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     if (!isStoryModalOpen) {
@@ -189,9 +213,9 @@ export default function FeedPage() {
       setIsStoryVideoManuallyPaused(false);
       if (videoRef.current) {
         videoRef.current.pause();
-        videoRef.current.src = ""; 
+        videoRef.current.src = "";
       }
-      setStoryProgress(0); 
+      setStoryProgress(0);
     }
   }, [isStoryModalOpen]);
 
@@ -199,12 +223,12 @@ export default function FeedPage() {
   useEffect(() => {
     let imageTimer: NodeJS.Timeout | undefined;
     if (isStoryModalOpen && storyModalContent?.post.mediaMimeType?.startsWith('image/')) {
-      setStoryProgress(0); 
-      const duration = 7000; 
-      const interval = 50; 
+      setStoryProgress(0);
+      const duration = 7000;
+      const interval = 50;
       const steps = duration / interval;
       let currentStep = 0;
-      
+
       imageTimer = setInterval(() => {
         currentStep++;
         setStoryProgress((currentStep / steps) * 100);
@@ -221,12 +245,12 @@ export default function FeedPage() {
         imageTimer = undefined;
       }
     };
-  }, [isStoryModalOpen, storyModalContent?.post.id, currentStoryIndex, navigateStory]); 
+  }, [isStoryModalOpen, storyModalContent?.post.id, currentStoryIndex, navigateStory]);
 
   useEffect(() => {
     if (isStoryModalOpen && storyModalContent?.post.mediaMimeType?.startsWith('video/') && videoRef.current) {
-      setIsStoryVideoManuallyPaused(false); 
-      videoRef.current.currentTime = 0; 
+      setIsStoryVideoManuallyPaused(false);
+      videoRef.current.currentTime = 0;
       const playPromise = videoRef.current.play();
       if (playPromise !== undefined) {
         playPromise.catch(error => {
@@ -234,7 +258,7 @@ export default function FeedPage() {
         });
       }
     }
-  }, [isStoryModalOpen, storyModalContent?.post.id, storyModalContent?.post.mediaUrl]); 
+  }, [isStoryModalOpen, storyModalContent?.post.id, storyModalContent?.post.mediaUrl]);
 
   useEffect(() => {
     if (isStoryModalOpen && storyModalContent?.post.mediaMimeType?.startsWith('video/') && videoRef.current) {
@@ -250,7 +274,7 @@ export default function FeedPage() {
     }
   }, [storyCommentInputVisible, isStoryModalOpen, storyModalContent?.post.mediaMimeType, isStoryVideoManuallyPaused]);
 
-
+  // Helper functions (defined after all hooks)
   const handleVideoClick = () => {
     if (videoRef.current && storyModalContent?.post.mediaMimeType?.startsWith('video/')) {
       if (videoRef.current.paused) {
@@ -405,9 +429,9 @@ export default function FeedPage() {
 
     const deltaY = touchStartY.current - touchCurrentY.current;
 
-    if (deltaY > SWIPE_THRESHOLD) { 
+    if (deltaY > SWIPE_THRESHOLD) {
       setStoryCommentInputVisible(true);
-    } else if (deltaY < -SWIPE_THRESHOLD && storyCommentInputVisible) { 
+    } else if (deltaY < -SWIPE_THRESHOLD && storyCommentInputVisible) {
       setStoryCommentInputVisible(false);
     }
 
@@ -424,7 +448,11 @@ export default function FeedPage() {
     setStoryCommentInputVisible(false);
   };
 
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
+  // Conditional returns after all hooks are defined
   if (authStatus === 'loading') {
     return (
       <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)]">
@@ -435,6 +463,7 @@ export default function FeedPage() {
   }
 
   if (authStatus === 'unauthenticated') {
+    // useEffect above handles router.push. This is a fallback UI.
     return (
       <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
@@ -443,27 +472,7 @@ export default function FeedPage() {
     );
   }
 
-  const feedPosts = useMemo(() => {
-    if (!currentSessionUser || !users.length || !posts.length) return [];
-    return posts
-      .filter(post => {
-        if (post.type === 'story') return false; // Exclude stories from main feed
-        const author = users.find(u => u.id === post.userId);
-        if (!author) return false; // Should not happen with consistent data
-        if (author.accountType === 'public') return true;
-        if (author.accountType === 'private' && (currentSessionUser.following.includes(author.id) || author.id === currentSessionUser.id)) {
-          return true;
-        }
-        return false;
-      })
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  }, [posts, users, currentSessionUser]);
-
-
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
+  // Main component render if authenticated
   return (
     <div className="w-full max-w-2xl mx-auto">
       {usersWithStories.length > 0 && <StoryAvatarReel usersWithStories={usersWithStories} onAvatarClick={handleStoryAvatarClick} />}
@@ -505,10 +514,10 @@ export default function FeedPage() {
       )}
 
       <Dialog open={isStoryModalOpen} onOpenChange={setIsStoryModalOpen}>
-        <DialogContent 
+        <DialogContent
           className={cn(
             "p-0 bg-black text-white flex flex-col items-center justify-center overflow-hidden",
-            "fixed inset-x-0 top-0 bottom-[3.5rem]", 
+            "fixed inset-x-0 top-0 bottom-[3.5rem]",
             "sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2",
             "sm:max-w-sm sm:w-full sm:h-auto sm:max-h-[90vh] sm:aspect-[9/16] sm:rounded-lg"
           )}
@@ -533,9 +542,9 @@ export default function FeedPage() {
                            <div className="h-full bg-white rounded-full" style={{ width: `${storyProgress}%` }}></div>
                         )}
                         {index === currentStoryIndex && storyModalContent.post.mediaMimeType?.startsWith('video/') && (
-                           <div className="h-full bg-white rounded-full w-full"></div> 
+                           <div className="h-full bg-white rounded-full w-full"></div>
                         )}
-                        {index < currentStoryIndex && ( 
+                        {index < currentStoryIndex && (
                            <div className="h-full bg-white rounded-full w-full opacity-80"></div>
                         )}
                       </div>
@@ -575,19 +584,19 @@ export default function FeedPage() {
                     alt={storyModalContent.post.caption || 'Story image'}
                     layout="fill"
                     objectFit="contain"
-                    className="rounded-md" 
+                    className="rounded-md"
                     data-ai-hint="story content image"
                   />
                 ) : storyModalContent.post.mediaMimeType?.startsWith('video/') ? (
                   <video
-                    key={storyModalContent.post.id} 
+                    key={storyModalContent.post.id}
                     ref={videoRef}
-                    src={storyModalContent.post.mediaUrl} 
-                    playsInline 
-                    className="w-full h-full object-contain" 
+                    src={storyModalContent.post.mediaUrl}
+                    playsInline
+                    className="w-full h-full object-contain"
                     data-ai-hint="story content video"
                     onEnded={() => navigateStory('next')}
-                    onClick={handleVideoClick} 
+                    onClick={handleVideoClick}
                   />
                 ) : (
                   <p className="text-center">Format media tidak didukung.</p>
@@ -601,7 +610,7 @@ export default function FeedPage() {
               )}
             </div>
           )}
-          {isStoryModalOpen && storyModalContent && storyCommentInputVisible && currentSessionUser && ( 
+          {isStoryModalOpen && storyModalContent && storyCommentInputVisible && currentSessionUser && (
             <div className="absolute bottom-0 left-0 right-0 p-3 bg-background/80 backdrop-blur-sm z-30 flex items-start gap-2 sm:hidden">
               <Avatar className="h-8 w-8 mt-1">
                 <AvatarImage src={currentSessionUser.avatarUrl} alt={currentSessionUser.username} data-ai-hint="user avatar small" />
@@ -624,3 +633,5 @@ export default function FeedPage() {
     </div>
   );
 }
+
+    
