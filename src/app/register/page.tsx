@@ -52,14 +52,14 @@ export default function RegisterPage() {
 
     const currentUsers = Array.isArray(users) ? users : [];
 
-    const emailExists = currentUsers.some(u => u.email.toLowerCase() === email.trim().toLowerCase());
+    const emailExists = currentUsers.some(u => u && typeof u.email === 'string' && u.email.toLowerCase() === email.trim().toLowerCase());
     if (emailExists) {
       toast({ title: "Email Sudah Terdaftar", description: "Email ini sudah digunakan. Silakan gunakan email lain.", variant: "destructive" });
       setIsLoading(false);
       return;
     }
 
-    const usernameExists = currentUsers.some(u => u.username.toLowerCase() === username.trim().toLowerCase());
+    const usernameExists = currentUsers.some(u => u && typeof u.username === 'string' && u.username.toLowerCase() === username.trim().toLowerCase());
     if (usernameExists) {
       toast({ title: "Nama Pengguna Sudah Ada", description: "Nama pengguna ini sudah digunakan. Silakan pilih yang lain.", variant: "destructive" });
       setIsLoading(false);
@@ -190,7 +190,7 @@ export default function RegisterPage() {
             </Button>
              <p className="text-sm text-center text-muted-foreground">
               Sudah punya akun?{' '}
-              <Link href="/login" className="font-medium text-primary hover:underline">
+              <Link href="/login" className="font-medium text-primary md:hover:underline">
                 Masuk di sini
               </Link>
             </p>
