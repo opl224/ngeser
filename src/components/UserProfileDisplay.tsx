@@ -50,7 +50,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from '@/lib/utils';
 import type React_dot_FC from 'react'; // Changed React to React_dot_FC to avoid conflict
 import { useTheme } from 'next-themes';
@@ -425,7 +425,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         if (user.id === currentSessionUserId) {
           return {
             ...user,
-            // username: editedUsername.trim(), // Username is now read-only
             fullName: editedFullName.trim(),
             bio: editedBio.trim(),
             avatarUrl: editedAvatarPreview || user.avatarUrl,
@@ -460,6 +459,11 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       description: "Pengaturan privasi akun Anda telah disimpan.",
     });
     setIsPrivacySettingsModalOpen(false);
+  };
+  
+  const handleSendMessage = () => {
+    if (!currentSessionUserId || !profileUser || currentSessionUserId === profileUser.id) return;
+    router.push(`/dm?userId=${profileUser.id}`);
   };
 
 
@@ -532,7 +536,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       <DropdownMenuSeparator />
       <AlertDialogTrigger asChild>
         <DropdownMenuItem
-          className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+          className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer md:hover:bg-destructive/10"
           onSelect={(e) => e.preventDefault()}
         >
           <Trash2 className="mr-2 h-4 w-4" />
@@ -784,11 +788,14 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             </TabsList>
             <TabsContent value="posts">
               <Tabs defaultValue="all" onValueChange={(value) => setPostFilterType(value as 'all' | 'photo' | 'reel')}>
-                <TabsList className="grid w-full grid-cols-3 mb-4 bg-muted/30">
-                  <TabsTrigger value="all" className="font-headline text-xs sm:text-sm"><LayoutGrid className="h-3.5 w-3.5 mr-1.5"/>Semua</TabsTrigger>
-                  <TabsTrigger value="photo" className="font-headline text-xs sm:text-sm"><ImageIconLucide className="h-3.5 w-3.5 mr-1.5"/>Foto</TabsTrigger>
-                  <TabsTrigger value="reel" className="font-headline text-xs sm:text-sm"><Video className="h-3.5 w-3.5 mr-1.5"/>Reels</TabsTrigger>
-                </TabsList>
+                <ScrollArea className="w-full mb-4">
+                  <TabsList className="inline-flex h-10 items-center justify-start p-1 text-muted-foreground bg-muted/30 rounded-md">
+                    <TabsTrigger value="all" className="font-headline text-xs sm:text-sm"><LayoutGrid className="h-3.5 w-3.5 mr-1.5"/>Semua</TabsTrigger>
+                    <TabsTrigger value="photo" className="font-headline text-xs sm:text-sm"><ImageIconLucide className="h-3.5 w-3.5 mr-1.5"/>Foto</TabsTrigger>
+                    <TabsTrigger value="reel" className="font-headline text-xs sm:text-sm"><Video className="h-3.5 w-3.5 mr-1.5"/>Reels</TabsTrigger>
+                  </TabsList>
+                  <ScrollBar orientation="horizontal" />
+                </ScrollArea>
                 {filteredDisplayPosts.length > 0 ? (
                   <div className="grid grid-cols-1 gap-6">
                     {filteredDisplayPosts.map(post => {
