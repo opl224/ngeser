@@ -46,9 +46,11 @@ import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { Notification, User as UserType, NotificationType, Conversation, Post } from '@/lib/types';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
-import { Badge as ShadBadge } from '@/components/ui/badge';
+import { Badge as ShadBadge } from '@/components/ui/badge'; // Renamed to avoid conflict if Badge is also imported from lucide
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from 'next-themes';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 
 import {
   Sidebar,
@@ -408,12 +410,189 @@ export function AppSidebar() {
     <>
     <Sidebar side="left" collapsible="icon" variant="sidebar" className="border-r">
       <SidebarHeader className="p-3">
-        <Link href="/" className="flex items-center gap-2">
-          <Image src="/hand.png" alt="Ngeser logo" width={32} height={32} data-ai-hint="logo hand" />
-          <span className="font-headline text-2xl font-semibold text-sidebar-foreground group-data-[collapsible=icon]:hidden">
-            Ngeser
-          </span>
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <Image src="/hand.png" alt="Ngeser logo" width={32} height={32} data-ai-hint="logo hand" />
+            <span className="font-headline text-2xl font-semibold text-sidebar-foreground group-data-[collapsible=icon]:hidden">
+              Ngeser
+            </span>
+          </Link>
+
+          <div className="items-center gap-1.5 group-data-[collapsible=icon]:hidden flex">
+            {currentUserId && isClient && (
+              <>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link href="/dm" passHref>
+                      <Button variant="ghost" size="icon" className="relative h-8 w-8 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                        <MessageSquare className="h-5 w-5" />
+                        {unreadMessagesCount > 0 && (
+                          <ShadBadge variant="destructive" className="absolute -top-1 -right-1 h-4 w-4 p-0 text-[10px] flex items-center justify-center rounded-full">
+                            {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
+                          </ShadBadge>
+                        )}
+                      </Button>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom"><p>Pesan Langsung</p></TooltipContent>
+                </Tooltip>
+
+                <DropdownMenu onOpenChange={handleOpenNotifications}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="relative h-8 w-8 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                          <Bell className="h-5 w-5" />
+                          {unreadNotificationCount > 0 && (
+                            <ShadBadge variant="destructive" className="absolute -top-1 -right-1 h-4 w-4 p-0 text-[10px] flex items-center justify-center rounded-full">
+                              {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+                            </ShadBadge>
+                          )}
+                        </Button>
+                      </DropdownMenuTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom"><p>Notifikasi</p></TooltipContent>
+                  </Tooltip>
+                  <DropdownMenuContent
+                    side="bottom"
+                    align="end"
+                    sideOffset={10}
+                    className="w-80 md:w-96 max-h-[calc(100vh-150px)] overflow-y-auto z-[60]"
+                    onCloseAutoFocus={(e) => e.preventDefault()}
+                  >
+                    <DropdownMenuLabel className="font-headline">
+                      <div className="flex items-center justify-between">
+                        <span>Notifikasi</span>
+                        {sortedNotificationsForDisplay.length > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={(e) => { e.stopPropagation(); handleClearAllNotifications(); }}
+                            aria-label="Hapus semua notifikasi"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {sortedNotificationsForDisplay.length > 0 ? (
+                      sortedNotificationsForDisplay.map(notification => {
+                        const actor = allUsers.find(u => u.id === notification.actorUserId);
+                        let message = notification.messageOverride || "";
+                        let linkHref = "#";
+                        let avatarSrc = actor?.avatarUrl;
+                        let avatarFallback = actor?.username?.substring(0,1).toUpperCase() || 'N';
+
+                        if (!message) {
+                          switch (notification.type) {
+                            case 'like':
+                              message = `${actor?.username || 'Seseorang'} menyukai postingan Kamu.`;
+                              linkHref = notification.postId ? `/post/${notification.postId}` : '/';
+                              if (!actor?.avatarUrl && notification.postMediaUrl) avatarSrc = notification.postMediaUrl;
+                              break;
+                            case 'comment':
+                              message = `${actor?.username || 'Seseorang'} mengomentari postingan Kamu.`;
+                              linkHref = notification.postId ? `/post/${notification.postId}` : '/';
+                               if (!actor?.avatarUrl && notification.postMediaUrl) avatarSrc = notification.postMediaUrl;
+                              break;
+                            case 'reply':
+                              message = `${actor?.username || 'Seseorang'} membalas komentar Kamu.`;
+                              linkHref = notification.postId ? `/post/${notification.postId}` : '/';
+                               if (!actor?.avatarUrl && notification.postMediaUrl) avatarSrc = notification.postMediaUrl;
+                              break;
+                            case 'follow':
+                              message = `${actor?.username || 'Seseorang'} mulai mengikuti Kamu.`;
+                              linkHref = actor ? `/profile/${actor.id}` : '/';
+                              break;
+                            case 'follow_request':
+                              message = `${actor?.username || 'Seseorang'} ingin mengikuti Kamu.`;
+                              linkHref = actor ? `/profile/${actor.id}` : '/';
+                              break;
+                            case 'follow_accepted':
+                              message = `${actor?.username || 'Seseorang'} menerima permintaan mengikuti Kamu.`;
+                              linkHref = actor ? `/profile/${actor.id}` : '/';
+                              break;
+                            case 'follow_request_handled':
+                              if (notification.processedState === 'accepted') {
+                                  message = `Kamu menerima permintaan mengikuti dari ${actor?.username || 'Seseorang'}.`;
+                              } else if (notification.processedState === 'declined') {
+                                  message = `Kamu menolak permintaan mengikuti dari ${actor?.username || 'Seseorang'}.`;
+                              } else if (notification.messageOverride) {
+                                  message = notification.messageOverride;
+                              } else {
+                                  message = `Permintaan mengikuti dari ${actor?.username || 'Seseorang'} telah diproses.`;
+                              }
+                              linkHref = actor ? `/profile/${actor.id}` : '/';
+                              break;
+                            default:
+                              message = "Notifikasi baru.";
+                          }
+                        }
+
+                        return (
+                          <div key={notification.id} className={cn("group/notif-item relative", !notification.isRead && isClient && notification.type !== 'follow_request_handled' ? 'bg-primary/10' : '')}>
+                            <DropdownMenuItem asChild className={cn("cursor-pointer w-full pr-8 focus:bg-accent/80", !notification.isRead && isClient && notification.type !== 'follow_request_handled' ? "hover:!bg-primary/20" : "hover:!bg-accent/80")}>
+                              <Link href={linkHref} className="flex items-start gap-3 p-2 w-full">
+                                <Avatar className="h-8 w-8 mt-0.5 shrink-0">
+                                  <AvatarImage src={avatarSrc} alt={actor?.username || 'Notifikasi'} data-ai-hint="notification actor person"/>
+                                  <AvatarFallback>{avatarFallback}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs text-foreground/90 leading-tight whitespace-normal break-words">
+                                    {message}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    {isClient && formatTimestamp(notification.timestamp)}
+                                  </p>
+                                  {notification.type === 'follow_request' && actor && (
+                                    <div className="mt-1.5 flex gap-2">
+                                      <Button
+                                        size="xs"
+                                        variant="default"
+                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleAcceptFollowRequest(actor.id, notification.id); }}
+                                        className="h-6 px-2 text-xs"
+                                      >
+                                        <UserCheck className="h-3 w-3 mr-1" /> Terima
+                                      </Button>
+                                      <Button
+                                        size="xs"
+                                        variant="outline"
+                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeclineFollowRequest(actor.id, notification.id); }}
+                                        className="h-6 px-2 text-xs"
+                                      >
+                                        <UserX className="h-3 w-3 mr-1" /> Tolak
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
+                              </Link>
+                            </DropdownMenuItem>
+                             <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 absolute top-1 right-1 text-muted-foreground hover:text-destructive opacity-0 group-hover/notif-item:opacity-100 focus:opacity-100 transition-opacity"
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteNotification(notification.id); }}
+                                aria-label="Hapus notifikasi ini"
+                              >
+                                <XIcon className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <DropdownMenuItem disabled className="text-center text-muted-foreground p-3">
+                        Tidak ada notifikasi.
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            )}
+          </div>
+        </div>
+
         <form onSubmit={handleSearchSubmit} className="flex items-center relative w-full mt-2 group-data-[collapsible=icon]:hidden">
           <SearchIconLucide className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           <SidebarInput
