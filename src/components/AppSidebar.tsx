@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Home, BadgePlus, User, LogIn, Search as SearchIconLucide, Bell, Trash2, X as XIcon, MessageSquare, UserCheck, UserX, ShieldQuestion, Film, Settings as SettingsIcon, Cog, Moon, Sun, Laptop } from 'lucide-react'; // Added Cog, Moon, Sun, Laptop, SettingsIcon
+import { Home, BadgePlus, User, LogIn, Search as SearchIconLucide, Bell, Trash2, X as XIcon, MessageSquare, UserCheck, UserX, ShieldQuestion, Film, Settings as SettingsIcon, Cog, Moon, Sun, Laptop, LogOut } from 'lucide-react'; // Added LogOut
 import { Button } from '@/components/ui/button';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn, formatTimestamp } from '@/lib/utils';
@@ -32,7 +32,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { Notification, User as UserType, NotificationType, Conversation, Post } from '@/lib/types'; // Added Post
