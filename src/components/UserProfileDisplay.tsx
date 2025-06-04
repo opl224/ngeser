@@ -10,11 +10,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from './PostCard';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialUsers, initialPosts, initialNotifications, getCurrentUserId } from '@/lib/data';
-import { Edit3, ImageIcon as ImageIconLucide, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, LayoutGrid, Video, BadgeCheck, ListChecks, Heart, UserPlus, UserCheck as UserCheckIcon } from 'lucide-react'; // Settings icon removed, Edit3 kept/added
+import { Edit3, ImageIcon as ImageIconLucide, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, LayoutGrid, Video, BadgeCheck, ListChecks, Heart, UserPlus, UserCheck as UserCheckIcon, Settings as SettingsIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
-// DropdownMenu imports removed
 import {
   Dialog,
   DialogContent,
@@ -54,7 +53,7 @@ function createAndAddNotification(
 
 export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const [profileUser, setProfileUser] = useState<User | null>(null);
-  const [allUsers, setAllUsers] = useLocalStorageState<User[]>('users', initialUsers);
+  const [allUsers, setAllUsers] = useLocalStorageState<UserType[]>('users', initialUsers);
   const [allPosts, setAllPosts] = useLocalStorageState<Post[]>('posts', initialPosts);
   const [notifications, setNotifications] = useLocalStorageState<Notification[]>('notifications', initialNotifications);
   const [currentSessionUserId, setCurrentSessionUserId] = useState<string | null>(null);
@@ -423,7 +422,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                   onClick={handleOpenEditProfileModal}
                   aria-label="Edit Profil"
                 >
-                  <Edit3 className="h-5 w-5" />
+                  <SettingsIcon className="h-5 w-5" />
                 </Button>
               </div>
             )}
@@ -756,3 +755,4 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
+
