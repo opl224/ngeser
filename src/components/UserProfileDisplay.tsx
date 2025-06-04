@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from './PostCard';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialUsers, initialPosts, initialNotifications, getCurrentUserId } from '@/lib/data';
-import { Settings, UserPlus, UserCheck, Edit3, LogOut, Trash2, ImageIcon as ImageIconLucide, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, ShieldQuestion, Moon, Sun, Laptop, LayoutGrid, Video, BadgeCheck, ListChecks, Heart } from 'lucide-react';
+import { Settings, UserPlus, UserCheck, Edit3, ImageIcon as ImageIconLucide, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, ShieldQuestion, LayoutGrid, Video, BadgeCheck, ListChecks, Heart } from 'lucide-react'; // LogOut, Trash2, Moon, Sun, Laptop removed
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
@@ -18,42 +18,32 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuPortal,
-  DropdownMenuSeparator,
+  // DropdownMenuPortal, // Removed
+  // DropdownMenuSeparator, // Removed (will add back if needed for only 2 items)
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
+  // DropdownMenuSub, // Removed
+  // DropdownMenuSubTrigger, // Removed
+  // DropdownMenuSubContent, // Removed
+  // DropdownMenuRadioGroup, // Removed
+  // DropdownMenuRadioItem, // Removed
 } from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+// AlertDialog related imports are removed as the trigger is moved
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle as EditDialogTitle, 
+  DialogTitle as EditDialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area"; // ScrollBar removed as it wasn't used for the filter tabs
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from '@/lib/utils';
-import type React_dot_FC from 'react'; 
-import { useTheme } from 'next-themes';
+import type React_dot_FC from 'react';
+// useTheme removed
 
 
 interface UserProfileDisplayProps {
@@ -83,10 +73,10 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const [allPosts, setAllPosts] = useLocalStorageState<Post[]>('posts', initialPosts);
   const [notifications, setNotifications] = useLocalStorageState<Notification[]>('notifications', initialNotifications);
   const [currentSessionUserId, setCurrentSessionUserId] = useState<string | null>(null);
-  
+
   const { toast } = useToast();
   const router = useRouter();
-  const { theme, setTheme } = useTheme();
+  // useTheme removed
 
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
   const [isPrivacySettingsModalOpen, setIsPrivacySettingsModalOpen] = useState(false);
@@ -97,7 +87,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const [editedAvatarFile, setEditedAvatarFile] = useState<File | null>(null);
   const [editedAvatarPreview, setEditedAvatarPreview] = useState<string | null>(null);
   const [editedAccountType, setEditedAccountType] = useState<'public' | 'private'>('public');
-  const [editedIsVerified, setEditedIsVerified] = useState(false); 
+  const [editedIsVerified, setEditedIsVerified] = useState(false);
   const [postFilterType, setPostFilterType] = useState<'all' | 'photo' | 'reel'>('all');
 
 
@@ -105,14 +95,14 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     const CUID = getCurrentUserId();
     setCurrentSessionUserId(CUID);
     const foundUser = allUsers.find(u => u.id === userId);
-    setProfileUser(foundUser || null); 
+    setProfileUser(foundUser || null);
     if (foundUser) {
       setEditedUsername(foundUser.username);
       setEditedFullName(foundUser.fullName || '');
       setEditedBio(foundUser.bio || '');
       setEditedAvatarPreview(foundUser.avatarUrl);
       setEditedAccountType(foundUser.accountType || 'public');
-      setEditedIsVerified(foundUser.isVerified || false); 
+      setEditedIsVerified(foundUser.isVerified || false);
     }
   }, [userId, allUsers]);
 
@@ -132,11 +122,11 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     if (currentSessionUserId === profileUser.id) return true;
     return isCurrentUserFollowingProfile;
   }, [profileUser, currentSessionUserId, isCurrentUserFollowingProfile]);
-  
+
   const allProfilePostsNonStory = useMemo(() => allPosts
     .filter(p => p.userId === userId && p.type !== 'story')
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()), [allPosts, userId]);
-  
+
   const filteredDisplayPosts = useMemo(() => {
     if (postFilterType === 'all') {
       return allProfilePostsNonStory;
@@ -168,7 +158,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     return allPosts.filter(post => commentedPostIds.has(post.id))
                    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }, [allPosts, currentSessionUser]);
-  
+
   const isProfileUserFollowingCSU = useMemo(() => {
     if (!currentSessionUser || !profileUser) return false;
     return (profileUser.following || []).includes(currentSessionUser.id);
@@ -192,25 +182,25 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       toast({ title: "Kesalahan Data Pengguna", description: "Tidak dapat memverifikasi data pengguna untuk melanjutkan.", variant: "destructive" });
       return;
     }
-    
+
     const isAlreadyFollowing = (CUIDUser.following || []).includes(targetProfileUser.id);
     const hasSentRequest = (CUIDUser.sentFollowRequests || []).includes(targetProfileUser.id);
 
-    if (isAlreadyFollowing) { 
+    if (isAlreadyFollowing) {
       setAllUsers(prevUsers => prevUsers.map(u => {
         if (u.id === currentSessionUserId) return { ...u, following: (u.following || []).filter(id => id !== targetProfileUser.id) };
         if (u.id === targetProfileUser.id) return { ...u, followers: (u.followers || []).filter(id => id !== currentSessionUserId) };
         return u;
       }));
       toast({ title: "Berhenti Mengikuti", description: `Anda tidak lagi mengikuti ${targetProfileUser.username}.` });
-    } else if (hasSentRequest) { 
+    } else if (hasSentRequest) {
       setAllUsers(prevUsers => prevUsers.map(u => {
         if (u.id === currentSessionUserId) return { ...u, sentFollowRequests: (u.sentFollowRequests || []).filter(id => id !== targetProfileUser.id) };
         if (u.id === targetProfileUser.id) return { ...u, pendingFollowRequests: (u.pendingFollowRequests || []).filter(reqId => reqId !== currentSessionUserId) };
         return u;
       }));
       toast({ title: "Permintaan Dibatalkan", description: `Permintaan mengikuti ${targetProfileUser.username} dibatalkan.` });
-    } else { 
+    } else {
       if (targetProfileUser.accountType === 'public') {
         setAllUsers(prevUsers => prevUsers.map(u => {
           if (u.id === currentSessionUserId) return { ...u, following: [...new Set([...(u.following || []), targetProfileUser.id])] };
@@ -218,10 +208,10 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           return u;
         }));
         toast({ title: "Mulai Mengikuti", description: `Anda sekarang mengikuti ${targetProfileUser.username}.` });
-        createAndAddNotification(setNotifications, { 
-          recipientUserId: targetProfileUser.id, 
-          actorUserId: currentSessionUserId, 
-          type: 'follow' 
+        createAndAddNotification(setNotifications, {
+          recipientUserId: targetProfileUser.id,
+          actorUserId: currentSessionUserId,
+          type: 'follow'
         });
       } else { // Private account
         setAllUsers(prevUsers => prevUsers.map(u => {
@@ -230,10 +220,10 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           return u;
         }));
         toast({ title: "Permintaan Terkirim", description: `Permintaan mengikuti ${targetProfileUser.username} telah dikirim.` });
-        createAndAddNotification(setNotifications, { 
-          recipientUserId: targetProfileUser.id, 
-          actorUserId: currentSessionUserId, 
-          type: 'follow_request' 
+        createAndAddNotification(setNotifications, {
+          recipientUserId: targetProfileUser.id,
+          actorUserId: currentSessionUserId,
+          type: 'follow_request'
         });
       }
     }
@@ -338,57 +328,13 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     }
   };
 
-  const handleLogoutAndSaveData = () => {
-     if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem('users', JSON.stringify(allUsers));
-        localStorage.setItem('posts', JSON.stringify(allPosts));
-        localStorage.setItem('notifications', JSON.stringify(notifications));
-      } catch (error) {
-        console.error("Error saving data to localStorage on logout:", error);
-        toast({
-          title: "Kesalahan Penyimpanan",
-          description: "Gagal menyimpan data Anda sebelum keluar.",
-          variant: "destructive",
-        });
-      }
-
-      window.dispatchEvent(new CustomEvent('authChange'));
-      localStorage.removeItem('currentUserId');
-    }
-    toast({
-      title: "Berhasil Keluar",
-      description: "Data Anda tersimpan. Anda telah berhasil keluar.",
-    });
-    router.push('/login');
-  };
-
-  const handleLogoutAndDeleteAllData = () => {
-    setAllPosts([]);
-    setAllUsers([]); 
-    setNotifications([]);
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('authChange'));
-      localStorage.removeItem('currentUserId');
-      localStorage.setItem('posts', '[]');
-      localStorage.setItem('users', '[]'); 
-      localStorage.setItem('notifications', '[]');
-    }
-    toast({
-      title: "Data Dihapus & Berhasil Keluar",
-      description: "Semua data aplikasi telah dihapus. Anda telah berhasil keluar.",
-      variant: "destructive",
-    });
-    router.push('/login');
-  };
-
   const handleOpenEditProfileModal = () => {
     if (profileUser) {
       setEditedUsername(profileUser.username);
       setEditedFullName(profileUser.fullName || '');
       setEditedBio(profileUser.bio || '');
       setEditedAvatarPreview(profileUser.avatarUrl);
-      setEditedAvatarFile(null); 
+      setEditedAvatarFile(null);
       setIsEditProfileModalOpen(true);
     }
   };
@@ -413,7 +359,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       reader.readAsDataURL(file);
     } else {
       setEditedAvatarFile(null);
-      setEditedAvatarPreview(profileUser?.avatarUrl || null); 
+      setEditedAvatarPreview(profileUser?.avatarUrl || null);
     }
   };
 
@@ -423,7 +369,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       return;
     }
 
-    // Word count validation for Full Name
     const fullNameWords = editedFullName.trim().split(/\s+/);
     if (fullNameWords.length > 15) {
       toast({
@@ -433,7 +378,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       });
       return;
     }
-    
+
     if (!editedFullName.trim()) {
       toast({
         title: "Gagal Menyimpan",
@@ -450,8 +395,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           return {
             ...user,
             fullName: editedFullName.trim(),
-            // Username is read-only, so we don't update it from editedUsername
-            // username: editedUsername, 
             bio: editedBio.trim(),
             avatarUrl: editedAvatarPreview || user.avatarUrl,
           };
@@ -487,7 +430,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     });
     setIsPrivacySettingsModalOpen(false);
   };
-  
+
   const handleSendMessage = () => {
     if (!currentSessionUserId || !profileUser || currentSessionUserId === profileUser.id) return;
     router.push(`/dm?userId=${profileUser.id}`);
@@ -508,73 +451,37 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   if (isCurrentUserFollowingProfile) {
     followButtonText = "Mengikuti";
     FollowButtonIconComponent = UserCheck;
-  } else if (isRequestedByCSUtoPU && profileUser.accountType === 'private') { 
+  } else if (isRequestedByCSUtoPU && profileUser.accountType === 'private') {
     followButtonText = "Diminta";
-    FollowButtonIconComponent = UserPlus; // Or a clock icon if available for "pending"
-  } else { // Not following, not requested, or public account (request state doesn't matter for initial text)
+    FollowButtonIconComponent = UserPlus;
+  } else {
     followButtonText = "Ikuti";
     FollowButtonIconComponent = UserPlus;
   }
-  
-  // If target is private and current user sent a request
+
   const isFollowButtonDisabled = profileUser.accountType === 'private' && isRequestedByCSUtoPU && !isCurrentUserFollowingProfile;
 
 
-  const SettingsMenuItemsContent = () => (
+  const ProfileSettingsMenuItems = () => (
     <>
-      <DropdownMenuSub>
-        <DropdownMenuSubTrigger>
-          {theme === 'light' && <Sun className="mr-2 h-4 w-4" />}
-          {theme === 'dark' && <Moon className="mr-2 h-4 w-4" />}
-          {theme === 'system' && <Laptop className="mr-2 h-4 w-4" />}
-          Tema
-        </DropdownMenuSubTrigger>
-        <DropdownMenuPortal>
-          <DropdownMenuSubContent>
-            <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
-              <DropdownMenuRadioItem value="light">
-                <Sun className="mr-2 h-4 w-4" />
-                Cerah
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="dark">
-                <Moon className="mr-2 h-4 w-4" />
-                Gelap
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="system">
-                <Laptop className="mr-2 h-4 w-4" />
-                Sistem
-              </DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
-          </DropdownMenuSubContent>
-        </DropdownMenuPortal>
-      </DropdownMenuSub>
-      <DropdownMenuSeparator />
-      <DropdownMenuItem onClick={handleOpenPrivacySettingsModal} className="cursor-pointer">
-        <ShieldQuestion className="mr-2 h-4 w-4" />
-        Pengaturan Privasi
-      </DropdownMenuItem>
-      <DropdownMenuSeparator />
-      <DropdownMenuItem onClick={handleLogoutAndSaveData} className="cursor-pointer">
-        <LogOut className="mr-2 h-4 w-4" />
-        Keluar & Simpan Data
-      </DropdownMenuItem>
-      <DropdownMenuSeparator />
-      <AlertDialogTrigger asChild>
-        <DropdownMenuItem
-          className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer md:hover:bg-destructive/10"
-          onSelect={(e) => e.preventDefault()}
-        >
-          <Trash2 className="mr-2 h-4 w-4" />
-          Keluar & Hapus Semua Data
-        </DropdownMenuItem>
-      </AlertDialogTrigger>
+      {isCurrentUserProfile && (
+        <>
+          <DropdownMenuItem onClick={handleOpenEditProfileModal} className="cursor-pointer">
+            <Edit3 className="mr-2 h-4 w-4" />
+            Edit Profil
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleOpenPrivacySettingsModal} className="cursor-pointer">
+            <ShieldQuestion className="mr-2 h-4 w-4" />
+            Pengaturan Privasi
+          </DropdownMenuItem>
+        </>
+      )}
     </>
   );
 
 
   return (
     <div className="max-w-4xl mx-auto">
-      <AlertDialog>
         <Card className="mb-8 shadow-lg rounded-xl overflow-hidden">
           <CardHeader className="relative p-6 bg-card flex flex-col md:flex-row items-center gap-6">
             {isCurrentUserProfile && (
@@ -586,7 +493,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <SettingsMenuItemsContent />
+                    <ProfileSettingsMenuItems />
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -610,7 +517,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             </div>
             <div className="flex-1 text-center md:text-left">
               <div className="flex flex-col items-center md:items-start">
-                {profileUser.fullName && 
+                {profileUser.fullName &&
                   <div className="flex items-center gap-2">
                     <CardTitle className="font-headline text-3xl md:text-4xl text-foreground">{profileUser.fullName}</CardTitle>
                     {profileUser.isVerified && <BadgeCheck className="h-6 w-6 md:h-7 md:w-7 text-primary" />}
@@ -630,23 +537,14 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             </div>
             {isCurrentUserProfile ? (
                 <div className="hidden md:flex md:items-center md:gap-2 md:absolute md:top-6 md:right-6">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleOpenEditProfileModal}
-                    className="md:hover:bg-accent md:hover:text-accent-foreground"
-                  >
-                    <Edit3 className="h-4 w-4 md:mr-2" />
-                    <span className="hidden md:inline">Edit Profil</span>
-                  </Button>
-                  <DropdownMenu>
+                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm" className="px-2 w-9 md:hover:bg-accent md:hover:text-accent-foreground">
                         <Settings className="h-5 w-5" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <SettingsMenuItemsContent />
+                      <ProfileSettingsMenuItems />
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -671,24 +569,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           </CardHeader>
         </Card>
 
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="font-headline">Anda yakin?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tindakan ini akan menghapus semua data postingan dan pengguna secara permanen dari aplikasi ini di browser Anda.
-              Data tidak dapat dipulihkan.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handleLogoutAndDeleteAllData} className={cn(buttonVariants({ variant: "destructive" }), "md:hover:bg-destructive/90")}>
-              Ya, Hapus Semua &amp; Keluar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
-      
       <Dialog open={isEditProfileModalOpen} onOpenChange={setIsEditProfileModalOpen}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
@@ -714,7 +595,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                 <Label htmlFor="profile-username" className="font-medium">Nama Pengguna (Username)</Label>
                 <Input
                   id="profile-username"
-                  value={editedUsername} 
+                  value={editedUsername}
                   readOnly
                   className="mt-1 bg-muted/50 cursor-not-allowed"
                 />
@@ -770,7 +651,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         </DialogContent>
       </Dialog>
 
-      
+
       <Dialog open={isPrivacySettingsModalOpen} onOpenChange={setIsPrivacySettingsModalOpen}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
@@ -824,7 +705,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         </DialogContent>
       </Dialog>
 
-      <div className="mt-8 w-full max-w-2xl mx-auto">
+      <div className="mt-8 w-full sm:max-w-2xl sm:mx-auto">
         {canViewProfileContent ? (
           <Tabs defaultValue="posts" className="w-full">
             <TabsList className={`grid w-full mb-6 bg-muted/50 rounded-lg ${isCurrentUserProfile ? 'grid-cols-4' : 'grid-cols-3'}`}>
@@ -833,7 +714,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               <TabsTrigger value="following" className="font-headline">Mengikuti</TabsTrigger>
               {isCurrentUserProfile && <TabsTrigger value="activity" className="font-headline"><ListChecks className="h-4 w-4 mr-2"/>Aktivitas Saya</TabsTrigger>}
             </TabsList>
-            
+
             <TabsContent value="posts">
               <div className="mb-4">
                 <Tabs defaultValue={postFilterType} onValueChange={(value) => setPostFilterType(value as 'all' | 'photo' | 'reel')}>
@@ -868,7 +749,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                   </p>
                 )}
             </TabsContent>
-            
+
             <TabsContent value="followers">
               <UserList userIds={profileUser.followers || []} allUsers={allUsers} listTitle="Pengikut" />
             </TabsContent>
@@ -1001,5 +882,3 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
-
-      

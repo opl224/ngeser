@@ -3,13 +3,12 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Home, BadgePlus, User, LogIn, Search as SearchIconLucide, Bell, Trash2, X as XIcon, MessageSquare, UserCheck, UserX, ShieldQuestion, Film } from 'lucide-react';
+import { Home, BadgePlus, User, LogIn, Search as SearchIconLucide, Bell, Trash2, X as XIcon, MessageSquare, UserCheck, UserX, ShieldQuestion, Film, Settings as SettingsIcon, Cog, Moon, Sun, Laptop } from 'lucide-react'; // Added Cog, Moon, Sun, Laptop, SettingsIcon
 import { Button } from '@/components/ui/button';
-// Input replaced by SidebarInput
 import { usePathname, useRouter } from 'next/navigation';
 import { cn, formatTimestamp } from '@/lib/utils';
 import { useEffect, useState, FormEvent, useMemo, Dispatch, SetStateAction } from 'react';
-import { getCurrentUserId, initialNotifications, initialUsers, initialConversations } from '@/lib/data';
+import { getCurrentUserId, initialNotifications, initialUsers, initialConversations, initialPosts } from '@/lib/data'; // Added initialPosts
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,33 +16,51 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
+  DropdownMenuSubContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import type { Notification, User as UserType, NotificationType, Conversation } from '@/lib/types';
+import type { Notification, User as UserType, NotificationType, Conversation, Post } from '@/lib/types'; // Added Post
 import useLocalStorageState from '@/hooks/useLocalStorageState';
-import { Badge as ShadBadge } from '@/components/ui/badge'; // Renamed to avoid conflict
+import { Badge as ShadBadge } from '@/components/ui/badge';
 import { useToast } from "@/hooks/use-toast";
+import { useTheme } from 'next-themes';
 
 import {
   Sidebar,
   SidebarHeader,
   SidebarContent,
-  // SidebarFooter, // Not used for now
+  SidebarFooter, // Added SidebarFooter
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarInput,
-  SidebarSeparator, // If needed
+  SidebarSeparator,
   SidebarMenuBadge,
-  useSidebar, // To get collapse state for tooltips
+  useSidebar,
 } from '@/components/ui/sidebar';
 
 function createAndAddNotification(
-  setNotificationsGlobal: Dispatch<SetStateAction<Notification[]>>, 
+  setNotificationsGlobal: Dispatch<SetStateAction<Notification[]>>,
   newNotificationData: Omit<Notification, 'id' | 'timestamp' | 'isRead'>
 ) {
   if (newNotificationData.actorUserId === newNotificationData.recipientUserId) {
-    return; 
+    return;
   }
   const notification: Notification = {
     ...newNotificationData,
@@ -58,15 +75,19 @@ export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
   const [currentUserId, setCurrentUserIdState] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   const [notifications, setNotifications] = useLocalStorageState<Notification[]>('notifications', initialNotifications);
   const [allUsers, setAllUsers] = useLocalStorageState<UserType[]>('users', initialUsers);
+  const [allPosts, setAllPosts] = useLocalStorageState<Post[]>('posts', initialPosts); // For logout & delete
   const [conversations, setConversations] = useLocalStorageState<Conversation[]>('conversations', initialConversations);
+  const [showDeleteDataConfirm, setShowDeleteDataConfirm] = useState(false);
 
-  const { state: sidebarState } = useSidebar(); // Get sidebar collapse state for tooltips
+
+  const { state: sidebarState } = useSidebar();
 
   useEffect(() => {
     setIsClient(true);
@@ -143,7 +164,7 @@ export function AppSidebar() {
       setNotifications(prevNots => prevNots.map(n => n.id === notificationId ? { ...n, type: 'follow_request_handled' as NotificationType, processedState: 'declined', isRead: true, messageOverride: "Gagal: Pengguna tidak terdefinisi." } : n));
       return;
     }
-  
+
     setNotifications(prevNots =>
       prevNots.map(n => {
         if (n.id === notificationId) {
@@ -157,32 +178,32 @@ export function AppSidebar() {
         return n;
       })
     );
-  
+
     const CUIDUser = allUsers.find(u => u.id === currentUserId);
     const requesterUser = allUsers.find(u => u.id === requesterId);
-  
+
     if (!CUIDUser || !requesterUser) {
       const missingUserMsg = `Gagal: ${!CUIDUser ? 'Data Anda' : 'Data pemohon'} tidak lengkap.`;
       toast({ title: "Kesalahan Data Pengguna", description: missingUserMsg, variant: "destructive" });
       setNotifications(prevNots => prevNots.map(n => n.id === notificationId ? { ...n, messageOverride: missingUserMsg } : n));
       return;
     }
-  
+
     let usersUpdateError = false;
     try {
       setAllUsers(prevUsers => prevUsers.map(user => {
-        if (user.id === currentUserId) { 
+        if (user.id === currentUserId) {
           return {
             ...user,
             followers: [...new Set([...(user.followers || []), requesterId])],
             pendingFollowRequests: (user.pendingFollowRequests || []).filter(id => id !== requesterId),
           };
         }
-        if (user.id === requesterId) { 
+        if (user.id === requesterId) {
           return {
             ...user,
-            following: [...new Set([...(user.following || []), currentUserId])], 
-            sentFollowRequests: (user.sentFollowRequests || []).filter(id => id !== currentUserId), 
+            following: [...new Set([...(user.following || []), currentUserId])],
+            sentFollowRequests: (user.sentFollowRequests || []).filter(id => id !== currentUserId),
           };
         }
         return user;
@@ -191,7 +212,7 @@ export function AppSidebar() {
       console.error("Error updating user lists on follow accept:", error);
       usersUpdateError = true;
     }
-  
+
     if (!usersUpdateError) {
       createAndAddNotification(setNotifications, {
         recipientUserId: requesterId,
@@ -214,14 +235,14 @@ export function AppSidebar() {
       }));
     }
   };
-  
+
   const handleDeclineFollowRequest = (requesterId: string, notificationId: string) => {
     if (!currentUserId) {
         toast({ title: "Kesalahan Pengguna", description: "Pengguna saat ini tidak terdefinisi.", variant: "destructive"});
         setNotifications(prevNots => prevNots.map(n => n.id === notificationId ? { ...n, type: 'follow_request_handled' as NotificationType, processedState: 'declined', isRead: true, messageOverride: "Gagal: Pengguna tidak terdefinisi." } : n));
         return;
     }
-    
+
     const CUIDUser = allUsers.find(u => u.id === currentUserId);
     const requesterUser = allUsers.find(u => u.id === requesterId);
 
@@ -233,10 +254,10 @@ export function AppSidebar() {
     }
 
      setAllUsers(prevUsers => prevUsers.map(user => {
-      if (user.id === currentUserId) { 
+      if (user.id === currentUserId) {
         return { ...user, pendingFollowRequests: (user.pendingFollowRequests || []).filter(id => id !== requesterId) };
       }
-      if (user.id === requesterId) { 
+      if (user.id === requesterId) {
         return { ...user, sentFollowRequests: (user.sentFollowRequests || []).filter(id => id !== currentUserId) };
       }
       return user;
@@ -256,6 +277,56 @@ export function AppSidebar() {
     toast({ title: "Permintaan Ditolak", description: `Kamu menolak permintaan mengikuti dari ${requesterUser.username}.` });
   };
 
+
+  const handleLogoutAndSaveData = () => {
+     if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('users', JSON.stringify(allUsers));
+        localStorage.setItem('posts', JSON.stringify(allPosts));
+        localStorage.setItem('notifications', JSON.stringify(notifications));
+        localStorage.setItem('conversations', JSON.stringify(conversations));
+      } catch (error) {
+        console.error("Error saving data to localStorage on logout:", error);
+        toast({
+          title: "Kesalahan Penyimpanan",
+          description: "Gagal menyimpan data Anda sebelum keluar.",
+          variant: "destructive",
+        });
+      }
+
+      window.dispatchEvent(new CustomEvent('authChange'));
+      localStorage.removeItem('currentUserId');
+    }
+    toast({
+      title: "Berhasil Keluar",
+      description: "Data Anda tersimpan. Anda telah berhasil keluar.",
+    });
+    router.push('/login');
+  };
+
+  const handleLogoutAndDeleteAllData = () => {
+    setAllPosts([]);
+    setAllUsers([]);
+    setNotifications([]);
+    setConversations([]);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('authChange'));
+      localStorage.removeItem('currentUserId');
+      localStorage.setItem('posts', '[]');
+      localStorage.setItem('users', '[]');
+      localStorage.setItem('notifications', '[]');
+      localStorage.setItem('conversations', '[]');
+    }
+    toast({
+      title: "Data Dihapus & Berhasil Keluar",
+      description: "Semua data aplikasi telah dihapus. Anda telah berhasil keluar.",
+      variant: "destructive",
+    });
+    setShowDeleteDataConfirm(false);
+    router.push('/login');
+  };
+
+
   const baseNavItems = [ { href: '/', label: 'Beranda', icon: Home }, ];
   const authNavItems = [
     { href: '/upload', label: 'Unggah', icon: BadgePlus },
@@ -274,15 +345,15 @@ export function AppSidebar() {
   };
 
   if (!isClient && (pathname === '/login' || pathname === '/register')) {
-    // Don't render the sidebar shell on login/register pages during SSR/initial client render to prevent flash
     return null;
   }
   if (isClient && (pathname === '/login' || pathname === '/register')) {
-    return null; // Fully hide sidebar on login/register
+    return null;
   }
-  
+
 
   return (
+    <>
     <Sidebar side="left" collapsible="icon" variant="sidebar" className="border-r">
       <SidebarHeader className="p-3">
         <Link href="/" className="flex items-center gap-2">
@@ -304,7 +375,7 @@ export function AppSidebar() {
         </form>
       </SidebarHeader>
 
-      <SidebarContent className="p-0">
+      <SidebarContent className="p-0 flex flex-col justify-between">
         <SidebarMenu className="px-3 py-2">
           {allNavItems.map((item) => {
             const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
@@ -366,12 +437,12 @@ export function AppSidebar() {
                         <ShadBadge variant="destructive" className="h-3 w-3 p-0 flex items-center justify-center rounded-full pointer-events-none text-[8px] leading-none"></ShadBadge>
                     </div>
                   )}
-                  <DropdownMenuContent 
-                    side="right" 
-                    align="start" 
+                  <DropdownMenuContent
+                    side="right"
+                    align="start"
                     sideOffset={sidebarState === "collapsed" ? 10 : 5}
                     className={cn(
-                        "w-80 md:w-96 max-h-[calc(100vh-100px)] overflow-y-auto z-[60]", 
+                        "w-80 md:w-96 max-h-[calc(100vh-100px)] overflow-y-auto z-[60]",
                         sidebarState === "collapsed" ? "ml-1" : ""
                     )}
                     onCloseAutoFocus={(e) => e.preventDefault()}
@@ -401,7 +472,7 @@ export function AppSidebar() {
                         let avatarSrc = actor?.avatarUrl;
                         let avatarFallback = actor?.username?.substring(0,1).toUpperCase() || 'N';
 
-                        if (!message) { 
+                        if (!message) {
                           switch (notification.type) {
                             case 'like':
                               message = `${actor?.username || 'Seseorang'} menyukai postingan Kamu.`;
@@ -435,9 +506,9 @@ export function AppSidebar() {
                                   message = `Kamu menerima permintaan mengikuti dari ${actor?.username || 'Seseorang'}.`;
                               } else if (notification.processedState === 'declined') {
                                   message = `Kamu menolak permintaan mengikuti dari ${actor?.username || 'Seseorang'}.`;
-                              } else if (notification.messageOverride) { 
+                              } else if (notification.messageOverride) {
                                   message = notification.messageOverride;
-                              } else { 
+                              } else {
                                   message = `Permintaan mengikuti dari ${actor?.username || 'Seseorang'} telah diproses.`;
                               }
                               linkHref = actor ? `/profile/${actor.id}` : '/';
@@ -508,7 +579,90 @@ export function AppSidebar() {
             </>
           )}
         </SidebarMenu>
+        <SidebarFooter className="p-3 mt-auto border-t border-sidebar-border">
+            {currentUserId && isClient && (
+                 <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <SidebarMenuButton
+                            className="w-full justify-start"
+                            tooltip={{content: "Pengaturan", side: "right", hidden: sidebarState === "expanded" || !isClient}}
+                        >
+                            <SettingsIcon className="h-5 w-5 shrink-0" />
+                            <span className="ml-3 group-data-[collapsible=icon]:hidden">Pengaturan</span>
+                        </SidebarMenuButton>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent 
+                        side="right" 
+                        align="start" 
+                        sideOffset={sidebarState === "collapsed" ? 10 : 5}
+                        className={cn("z-[60]", sidebarState === "collapsed" ? "ml-1" : "")}
+                        onCloseAutoFocus={(e) => e.preventDefault()}
+                    >
+                        <DropdownMenuLabel className="font-headline">Pengaturan Aplikasi</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>
+                                {theme === 'light' && <Sun className="mr-2 h-4 w-4" />}
+                                {theme === 'dark' && <Moon className="mr-2 h-4 w-4" />}
+                                {theme === 'system' && <Laptop className="mr-2 h-4 w-4" />}
+                                Tema
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuPortal>
+                            <DropdownMenuSubContent>
+                                <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
+                                <DropdownMenuRadioItem value="light">
+                                    <Sun className="mr-2 h-4 w-4" />
+                                    Cerah
+                                </DropdownMenuRadioItem>
+                                <DropdownMenuRadioItem value="dark">
+                                    <Moon className="mr-2 h-4 w-4" />
+                                    Gelap
+                                </DropdownMenuRadioItem>
+                                <DropdownMenuRadioItem value="system">
+                                    <Laptop className="mr-2 h-4 w-4" />
+                                    Sistem
+                                </DropdownMenuRadioItem>
+                                </DropdownMenuRadioGroup>
+                            </DropdownMenuSubContent>
+                            </DropdownMenuPortal>
+                        </DropdownMenuSub>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={handleLogoutAndSaveData} className="cursor-pointer">
+                            <LogOut className="mr-2 h-4 w-4" />
+                            Keluar & Simpan Data
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                            onClick={() => setShowDeleteDataConfirm(true)}
+                            className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer md:hover:bg-destructive/10"
+                        >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Keluar & Hapus Semua Data
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            )}
+        </SidebarFooter>
       </SidebarContent>
     </Sidebar>
+
+    <AlertDialog open={showDeleteDataConfirm} onOpenChange={setShowDeleteDataConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-headline">Anda yakin?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tindakan ini akan menghapus semua data postingan, pengguna, notifikasi, dan percakapan secara permanen dari aplikasi ini di browser Anda.
+              Data tidak dapat dipulihkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowDeleteDataConfirm(false)}>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLogoutAndDeleteAllData} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Ya, Hapus Semua & Keluar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
