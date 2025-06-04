@@ -1,26 +1,33 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { formatDistanceToNow as fnsFormatDistanceToNow } from 'date-fns';
+import { isToday, isYesterday, format as fnsFormat, differenceInCalendarDays, startOfWeek } from 'date-fns';
 import { id as localeID } from 'date-fns/locale';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatTimestamp(date: Date | string | number): string {
-  const dateObj = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
-  let formattedDistance = fnsFormatDistanceToNow(dateObj, { locale: localeID }); 
-  
-  if (formattedDistance.startsWith('kurang dari ')) {
-    formattedDistance = formattedDistance.substring('kurang dari '.length);
+export function formatTimestamp(dateInput: Date | string | number): string {
+  const dateObj = typeof dateInput === 'string' || typeof dateInput === 'number' ? new Date(dateInput) : dateInput;
+  const now = new Date();
+
+  if (isToday(dateObj)) {
+    return fnsFormat(dateObj, 'HH:mm'); // e.g., "14:30"
   }
-  if (formattedDistance.startsWith('sekitar ')) {
-    formattedDistance = formattedDistance.substring('sekitar '.length);
+
+  if (isYesterday(dateObj)) {
+    return 'Kemarin';
   }
-  // Hapus " yang lalu" jika ada (date-fns terkadang menambahkannya bahkan dengan addSuffix default)
-  if (formattedDistance.endsWith(' yang lalu')) {
-    formattedDistance = formattedDistance.substring(0, formattedDistance.length - ' yang lalu'.length);
+
+  // Check if the date is within the current calendar week (Monday to Sunday for Indonesian locale)
+  // and also ensure it's within the last 7 days (differenceInCalendarDays < 7)
+  // but not today or yesterday (already handled).
+  const daysDifference = differenceInCalendarDays(now, dateObj);
+  if (daysDifference > 1 && daysDifference < 7 && dateObj >= startOfWeek(now, { locale: localeID })) {
+    return fnsFormat(dateObj, 'EEEE', { locale: localeID }); // e.g., "Senin"
   }
-  return formattedDistance;
+
+  // Older than a week or from a previous week (but still within 7 days if week started late)
+  return fnsFormat(dateObj, 'dd/MM/yy'); // e.g., "15/07/24"
 }
