@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, ChangeEvent, useMemo, Dispatch, SetStateAction } from 'react';
@@ -548,7 +547,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                   variant="outline"
                   size="icon"
                   onClick={handleOpenEditProfileModal}
-                  className="absolute -bottom-2 -right-2 h-9 w-9 rounded-full p-2 bg-background border-2 border-primary/70 shadow-md md:hover:bg-accent"
+                  className="absolute -bottom-2 -right-2 h-9 w-9 rounded-full p-2 bg-background border-2 border-primary/70 shadow-md md:hover:bg-accent md:hidden"
                   aria-label="Edit Profil"
                 >
                   <Edit3 className="h-4 w-4" />
@@ -730,7 +729,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                Perbarui informasi profil Anda. Email dan Nama Pengguna tidak dapat diubah.
             </DialogDescription>
           </DialogHeader>
-          <ScrollArea className="flex-grow -mx-6 px-6">
+          <ScrollArea className="flex-grow min-h-0 -mx-6 px-6">
             <div className="grid gap-6 py-4 pr-2">
               <div className="space-y-2">
                 <Label htmlFor="profile-email" className="font-medium">Email</Label>
