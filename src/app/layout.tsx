@@ -12,6 +12,7 @@ import React, { useState, useEffect } from 'react';
 import { ThemeProvider } from 'next-themes';
 import Image from 'next/image'; // Added for logo in minimal header
 import Link from 'next/link'; // Added for logo link
+import { MobileHeaderIcons } from '@/components/MobileHeaderIcons';
 
 
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'; 
@@ -56,7 +57,7 @@ export default function RootLayout({
                   <Image src="/hand.png" alt="Ngeser logo" width={28} height={28} data-ai-hint="logo hand mobile" />
                   <span className="font-headline text-xl font-semibold text-foreground">Ngeser</span>
                 </Link>
-                {/* MobileHeaderIcons component removed */}
+                <MobileHeaderIcons />
               </header>
 
               <main className={cn(
