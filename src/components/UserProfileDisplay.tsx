@@ -2,15 +2,15 @@
 "use client";
 
 import { useState, useEffect, ChangeEvent, useMemo, Dispatch, SetStateAction } from 'react';
-import type { User, Post, Comment as CommentType, Notification } from '@/lib/types';
+import type { User, Post, Comment as CommentType, Notification, Conversation } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from './PostCard';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
-import { initialUsers, initialPosts, initialNotifications, getCurrentUserId } from '@/lib/data';
-import { Edit3, ImageIcon as ImageIconLucide, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, LayoutGrid, Video, BadgeCheck, ListChecks, Heart, UserPlus, UserCheck as UserCheckIcon, Settings as SettingsIcon } from 'lucide-react';
+import { initialUsers, initialPosts, initialNotifications, getCurrentUserId, initialConversations } from '@/lib/data';
+import { Edit3, ImageIcon as ImageIconLucide, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, LayoutGrid, Video, BadgeCheck, ListChecks, Heart, UserPlus, UserCheck as UserCheckIcon, Settings as SettingsIcon, Moon, Sun, Laptop, ShieldQuestion, LogOut, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
@@ -22,13 +22,39 @@ import {
   DialogHeader,
   DialogTitle as EditDialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription as AlertDialogDesc,
+  AlertDialogFooter as ADFooter,
+  AlertDialogHeader as ADHeader,
+  AlertDialogTitle as ADTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
+  DropdownMenuSubContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
 import { cn } from '@/lib/utils';
 import type React_dot_FC from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useTheme } from 'next-themes';
 
 
 interface UserProfileDisplayProps {
@@ -54,16 +80,21 @@ function createAndAddNotification(
 
 export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const [profileUser, setProfileUser] = useState<User | null>(null);
-  const [allUsers, setAllUsers] = useLocalStorageState<UserType[]>('users', initialUsers);
+  const [allUsers, setAllUsers] = useLocalStorageState<User[]>('users', initialUsers);
   const [allPosts, setAllPosts] = useLocalStorageState<Post[]>('posts', initialPosts);
   const [notifications, setNotifications] = useLocalStorageState<Notification[]>('notifications', initialNotifications);
+  const [conversations, setConversations] = useLocalStorageState<Conversation[]>('conversations', initialConversations);
   const [currentSessionUserId, setCurrentSessionUserId] = useState<string | null>(null);
 
   const { toast } = useToast();
   const router = useRouter();
   const isMobile = useIsMobile();
+  const { theme, setTheme } = useTheme();
+  const [isClient, setIsClient] = useState(false);
 
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
+  const [isPrivacySettingsModalOpen, setIsPrivacySettingsModalOpen] = useState(false);
+  const [showDeleteDataConfirm, setShowDeleteDataConfirm] = useState(false);
 
   const [editedUsername, setEditedUsername] = useState('');
   const [editedFullName, setEditedFullName] = useState('');
@@ -72,8 +103,12 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const [editedAvatarPreview, setEditedAvatarPreview] = useState<string | null>(null);
   const [postFilterType, setPostFilterType] = useState<'all' | 'photo' | 'reel'>('all');
 
+  const [editedAccountType, setEditedAccountType] = useState<'public' | 'private'>('public');
+  const [editedIsVerified, setEditedIsVerified] = useState(false);
+
 
   useEffect(() => {
+    setIsClient(true);
     const CUID = getCurrentUserId();
     setCurrentSessionUserId(CUID);
     const foundUser = allUsers.find(u => u.id === userId);
@@ -83,6 +118,9 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       setEditedFullName(foundUser.fullName || '');
       setEditedBio(foundUser.bio || '');
       setEditedAvatarPreview(foundUser.avatarUrl);
+      // For privacy settings modal initial values when opened
+      setEditedAccountType(foundUser.accountType || 'public');
+      setEditedIsVerified(foundUser.isVerified || false);
     }
   }, [userId, allUsers]);
 
@@ -385,6 +423,88 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     router.push(`/dm?userId=${profileUser.id}`);
   };
 
+  const handleOpenPrivacySettingsModal = () => {
+    if (profileUser) {
+        setEditedAccountType(profileUser.accountType || 'public');
+        setEditedIsVerified(profileUser.isVerified || false);
+        setIsPrivacySettingsModalOpen(true);
+    } else {
+        toast({ title: "Error", description: "Data pengguna saat ini tidak ditemukan.", variant: "destructive"});
+    }
+  };
+
+  const handleSavePrivacySettings = () => {
+    if (!profileUser || !currentSessionUserId) {
+        toast({ title: "Error", description: "Tidak dapat menyimpan, data pengguna tidak lengkap.", variant: "destructive" });
+        return;
+    }
+     setAllUsers(prevUsers =>
+      prevUsers.map(user => {
+        if (user.id === currentSessionUserId) {
+          return {
+            ...user,
+            accountType: editedAccountType,
+            isVerified: editedIsVerified,
+          };
+        }
+        return user;
+      })
+    );
+    toast({
+      title: "Pengaturan Privasi Diperbarui",
+      description: "Pengaturan privasi dan verifikasi akun Anda telah disimpan.",
+    });
+    setIsPrivacySettingsModalOpen(false);
+  };
+
+  const handleLogoutAndSaveData = () => {
+     if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('users', JSON.stringify(allUsers));
+        localStorage.setItem('posts', JSON.stringify(allPosts));
+        localStorage.setItem('notifications', JSON.stringify(notifications));
+        localStorage.setItem('conversations', JSON.stringify(conversations));
+      } catch (error) {
+        console.error("Error saving data to localStorage on logout:", error);
+        toast({
+          title: "Kesalahan Penyimpanan",
+          description: "Gagal menyimpan data Anda sebelum keluar.",
+          variant: "destructive",
+        });
+      }
+
+      window.dispatchEvent(new CustomEvent('authChange'));
+      localStorage.removeItem('currentUserId');
+    }
+    toast({
+      title: "Berhasil Keluar",
+      description: "Data Anda tersimpan. Anda telah berhasil keluar.",
+    });
+    router.push('/login');
+  };
+
+  const handleLogoutAndDeleteAllData = () => {
+    setAllPosts([]);
+    setAllUsers([]);
+    setNotifications([]);
+    setConversations([]);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('authChange'));
+      localStorage.removeItem('currentUserId');
+      localStorage.setItem('posts', '[]');
+      localStorage.setItem('users', '[]');
+      localStorage.setItem('notifications', '[]');
+      localStorage.setItem('conversations', '[]');
+    }
+    toast({
+      title: "Data Dihapus & Berhasil Keluar",
+      description: "Semua data aplikasi telah dihapus. Anda telah berhasil keluar.",
+      variant: "destructive",
+    });
+    setShowDeleteDataConfirm(false);
+    router.push('/login');
+  };
+
 
   if (!profileUser) {
     return <div className="text-center py-10"><p className="text-xl text-muted-foreground font-headline">Pengguna tidak ditemukan.</p></div>;
@@ -420,7 +540,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                 <AvatarImage src={profileUser.avatarUrl} alt={profileUser.username} data-ai-hint="portrait person large" />
                 <AvatarFallback className="text-4xl font-headline">{profileUser.username.substring(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
-              {isCurrentUserProfile && (
+              {isCurrentUserProfile && isMobile && (
                 <Button
                   variant="outline"
                   size="icon"
@@ -453,41 +573,101 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               </div>
               
               {!isCurrentUserProfile && currentSessionUserId && (
-                 <div className="hidden md:flex md:items-center md:justify-start md:gap-2 mt-4">
-                    <Button
-                      onClick={handleFollowToggle}
-                      variant={isCurrentUserFollowingProfile ? "secondary" : "default"}
-                      size="sm"
-                      disabled={isFollowButtonDisabled}
-                      className="md:hover:bg-primary/90"
-                    >
-                      <FollowButtonIconComponent className="mr-2 h-4 w-4" />
-                      {followButtonText}
-                    </Button>
-                    <Button 
-                      onClick={handleSendMessage} 
-                      variant="outline" 
-                      size="sm" 
-                      className="px-3 md:hover:bg-accent md:hover:text-accent-foreground"
-                    >
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        <span>Pesan</span>
-                    </Button>
+                 <div className="hidden md:flex md:flex-col md:items-start md:gap-2 mt-4">
+                    <div className="flex items-center gap-2">
+                        <Button
+                        onClick={handleFollowToggle}
+                        variant={isCurrentUserFollowingProfile ? "secondary" : "default"}
+                        size="sm"
+                        disabled={isFollowButtonDisabled}
+                        className="md:hover:bg-primary/90"
+                        >
+                        <FollowButtonIconComponent className="mr-2 h-4 w-4" />
+                        {followButtonText}
+                        </Button>
+                        <Button 
+                        onClick={handleSendMessage} 
+                        variant="outline" 
+                        size="sm" 
+                        className="px-3 md:hover:bg-accent md:hover:text-accent-foreground"
+                        >
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            <span>Pesan</span>
+                        </Button>
+                    </div>
                 </div>
               )}
             </div>
             
             {isCurrentUserProfile && (
               <div className="absolute top-4 right-4 md:top-6 md:right-6">
-                 <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 md:hover:bg-accent md:hover:text-accent-foreground"
-                    onClick={handleOpenEditProfileModal}
-                    aria-label="Edit Profil"
-                  >
-                    {isMobile ? <SettingsIcon className="h-5 w-5" /> : <Edit3 className="h-5 w-5" />}
-                </Button>
+                {isMobile && isClient ? (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9 md:hover:bg-accent md:hover:text-accent-foreground"
+                                aria-label="Pengaturan Profil Mobile"
+                            >
+                                <SettingsIcon className="h-5 w-5" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" sideOffset={5} className="z-[60]">
+                            <DropdownMenuLabel className="font-headline">Pengaturan Akun</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={handleOpenEditProfileModal} className="cursor-pointer">
+                                <Edit3 className="mr-2 h-4 w-4" /> Edit Profil
+                            </DropdownMenuItem>
+                            <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>
+                                    {theme === 'light' && <Sun className="mr-2 h-4 w-4" />}
+                                    {theme === 'dark' && <Moon className="mr-2 h-4 w-4" />}
+                                    {theme === 'system' && <Laptop className="mr-2 h-4 w-4" />}
+                                    Tema
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuPortal>
+                                <DropdownMenuSubContent>
+                                    <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
+                                    <DropdownMenuRadioItem value="light">
+                                        <Sun className="mr-2 h-4 w-4" /> Terang
+                                    </DropdownMenuRadioItem>
+                                    <DropdownMenuRadioItem value="dark">
+                                        <Moon className="mr-2 h-4 w-4" /> Gelap
+                                    </DropdownMenuRadioItem>
+                                    <DropdownMenuRadioItem value="system">
+                                        <Laptop className="mr-2 h-4 w-4" /> Sistem
+                                    </DropdownMenuRadioItem>
+                                    </DropdownMenuRadioGroup>
+                                </DropdownMenuSubContent>
+                                </DropdownMenuPortal>
+                            </DropdownMenuSub>
+                            <DropdownMenuItem onClick={handleOpenPrivacySettingsModal} className="cursor-pointer">
+                                <ShieldQuestion className="mr-2 h-4 w-4" /> Pengaturan Privasi
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                             <DropdownMenuItem onClick={handleLogoutAndSaveData} className="cursor-pointer">
+                                <LogOut className="mr-2 h-4 w-4" /> Keluar & Simpan Data
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                onClick={() => setShowDeleteDataConfirm(true)}
+                                className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                            >
+                                <Trash2 className="mr-2 h-4 w-4" /> Keluar & Hapus Data
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                ) : (
+                     <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9 hidden md:inline-flex md:hover:bg-accent md:hover:text-accent-foreground"
+                        onClick={handleOpenEditProfileModal}
+                        aria-label="Edit Profil Desktop"
+                    >
+                        <Edit3 className="h-5 w-5" />
+                    </Button>
+                )}
               </div>
             )}
 
@@ -509,6 +689,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                       className="px-3"
                     >
                         <MessageSquare className="h-4 w-4" />
+                        {/* No text for mobile message button */}
                     </Button>
                 </div>
             )}
@@ -596,6 +777,78 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={isPrivacySettingsModalOpen} onOpenChange={setIsPrivacySettingsModalOpen}>
+        <DialogContent className="sm:max-w-[480px]">
+            <DialogHeader>
+                <EditDialogTitle className="font-headline text-2xl flex items-center gap-2">
+                    <ShieldQuestion className="h-6 w-6 text-primary" />Pengaturan Privasi Akun
+                </EditDialogTitle>
+                <DialogDescription>
+                Kelola siapa yang dapat melihat konten Anda dan status verifikasi akun.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-6 py-4">
+                <div className="space-y-3">
+                <Label htmlFor="account-type-switch-profile" className="font-medium">Privasi Akun</Label>
+                <div className="flex items-center space-x-3 p-3 border rounded-md bg-muted/30">
+                    <Switch
+                    id="account-type-switch-profile"
+                    checked={editedAccountType === 'private'}
+                    onCheckedChange={(checked) => setEditedAccountType(checked ? 'private' : 'public')}
+                    />
+                    <Label htmlFor="account-type-switch-profile" className="text-sm flex items-center gap-1.5 cursor-pointer">
+                    {editedAccountType === 'private' ? <Lock className="h-4 w-4"/> : <ShieldOff className="h-4 w-4"/>}
+                    {editedAccountType === 'private' ? 'Akun Privat' : 'Akun Publik'}
+                    </Label>
+                </div>
+                <p className="text-xs text-muted-foreground px-1">
+                    Jika akun privat, hanya pengikut yang Anda setujui yang dapat melihat postingan Anda. Permintaan mengikuti akan diperlukan untuk pengguna baru yang ingin mengikuti Anda.
+                </p>
+                </div>
+                <div className="space-y-3">
+                <Label htmlFor="account-verified-switch-profile" className="font-medium">Verifikasi Akun (Centang Biru)</Label>
+                <div className="flex items-center space-x-3 p-3 border rounded-md bg-muted/30">
+                    <Switch
+                    id="account-verified-switch-profile"
+                    checked={editedIsVerified}
+                    onCheckedChange={setEditedIsVerified}
+                    />
+                    <Label htmlFor="account-verified-switch-profile" className="text-sm flex items-center gap-1.5 cursor-pointer">
+                    {editedIsVerified ? <BadgeCheck className="h-4 w-4 text-primary"/> : <BadgeCheck className="h-4 w-4 text-muted"/>}
+                    {editedIsVerified ? 'Akun Terverifikasi' : 'Akun Belum Terverifikasi'}
+                    </Label>
+                </div>
+                <p className="text-xs text-muted-foreground px-1">
+                    Aktifkan untuk menampilkan lencana verifikasi (centang biru) di profil Anda.
+                </p>
+                </div>
+            </div>
+            <DialogFooter>
+                <Button variant="outline" onClick={() => setIsPrivacySettingsModalOpen(false)} className="md:hover:bg-accent md:hover:text-accent-foreground">Batal</Button>
+                <Button onClick={handleSavePrivacySettings} className="md:hover:bg-primary/90"><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+    <AlertDialog open={showDeleteDataConfirm} onOpenChange={setShowDeleteDataConfirm}>
+        <AlertDialogContent>
+          <ADHeader>
+            <ADTitle className="font-headline">Anda yakin?</ADTitle>
+            <AlertDialogDesc>
+              Tindakan ini akan menghapus semua data postingan, pengguna, notifikasi, dan percakapan secara permanen dari aplikasi ini di browser Anda.
+              Data tidak dapat dipulihkan.
+            </AlertDialogDesc>
+          </ADHeader>
+          <ADFooter>
+            <AlertDialogCancel onClick={() => setShowDeleteDataConfirm(false)}>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLogoutAndDeleteAllData} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Ya, Hapus Semua & Keluar
+            </AlertDialogAction>
+          </ADFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       <div className="mt-8 w-full sm:max-w-2xl sm:mx-auto">
         {canViewProfileContent ? (
@@ -774,4 +1027,3 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
-
