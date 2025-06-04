@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from './PostCard';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialUsers, initialPosts, initialNotifications, getCurrentUserId } from '@/lib/data';
-import { Edit3, ImageIcon as ImageIconLucide, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, LayoutGrid, Video, BadgeCheck, ListChecks, Heart, UserPlus, UserCheck as UserCheckIcon } from 'lucide-react';
+import { Edit3, ImageIcon as ImageIconLucide, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, LayoutGrid, Video, BadgeCheck, ListChecks, Heart, UserPlus, UserCheck as UserCheckIcon, Settings as SettingsIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
@@ -28,6 +28,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from '@/lib/utils';
 import type React_dot_FC from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 
 interface UserProfileDisplayProps {
@@ -60,6 +61,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
   const { toast } = useToast();
   const router = useRouter();
+  const isMobile = useIsMobile();
 
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
 
@@ -449,10 +451,9 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                 <div><span className="font-semibold">{canViewProfileContent ? (profileUser.followers || []).length : "-"}</span> Pengikut</div>
                 <div><span className="font-semibold">{canViewProfileContent ? (profileUser.following || []).length : "-"}</span> Mengikuti</div>
               </div>
-
-              {/* DESKTOP Follow/Message buttons */}
+              
               {!isCurrentUserProfile && currentSessionUserId && (
-                <div className="hidden md:flex md:items-center md:justify-start md:gap-2 md:mt-4">
+                 <div className="hidden md:flex md:items-center md:justify-start md:gap-2 mt-4">
                     <Button
                       onClick={handleFollowToggle}
                       variant={isCurrentUserFollowingProfile ? "secondary" : "default"}
@@ -476,9 +477,8 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               )}
             </div>
             
-            {/* Desktop Edit Button - top right of card */}
             {isCurrentUserProfile && (
-              <div className="hidden md:flex md:absolute md:top-6 md:right-6">
+              <div className="absolute top-4 right-4 md:top-6 md:right-6">
                  <Button
                     variant="ghost"
                     size="icon"
@@ -486,12 +486,11 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                     onClick={handleOpenEditProfileModal}
                     aria-label="Edit Profil"
                   >
-                    <Edit3 className="h-5 w-5" />
+                    {isMobile ? <SettingsIcon className="h-5 w-5" /> : <Edit3 className="h-5 w-5" />}
                 </Button>
               </div>
             )}
 
-            {/* MOBILE Follow/Message buttons - flow after main content block */}
             {!isCurrentUserProfile && currentSessionUserId && (
                 <div className="flex w-full justify-center items-center gap-2 mt-4 md:hidden">
                     <Button
@@ -510,7 +509,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                       className="px-3"
                     >
                         <MessageSquare className="h-4 w-4" />
-                         {/* Text span removed for mobile for icon-only display */}
                     </Button>
                 </div>
             )}
