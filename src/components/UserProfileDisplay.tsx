@@ -106,9 +106,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const [editedAccountType, setEditedAccountType] = useState<'public' | 'private'>('public');
   const [editedIsVerified, setEditedIsVerified] = useState(false);
 
-  const [activeMainTab, setActiveMainTab] = useState('posts');
-  const [activeActivitySubTab, setActiveActivitySubTab] = useState('saved_nested');
-
 
   useEffect(() => {
     setIsClient(true);
@@ -121,6 +118,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       setEditedFullName(foundUser.fullName || '');
       setEditedBio(foundUser.bio || '');
       setEditedAvatarPreview(foundUser.avatarUrl);
+      // For privacy settings modal initial values when opened
       setEditedAccountType(foundUser.accountType || 'public');
       setEditedIsVerified(foundUser.isVerified || false);
     }
@@ -542,12 +540,12 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                 <AvatarImage src={profileUser.avatarUrl} alt={profileUser.username} data-ai-hint="portrait person large" />
                 <AvatarFallback className="text-4xl font-headline">{profileUser.username.substring(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
-               {isCurrentUserProfile && isMobile && ( // Mobile edit button below avatar
+              {isCurrentUserProfile && isMobile && (
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={handleOpenEditProfileModal}
-                  className="absolute -bottom-2 -right-2 h-9 w-9 rounded-full p-2 bg-background border-2 border-primary/70 shadow-md"
+                  className="absolute -bottom-2 -right-2 h-9 w-9 rounded-full p-2 bg-background border-2 border-primary/70 shadow-md md:hidden md:hover:bg-accent"
                   aria-label="Edit Profil"
                 >
                   <Edit3 className="h-4 w-4" />
@@ -616,29 +614,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" sideOffset={5} className="z-[60]">
-                             <DropdownMenuItem onClick={handleOpenEditProfileModal} className="cursor-pointer">
-                                <Edit3 className="mr-2 h-4 w-4" /> Edit Profil
-                            </DropdownMenuItem>
-                             <DropdownMenuSeparator />
-                             <DropdownMenuSub>
-                                <DropdownMenuSubTrigger>
-                                    <ListChecks className="mr-2 h-4 w-4" /> Aktivitas Saya
-                                </DropdownMenuSubTrigger>
-                                <DropdownMenuPortal>
-                                    <DropdownMenuSubContent>
-                                        <DropdownMenuItem onClick={() => { setActiveMainTab('activity'); setActiveActivitySubTab('saved_nested'); }}>
-                                            <Bookmark className="mr-2 h-4 w-4" /> Disimpan
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => { setActiveMainTab('activity'); setActiveActivitySubTab('liked_nested'); }}>
-                                            <Heart className="mr-2 h-4 w-4" /> Disukai
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => { setActiveMainTab('activity'); setActiveActivitySubTab('commented_nested'); }}>
-                                            <MessageSquare className="mr-2 h-4 w-4" /> Dikomentari
-                                        </DropdownMenuItem>
-                                    </DropdownMenuSubContent>
-                                </DropdownMenuPortal>
-                            </DropdownMenuSub>
-                            <DropdownMenuSeparator />
                             <DropdownMenuSub>
                                 <DropdownMenuSubTrigger>
                                     {theme === 'light' && <Sun className="mr-2 h-4 w-4" />}
@@ -677,12 +652,12 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
-                ) : ( // Desktop settings trigger
+                ) : (
                      <Button
                         variant="ghost"
                         size="icon"
                         className="h-9 w-9 hidden md:inline-flex md:hover:bg-accent md:hover:text-accent-foreground"
-                        onClick={handleOpenEditProfileModal} 
+                        onClick={handleOpenEditProfileModal}
                         aria-label="Edit Profil Desktop"
                     >
                         <Edit3 className="h-5 w-5" />
@@ -709,6 +684,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                       className="px-3"
                     >
                         <MessageSquare className="h-4 w-4" />
+                        {/* No text for mobile message button */}
                     </Button>
                 </div>
             )}
@@ -871,14 +847,12 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
       <div className="mt-8 w-full sm:max-w-2xl sm:mx-auto">
         {canViewProfileContent ? (
-           <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="w-full">
-            <TabsList className={cn(
-                "grid w-full mb-6 bg-muted/50 rounded-lg",
-                 isCurrentUserProfile ? "grid-cols-3" : "grid-cols-3" 
-            )}>
+          <Tabs defaultValue="posts" className="w-full">
+            <TabsList className={`grid w-full mb-6 bg-muted/50 rounded-lg ${isCurrentUserProfile ? 'grid-cols-4' : 'grid-cols-3'}`}>
               <TabsTrigger value="posts" className="font-headline"><LayoutGrid className="h-4 w-4 mr-2"/>Postingan</TabsTrigger>
               <TabsTrigger value="followers" className="font-headline">Pengikut</TabsTrigger>
               <TabsTrigger value="following" className="font-headline">Mengikuti</TabsTrigger>
+              {isCurrentUserProfile && <TabsTrigger value="activity" className="font-headline"><ListChecks className="h-4 w-4 mr-2"/>Aktivitas Saya</TabsTrigger>}
             </TabsList>
 
             <TabsContent value="posts">
@@ -925,7 +899,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
             {isCurrentUserProfile && (
               <TabsContent value="activity">
-                <Tabs value={activeActivitySubTab} onValueChange={setActiveActivitySubTab} className="w-full">
+                <Tabs defaultValue="saved_nested" className="w-full">
                   <TabsList className="grid w-full grid-cols-3 mb-6 bg-muted/50 rounded-lg">
                     <TabsTrigger value="saved_nested" className="font-headline"><Bookmark className="h-4 w-4 mr-2"/>Disimpan</TabsTrigger>
                     <TabsTrigger value="liked_nested" className="font-headline"><Heart className="h-4 w-4 mr-2"/>Disukai</TabsTrigger>
@@ -1048,4 +1022,3 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
-

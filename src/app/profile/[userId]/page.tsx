@@ -15,7 +15,7 @@ interface ProfilePageProps {
 // Page component no longer needs to be async unless it uses await for other operations
 export default function ProfilePage({ params }: ProfilePageProps) { // Accept params directly
   const actualParams = use(params); // Unwrap params using React.use()
-  const userId = actualParams.userId; // Access userId from the unwrapped params
+  const userId = actualParams.userId; // Correctly access userId from the unwrapped params
 
   return (
     <div className="container mx-auto py-8">
