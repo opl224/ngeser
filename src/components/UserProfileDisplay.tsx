@@ -719,7 +719,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       <Dialog open={isEditProfileModalOpen} onOpenChange={setIsEditProfileModalOpen}>
         <DialogContent className={cn(
             "sm:max-w-[420px]",
-            "max-h-[calc(100dvh-4rem)] w-[calc(100%-2rem)] flex flex-col overflow-hidden"
+            "h-full max-h-[calc(100dvh-4rem)] w-[calc(100%-2rem)] flex flex-col overflow-hidden"
             )}>
           <DialogHeader>
             <EditDialogTitle className="font-headline text-2xl flex items-center gap-2">
