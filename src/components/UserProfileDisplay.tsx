@@ -4,7 +4,7 @@
 import { useState, useEffect, ChangeEvent, useMemo, Dispatch, SetStateAction } from 'react';
 import type { User, Post, Comment as CommentType, Notification, Conversation } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from './PostCard';
@@ -52,13 +52,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { cn } from '@/lib/utils';
-import type React_dot_FC from 'react';
+// import type React_dot_FC from 'react'; // Unused import removed
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useTheme } from 'next-themes';
 
 
 interface UserProfileDisplayProps {
-  userId: string;
+  userId: string | null; // Allow null for initial state from CurrentUserProfilePage
 }
 
 function createAndAddNotification(
@@ -114,15 +114,19 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     setIsClient(true);
     const CUID = getCurrentUserId();
     setCurrentSessionUserId(CUID);
-    const foundUser = allUsers.find(u => u.id === userId);
-    setProfileUser(foundUser || null);
-    if (foundUser) {
-      setEditedUsername(foundUser.username);
-      setEditedFullName(foundUser.fullName || '');
-      setEditedBio(foundUser.bio || '');
-      setEditedAvatarPreview(foundUser.avatarUrl);
-      setEditedAccountType(foundUser.accountType || 'public');
-      setEditedIsVerified(foundUser.isVerified || false);
+    if (userId) { // Check if userId is not null
+      const foundUser = allUsers.find(u => u.id === userId);
+      setProfileUser(foundUser || null);
+      if (foundUser) {
+        setEditedUsername(foundUser.username);
+        setEditedFullName(foundUser.fullName || '');
+        setEditedBio(foundUser.bio || '');
+        setEditedAvatarPreview(foundUser.avatarUrl);
+        setEditedAccountType(foundUser.accountType || 'public');
+        setEditedIsVerified(foundUser.isVerified || false);
+      }
+    } else {
+      setProfileUser(null); // Explicitly set to null if userId is null
     }
   }, [userId, allUsers]);
 
@@ -143,9 +147,12 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     return isCurrentUserFollowingProfile;
   }, [profileUser, currentSessionUserId, isCurrentUserFollowingProfile]);
 
-  const allProfilePostsNonStory = useMemo(() => allPosts
-    .filter(p => p.userId === userId && p.type !== 'story')
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()), [allPosts, userId]);
+  const allProfilePostsNonStory = useMemo(() => {
+    if (!userId) return []; // Return empty if no userId for profile
+    return allPosts
+      .filter(p => p.userId === userId && p.type !== 'story')
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }, [allPosts, userId]);
 
   const filteredDisplayPosts = useMemo(() => {
     if (postFilterType === 'all') {
@@ -517,7 +524,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
 
   let followButtonText = "Ikuti";
-  let FollowButtonIconComponent: React_dot_FC.ElementType = UserPlus;
+  let FollowButtonIconComponent: React.ElementType = UserPlus;
 
   if (isCurrentUserFollowingProfile) {
     followButtonText = "Mengikuti";
@@ -548,17 +555,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                   size="icon"
                   onClick={handleOpenEditProfileModal}
                   className="absolute -bottom-2 -right-2 h-9 w-9 rounded-full p-2 bg-background border-2 border-primary/70 shadow-md md:hover:bg-accent"
-                  aria-label="Edit Profil"
-                >
-                  <Edit3 className="h-4 w-4" />
-                </Button>
-              )}
-               {isCurrentUserProfile && !isMobile && isClient && (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleOpenEditProfileModal}
-                  className="absolute -bottom-2 -right-2 h-9 w-9 rounded-full p-2 bg-background border-2 border-primary/70 shadow-md md:hover:bg-accent hidden md:flex"
                   aria-label="Edit Profil"
                 >
                   <Edit3 className="h-4 w-4" />
@@ -627,10 +623,10 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" sideOffset={5} className="z-[60]">
-                            <DropdownMenuItem onClick={handleOpenEditProfileModal} className="cursor-pointer">
+                             <DropdownMenuItem onClick={handleOpenEditProfileModal} className="cursor-pointer">
                                 <Edit3 className="mr-2 h-4 w-4" /> Edit Profil
                             </DropdownMenuItem>
-                            <DropdownMenuSeparator/>
+                            <DropdownMenuSeparator />                            
                             <DropdownMenuSub>
                                 <DropdownMenuSubTrigger>
                                     <ListChecks className="mr-2 h-4 w-4" /> Aktivitas Saya
@@ -728,7 +724,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
 
       <Dialog open={isEditProfileModalOpen} onOpenChange={setIsEditProfileModalOpen}>
-        <DialogContent className="w-[calc(100%-2rem)] max-h-[calc(100dvh-4rem)] overflow-y-auto sm:w-auto sm:max-w-[420px] sm:max-h-[85vh]">
+        <DialogContent className="sm:max-w-[420px] w-[calc(100%-2rem)] max-h-[calc(100dvh-4rem)] flex flex-col">
           <DialogHeader>
             <EditDialogTitle className="font-headline text-2xl flex items-center gap-2">
               <Edit3 className="h-6 w-6 text-primary"/>Edit Profil
@@ -737,7 +733,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                Perbarui informasi profil Anda. Email dan Nama Pengguna tidak dapat diubah.
             </DialogDescription>
           </DialogHeader>
-          <ScrollArea className="max-h-[70vh] -mx-6 px-6">
+          <ScrollArea className="flex-grow -mx-6 px-6">
             <div className="grid gap-6 py-4 pr-2">
               <div className="space-y-2">
                 <Label htmlFor="profile-email" className="font-medium">Email</Label>
@@ -888,7 +884,10 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             className="w-full"
           >
             <TabsList 
-              className={`grid w-full mb-6 bg-muted/50 rounded-lg ${isCurrentUserProfile && !isMobile ? 'grid-cols-4' : 'grid-cols-3'}`}
+              className={cn(
+                "grid w-full mb-6 bg-muted/50 rounded-lg",
+                isCurrentUserProfile && isMobile ? 'grid-cols-3' : (isCurrentUserProfile && !isMobile ? 'grid-cols-4' : 'grid-cols-3')
+              )}
             >
               <TabsTrigger value="posts" className="font-headline"><LayoutGrid className="h-4 w-4 mr-2"/>Postingan</TabsTrigger>
               <TabsTrigger value="followers" className="font-headline">Pengikut</TabsTrigger>
@@ -896,7 +895,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               {isCurrentUserProfile && !isMobile && <TabsTrigger value="activity" className="font-headline"><ListChecks className="h-4 w-4 mr-2"/>Aktivitas Saya</TabsTrigger>}
             </TabsList>
 
-            <TabsContent value="posts">
+            <TabsContent value="posts" forceMount className={cn(activeMainTab !== 'posts' && "hidden")}>
               <div className="mb-4">
                 <Tabs defaultValue={postFilterType} onValueChange={(value) => setPostFilterType(value as 'all' | 'photo' | 'reel')}>
                    <TabsList className="grid w-full grid-cols-3 h-10 items-center p-1 text-muted-foreground bg-muted/50 rounded-lg">
@@ -931,14 +930,14 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                 )}
             </TabsContent>
 
-            <TabsContent value="followers">
+            <TabsContent value="followers" forceMount className={cn(activeMainTab !== 'followers' && "hidden")}>
               <UserList userIds={profileUser.followers || []} allUsers={allUsers} listTitle="Pengikut" />
             </TabsContent>
-            <TabsContent value="following">
+            <TabsContent value="following" forceMount className={cn(activeMainTab !== 'following' && "hidden")}>
               <UserList userIds={profileUser.following || []} allUsers={allUsers} listTitle="Mengikuti" />
             </TabsContent>
 
-            {isCurrentUserProfile && activeMainTab === 'activity' && (
+            {isCurrentUserProfile && (
               <TabsContent value="activity" forceMount className={cn(activeMainTab !== 'activity' && "hidden")}>
                 <Tabs 
                   value={activeActivitySubTab} 
@@ -951,7 +950,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                     <TabsTrigger value="commented_nested" className="font-headline"><MessageSquare className="h-4 w-4 mr-2"/>Dikomentari</TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="saved_nested">
+                  <TabsContent value="saved_nested" forceMount className={cn(activeActivitySubTab !== 'saved_nested' && "hidden")}>
                     {savedPostsForCurrentUser.length > 0 ? (
                       <div className="grid grid-cols-1 gap-4">
                         {savedPostsForCurrentUser.map(post => (
@@ -972,7 +971,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                     )}
                   </TabsContent>
 
-                  <TabsContent value="liked_nested">
+                  <TabsContent value="liked_nested" forceMount className={cn(activeActivitySubTab !== 'liked_nested' && "hidden")}>
                     {likedPostsForCurrentUser.length > 0 ? (
                       <div className="grid grid-cols-1 gap-4">
                         {likedPostsForCurrentUser.map(post => (
@@ -993,7 +992,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                     )}
                   </TabsContent>
 
-                  <TabsContent value="commented_nested">
+                  <TabsContent value="commented_nested" forceMount className={cn(activeActivitySubTab !== 'commented_nested' && "hidden")}>
                     {commentedPostsForCurrentUser.length > 0 ? (
                       <div className="grid grid-cols-1 gap-4">
                         {commentedPostsForCurrentUser.map(post => (
@@ -1067,4 +1066,3 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
-
