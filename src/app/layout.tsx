@@ -56,12 +56,7 @@ export default function RootLayout({
                   <Image src="/hand.png" alt="Ngeser logo" width={28} height={28} data-ai-hint="logo hand mobile" />
                   <span className="font-headline text-xl font-semibold text-foreground">Ngeser</span>
                 </Link>
-                <SidebarTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <PanelLeft />
-                    <span className="sr-only">Alihkan Sidebar</span>
-                  </Button>
-                </SidebarTrigger>
+                <SidebarTrigger />
               </header>
 
               <main className={cn(
