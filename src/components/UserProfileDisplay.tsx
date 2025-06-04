@@ -614,11 +614,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" sideOffset={5} className="z-[60]">
-                            <DropdownMenuLabel className="font-headline">Pengaturan Akun</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={handleOpenEditProfileModal} className="cursor-pointer">
-                                <Edit3 className="mr-2 h-4 w-4" /> Edit Profil
-                            </DropdownMenuItem>
                             <DropdownMenuSub>
                                 <DropdownMenuSubTrigger>
                                     {theme === 'light' && <Sun className="mr-2 h-4 w-4" />}

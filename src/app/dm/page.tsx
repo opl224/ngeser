@@ -108,7 +108,7 @@ function DmPageContent() {
           participantIds: [currentUserId, queryUserId],
           messages: [],
           timestamp: new Date().toISOString(),
-          unreadCount: { // Initialize unreadCount
+          unreadCount: { 
             [currentUserId]: 0,
             [queryUserId]: 0,
           }
@@ -126,7 +126,6 @@ function DmPageContent() {
     }
   }, [authStatus, currentUserId, searchParams, conversations, setConversations, router, pathname]);
 
-  // Effect to reset unread count when a conversation is selected
   useEffect(() => {
     if (selectedConversationId && currentUserId && conversations.length > 0) {
       const conversationToUpdate = conversations.find(c => c.id === selectedConversationId);
@@ -391,37 +390,45 @@ function DmPageContent() {
 
         <ScrollArea className="flex-1">
           {displayedConversations.length > 0 ? (
-            displayedConversations.map(convo => (
-              <div
-                key={convo.id}
-                className={cn(
-                  "p-3 md:hover:bg-muted/50 cursor-pointer border-b border-border/50",
-                  selectedConversationId === convo.id && "bg-primary/10 md:hover:bg-primary/20"
-                )}
-                onClick={() => setSelectedConversationId(convo.id)}
-              >
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={convo.otherParticipant?.avatarUrl} alt={convo.otherParticipant?.username} data-ai-hint="dm list avatar"/>
-                    <AvatarFallback>{convo.otherParticipant?.username.substring(0,1).toUpperCase() || '?'}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-center">
-                      <p className="font-headline text-sm font-semibold truncate">{convo.otherParticipant?.username || "Pengguna tidak dikenal"}</p>
-                      <p className="text-xs text-muted-foreground flex-shrink-0 ml-2">{formatTimestamp(convo.lastMessageTimestamp)}</p>
+            displayedConversations.map(convo => {
+              const hasUnread = convo.unreadCount && currentUserId && convo.unreadCount[currentUserId] > 0;
+              return (
+                <div
+                  key={convo.id}
+                  className={cn(
+                    "p-3 md:hover:bg-muted/50 cursor-pointer border-b border-border/50",
+                    selectedConversationId === convo.id && "bg-primary/10 md:hover:bg-primary/20"
+                  )}
+                  onClick={() => setSelectedConversationId(convo.id)}
+                >
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={convo.otherParticipant?.avatarUrl} alt={convo.otherParticipant?.username} data-ai-hint="dm list avatar"/>
+                      <AvatarFallback>{convo.otherParticipant?.username.substring(0,1).toUpperCase() || '?'}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-center">
+                        <p className={cn("font-headline text-sm font-semibold truncate", hasUnread && "text-primary")}>{convo.otherParticipant?.username || "Pengguna tidak dikenal"}</p>
+                        {hasUnread && currentUserId && convo.unreadCount[currentUserId] > 0 ? (
+                           <Badge variant="destructive" className="h-5 px-1.5 text-xs flex-shrink-0 ml-2">
+                              {convo.unreadCount[currentUserId]}
+                           </Badge>
+                        ) : (
+                          <p className="text-xs text-muted-foreground flex-shrink-0 ml-2">{formatTimestamp(convo.lastMessageTimestamp)}</p>
+                        )}
+                      </div>
+                       <p className={cn("text-xs text-muted-foreground truncate mt-0.5", hasUnread && "font-medium text-foreground/90")}>
+                        {convo.lastMessage?.senderId === currentUserId ? "Anda: " : ""}
+                        {convo.lastMessage?.text ? (
+                          convo.lastMessage.replyToInfo ? `Membalas: ${convo.lastMessage.text}`
+                          : (parseOldReply(convo.lastMessage.text)?.actualReplyText || convo.lastMessage.text)
+                        ) : "Belum ada pesan"}
+                      </p>
                     </div>
-                    {/* Display unread count badge if any */}
-                    {convo.unreadCount && currentUserId && convo.unreadCount[currentUserId] > 0 && (
-                         <div className="flex justify-end mt-0.5">
-                            <Badge variant="destructive" className="h-5 px-1.5 text-xs">
-                                {convo.unreadCount[currentUserId]}
-                            </Badge>
-                        </div>
-                    )}
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="p-6 text-center text-muted-foreground flex flex-col items-center justify-center h-full">
               <Users className="h-12 w-12 mx-auto mb-3" />
@@ -509,7 +516,7 @@ function DmPageContent() {
                             size="icon"
                             className={cn(
                               "h-6 w-6 p-0.5 rounded-full opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity",
-                              "data-[state=open]:opacity-100 bg-card/50 md:hover:bg-card"
+                              "data-[state=open]:opacity-100 bg-card/50 md:hover:bg-card self-center"
                             )}
                           >
                             <MoreVertical className="h-4 w-4 text-muted-foreground " />
