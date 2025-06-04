@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from './PostCard';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialUsers, initialPosts, initialNotifications, getCurrentUserId } from '@/lib/data';
-import { Settings, UserPlus, UserCheck, Edit3, ImageIcon as ImageIconLucide, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, ShieldQuestion, LayoutGrid, Video, BadgeCheck, ListChecks, Heart } from 'lucide-react'; // LogOut, Trash2, Moon, Sun, Laptop removed
+import { Settings, UserPlus, UserCheck, Edit3, ImageIcon as ImageIconLucide, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, ShieldQuestion, LayoutGrid, Video, BadgeCheck, ListChecks, Heart } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
@@ -18,16 +18,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  // DropdownMenuPortal, // Removed
-  // DropdownMenuSeparator, // Removed (will add back if needed for only 2 items)
   DropdownMenuTrigger,
-  // DropdownMenuSub, // Removed
-  // DropdownMenuSubTrigger, // Removed
-  // DropdownMenuSubContent, // Removed
-  // DropdownMenuRadioGroup, // Removed
-  // DropdownMenuRadioItem, // Removed
 } from "@/components/ui/dropdown-menu";
-// AlertDialog related imports are removed as the trigger is moved
 import {
   Dialog,
   DialogContent,
@@ -38,12 +30,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+// Switch import removed as it's no longer used here
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from '@/lib/utils';
 import type React_dot_FC from 'react';
-// useTheme removed
 
 
 interface UserProfileDisplayProps {
@@ -76,18 +67,16 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
   const { toast } = useToast();
   const router = useRouter();
-  // useTheme removed
 
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
-  const [isPrivacySettingsModalOpen, setIsPrivacySettingsModalOpen] = useState(false);
+  // Privacy settings modal state and handlers removed
 
   const [editedUsername, setEditedUsername] = useState('');
   const [editedFullName, setEditedFullName] = useState('');
   const [editedBio, setEditedBio] = useState('');
   const [editedAvatarFile, setEditedAvatarFile] = useState<File | null>(null);
   const [editedAvatarPreview, setEditedAvatarPreview] = useState<string | null>(null);
-  const [editedAccountType, setEditedAccountType] = useState<'public' | 'private'>('public');
-  const [editedIsVerified, setEditedIsVerified] = useState(false);
+  // editedAccountType and editedIsVerified state removed
   const [postFilterType, setPostFilterType] = useState<'all' | 'photo' | 'reel'>('all');
 
 
@@ -101,8 +90,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       setEditedFullName(foundUser.fullName || '');
       setEditedBio(foundUser.bio || '');
       setEditedAvatarPreview(foundUser.avatarUrl);
-      setEditedAccountType(foundUser.accountType || 'public');
-      setEditedIsVerified(foundUser.isVerified || false);
+      // Initialization of editedAccountType and editedIsVerified removed
     }
   }, [userId, allUsers]);
 
@@ -339,14 +327,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     }
   };
 
-  const handleOpenPrivacySettingsModal = () => {
-    if (profileUser) {
-        setEditedAccountType(profileUser.accountType || 'public');
-        setEditedIsVerified(profileUser.isVerified || false);
-        setIsPrivacySettingsModalOpen(true);
-    }
-  };
-
+  // handleOpenPrivacySettingsModal removed
 
   const handleAvatarFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -388,7 +369,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       return;
     }
 
-
     setAllUsers(prevUsers =>
       prevUsers.map(user => {
         if (user.id === currentSessionUserId) {
@@ -410,26 +390,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     setIsEditProfileModalOpen(false);
   };
 
-  const handleSavePrivacySettings = () => {
-    if (!profileUser || !currentSessionUserId) return;
-     setAllUsers(prevUsers =>
-      prevUsers.map(user => {
-        if (user.id === currentSessionUserId) {
-          return {
-            ...user,
-            accountType: editedAccountType,
-            isVerified: editedIsVerified,
-          };
-        }
-        return user;
-      })
-    );
-    toast({
-      title: "Pengaturan Privasi Diperbarui",
-      description: "Pengaturan privasi dan verifikasi akun Anda telah disimpan.",
-    });
-    setIsPrivacySettingsModalOpen(false);
-  };
+  // handleSavePrivacySettings removed
 
   const handleSendMessage = () => {
     if (!currentSessionUserId || !profileUser || currentSessionUserId === profileUser.id) return;
@@ -465,16 +426,11 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const ProfileSettingsMenuItems = () => (
     <>
       {isCurrentUserProfile && (
-        <>
-          <DropdownMenuItem onClick={handleOpenEditProfileModal} className="cursor-pointer">
-            <Edit3 className="mr-2 h-4 w-4" />
-            Edit Profil
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleOpenPrivacySettingsModal} className="cursor-pointer">
-            <ShieldQuestion className="mr-2 h-4 w-4" />
-            Pengaturan Privasi
-          </DropdownMenuItem>
-        </>
+        <DropdownMenuItem onClick={handleOpenEditProfileModal} className="cursor-pointer">
+          <Edit3 className="mr-2 h-4 w-4" />
+          Edit Profil
+        </DropdownMenuItem>
+        // Privacy Settings menu item removed
       )}
     </>
   );
@@ -651,59 +607,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         </DialogContent>
       </Dialog>
 
-
-      <Dialog open={isPrivacySettingsModalOpen} onOpenChange={setIsPrivacySettingsModalOpen}>
-        <DialogContent className="sm:max-w-[480px]">
-          <DialogHeader>
-            <EditDialogTitle className="font-headline text-2xl flex items-center gap-2">
-                <ShieldQuestion className="h-6 w-6 text-primary" />Pengaturan Privasi Akun
-            </EditDialogTitle>
-            <DialogDescription>
-              Kelola siapa yang dapat melihat konten Anda dan status verifikasi akun.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-6 py-4">
-            <div className="space-y-3">
-              <Label htmlFor="account-type-switch" className="font-medium">Privasi Akun</Label>
-              <div className="flex items-center space-x-3 p-3 border rounded-md bg-muted/30">
-                <Switch
-                  id="account-type-switch"
-                  checked={editedAccountType === 'private'}
-                  onCheckedChange={(checked) => setEditedAccountType(checked ? 'private' : 'public')}
-                />
-                <Label htmlFor="account-type-switch" className="text-sm flex items-center gap-1.5 cursor-pointer">
-                  {editedAccountType === 'private' ? <Lock className="h-4 w-4"/> : <ShieldOff className="h-4 w-4"/>}
-                  {editedAccountType === 'private' ? 'Akun Privat' : 'Akun Publik'}
-                </Label>
-              </div>
-              <p className="text-xs text-muted-foreground px-1">
-                Jika akun privat, hanya pengikut yang Anda setujui yang dapat melihat postingan Anda. Permintaan mengikuti akan diperlukan untuk pengguna baru yang ingin mengikuti Anda.
-              </p>
-            </div>
-            <div className="space-y-3">
-              <Label htmlFor="account-verified-switch" className="font-medium">Verifikasi Akun (Centang Biru)</Label>
-              <div className="flex items-center space-x-3 p-3 border rounded-md bg-muted/30">
-                <Switch
-                  id="account-verified-switch"
-                  checked={editedIsVerified}
-                  onCheckedChange={setEditedIsVerified}
-                />
-                <Label htmlFor="account-verified-switch" className="text-sm flex items-center gap-1.5 cursor-pointer">
-                  {editedIsVerified ? <BadgeCheck className="h-4 w-4 text-primary"/> : <BadgeCheck className="h-4 w-4 text-muted"/>}
-                  {editedIsVerified ? 'Akun Terverifikasi' : 'Akun Belum Terverifikasi'}
-                </Label>
-              </div>
-              <p className="text-xs text-muted-foreground px-1">
-                Aktifkan untuk menampilkan lencana verifikasi (centang biru) di profil Anda.
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsPrivacySettingsModalOpen(false)} className="md:hover:bg-accent md:hover:text-accent-foreground">Batal</Button>
-            <Button onClick={handleSavePrivacySettings} className="md:hover:bg-primary/90"><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Privacy Settings Dialog removed from here */}
 
       <div className="mt-8 w-full sm:max-w-2xl sm:mx-auto">
         {canViewProfileContent ? (

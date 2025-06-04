@@ -3,12 +3,12 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Home, BadgePlus, User, LogIn, Search as SearchIconLucide, Bell, Trash2, X as XIcon, MessageSquare, UserCheck, UserX, ShieldQuestion, Film, Settings as SettingsIcon, Cog, Moon, Sun, Laptop, LogOut } from 'lucide-react'; // Added LogOut
+import { Home, BadgePlus, User, LogIn, Search as SearchIconLucide, Bell, Trash2, X as XIcon, MessageSquare, UserCheck, UserX, ShieldQuestion, Film, Settings as SettingsIcon, Cog, Moon, Sun, Laptop, LogOut, Save, Edit3, Lock, ShieldOff, BadgeCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn, formatTimestamp } from '@/lib/utils';
 import { useEffect, useState, FormEvent, useMemo, Dispatch, SetStateAction } from 'react';
-import { getCurrentUserId, initialNotifications, initialUsers, initialConversations, initialPosts } from '@/lib/data'; // Added initialPosts
+import { getCurrentUserId, initialNotifications, initialUsers, initialConversations, initialPosts } from '@/lib/data';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,8 +33,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription as PrivacyDialogDescription,
+  DialogFooter as PrivacyDialogFooter,
+  DialogHeader as PrivacyDialogHeader,
+  DialogTitle as PrivacyDialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import type { Notification, User as UserType, NotificationType, Conversation, Post } from '@/lib/types'; // Added Post
+import type { Notification, User as UserType, NotificationType, Conversation, Post } from '@/lib/types';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { Badge as ShadBadge } from '@/components/ui/badge';
 import { useToast } from "@/hooks/use-toast";
@@ -44,7 +54,7 @@ import {
   Sidebar,
   SidebarHeader,
   SidebarContent,
-  SidebarFooter, // Added SidebarFooter
+  SidebarFooter,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
@@ -81,9 +91,13 @@ export function AppSidebar() {
 
   const [notifications, setNotifications] = useLocalStorageState<Notification[]>('notifications', initialNotifications);
   const [allUsers, setAllUsers] = useLocalStorageState<UserType[]>('users', initialUsers);
-  const [allPosts, setAllPosts] = useLocalStorageState<Post[]>('posts', initialPosts); // For logout & delete
+  const [allPosts, setAllPosts] = useLocalStorageState<Post[]>('posts', initialPosts);
   const [conversations, setConversations] = useLocalStorageState<Conversation[]>('conversations', initialConversations);
   const [showDeleteDataConfirm, setShowDeleteDataConfirm] = useState(false);
+  
+  const [isPrivacySettingsModalOpen, setIsPrivacySettingsModalOpen] = useState(false);
+  const [editedAccountType, setEditedAccountType] = useState<'public' | 'private'>('public');
+  const [editedIsVerified, setEditedIsVerified] = useState(false);
 
 
   const { state: sidebarState } = useSidebar();
@@ -103,6 +117,11 @@ export function AppSidebar() {
       window.removeEventListener('authChange', updateAuthStatus);
     };
   }, []);
+  
+  const currentSessionUser = useMemo(() => {
+    if (!currentUserId || !isClient) return null;
+    return allUsers.find(u => u.id === currentUserId);
+  }, [allUsers, currentUserId, isClient]);
 
   const unreadNotifications = useMemo(() => {
     if (!currentUserId || !isClient) return [];
@@ -323,6 +342,40 @@ export function AppSidebar() {
     });
     setShowDeleteDataConfirm(false);
     router.push('/login');
+  };
+
+  const handleOpenPrivacySettingsModal = () => {
+    if (currentSessionUser) {
+        setEditedAccountType(currentSessionUser.accountType || 'public');
+        setEditedIsVerified(currentSessionUser.isVerified || false);
+        setIsPrivacySettingsModalOpen(true);
+    } else {
+        toast({ title: "Error", description: "Data pengguna saat ini tidak ditemukan.", variant: "destructive"});
+    }
+  };
+
+  const handleSavePrivacySettings = () => {
+    if (!currentSessionUser || !currentUserId) {
+        toast({ title: "Error", description: "Tidak dapat menyimpan, data pengguna tidak lengkap.", variant: "destructive" });
+        return;
+    }
+     setAllUsers(prevUsers =>
+      prevUsers.map(user => {
+        if (user.id === currentUserId) {
+          return {
+            ...user,
+            accountType: editedAccountType,
+            isVerified: editedIsVerified,
+          };
+        }
+        return user;
+      })
+    );
+    toast({
+      title: "Pengaturan Privasi Diperbarui",
+      description: "Pengaturan privasi dan verifikasi akun Anda telah disimpan.",
+    });
+    setIsPrivacySettingsModalOpen(false);
   };
 
 
@@ -625,6 +678,11 @@ export function AppSidebar() {
                             </DropdownMenuSubContent>
                             </DropdownMenuPortal>
                         </DropdownMenuSub>
+                        <DropdownMenuSeparator/>
+                        <DropdownMenuItem onClick={handleOpenPrivacySettingsModal} className="cursor-pointer">
+                            <ShieldQuestion className="mr-2 h-4 w-4" />
+                            Pengaturan Privasi
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={handleLogoutAndSaveData} className="cursor-pointer">
                             <LogOut className="mr-2 h-4 w-4" />
@@ -662,6 +720,59 @@ export function AppSidebar() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={isPrivacySettingsModalOpen} onOpenChange={setIsPrivacySettingsModalOpen}>
+        <DialogContent className="sm:max-w-[480px]">
+          <PrivacyDialogHeader>
+            <PrivacyDialogTitle className="font-headline text-2xl flex items-center gap-2">
+                <ShieldQuestion className="h-6 w-6 text-primary" />Pengaturan Privasi Akun
+            </PrivacyDialogTitle>
+            <PrivacyDialogDescription>
+              Kelola siapa yang dapat melihat konten Anda dan status verifikasi akun.
+            </PrivacyDialogDescription>
+          </PrivacyDialogHeader>
+          <div className="grid gap-6 py-4">
+            <div className="space-y-3">
+              <Label htmlFor="account-type-switch-sidebar" className="font-medium">Privasi Akun</Label>
+              <div className="flex items-center space-x-3 p-3 border rounded-md bg-muted/30">
+                <Switch
+                  id="account-type-switch-sidebar"
+                  checked={editedAccountType === 'private'}
+                  onCheckedChange={(checked) => setEditedAccountType(checked ? 'private' : 'public')}
+                />
+                <Label htmlFor="account-type-switch-sidebar" className="text-sm flex items-center gap-1.5 cursor-pointer">
+                  {editedAccountType === 'private' ? <Lock className="h-4 w-4"/> : <ShieldOff className="h-4 w-4"/>}
+                  {editedAccountType === 'private' ? 'Akun Privat' : 'Akun Publik'}
+                </Label>
+              </div>
+              <p className="text-xs text-muted-foreground px-1">
+                Jika akun privat, hanya pengikut yang Anda setujui yang dapat melihat postingan Anda. Permintaan mengikuti akan diperlukan untuk pengguna baru yang ingin mengikuti Anda.
+              </p>
+            </div>
+            <div className="space-y-3">
+              <Label htmlFor="account-verified-switch-sidebar" className="font-medium">Verifikasi Akun (Centang Biru)</Label>
+              <div className="flex items-center space-x-3 p-3 border rounded-md bg-muted/30">
+                <Switch
+                  id="account-verified-switch-sidebar"
+                  checked={editedIsVerified}
+                  onCheckedChange={setEditedIsVerified}
+                />
+                <Label htmlFor="account-verified-switch-sidebar" className="text-sm flex items-center gap-1.5 cursor-pointer">
+                  {editedIsVerified ? <BadgeCheck className="h-4 w-4 text-primary"/> : <BadgeCheck className="h-4 w-4 text-muted"/>}
+                  {editedIsVerified ? 'Akun Terverifikasi' : 'Akun Belum Terverifikasi'}
+                </Label>
+              </div>
+              <p className="text-xs text-muted-foreground px-1">
+                Aktifkan untuk menampilkan lencana verifikasi (centang biru) di profil Anda.
+              </p>
+            </div>
+          </div>
+          <PrivacyDialogFooter>
+            <Button variant="outline" onClick={() => setIsPrivacySettingsModalOpen(false)} className="md:hover:bg-accent md:hover:text-accent-foreground">Batal</Button>
+            <Button onClick={handleSavePrivacySettings} className="md:hover:bg-primary/90"><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
+          </PrivacyDialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
