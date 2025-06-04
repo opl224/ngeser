@@ -417,13 +417,7 @@ function DmPageContent() {
                           <p className="text-xs text-muted-foreground flex-shrink-0 ml-2">{formatTimestamp(convo.lastMessageTimestamp)}</p>
                         )}
                       </div>
-                       <p className={cn("text-xs text-muted-foreground truncate mt-0.5", hasUnread && "font-medium text-foreground/90")}>
-                        {convo.lastMessage?.senderId === currentUserId ? "Anda: " : ""}
-                        {convo.lastMessage?.text ? (
-                          convo.lastMessage.replyToInfo ? `Membalas: ${convo.lastMessage.text}`
-                          : (parseOldReply(convo.lastMessage.text)?.actualReplyText || convo.lastMessage.text)
-                        ) : "Belum ada pesan"}
-                      </p>
+                       {/* Last message preview removed as per request */}
                     </div>
                   </div>
                 </div>
@@ -461,7 +455,7 @@ function DmPageContent() {
             <ScrollArea className="flex-1 p-4">
               {selectedConversation.messages.map(msg => {
                 const isCurrentUserSender = msg.senderId === currentUserId;
-                const sender = isCurrentUserSender ? currentUser : selectedConversation.otherParticipant;
+                // Sender avatar logic removed here
                 const oldParsedReply = !msg.replyToInfo ? parseOldReply(msg.text) : null;
                 
                 let messageDisplayContent;
