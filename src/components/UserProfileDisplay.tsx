@@ -10,16 +10,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from './PostCard';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialUsers, initialPosts, initialNotifications, getCurrentUserId } from '@/lib/data';
-import { Settings, UserPlus, UserCheck, Edit3, ImageIcon as ImageIconLucide, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, ShieldQuestion, LayoutGrid, Video, BadgeCheck, ListChecks, Heart } from 'lucide-react';
+import { Edit3, ImageIcon as ImageIconLucide, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, LayoutGrid, Video, BadgeCheck, ListChecks, Heart } from 'lucide-react'; // Settings icon removed, Edit3 kept/added
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+// DropdownMenu imports removed
 import {
   Dialog,
   DialogContent,
@@ -30,7 +25,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-// Switch import removed as it's no longer used here
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from '@/lib/utils';
@@ -69,14 +63,12 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const router = useRouter();
 
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
-  // Privacy settings modal state and handlers removed
 
   const [editedUsername, setEditedUsername] = useState('');
   const [editedFullName, setEditedFullName] = useState('');
   const [editedBio, setEditedBio] = useState('');
   const [editedAvatarFile, setEditedAvatarFile] = useState<File | null>(null);
   const [editedAvatarPreview, setEditedAvatarPreview] = useState<string | null>(null);
-  // editedAccountType and editedIsVerified state removed
   const [postFilterType, setPostFilterType] = useState<'all' | 'photo' | 'reel'>('all');
 
 
@@ -90,7 +82,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       setEditedFullName(foundUser.fullName || '');
       setEditedBio(foundUser.bio || '');
       setEditedAvatarPreview(foundUser.avatarUrl);
-      // Initialization of editedAccountType and editedIsVerified removed
     }
   }, [userId, allUsers]);
 
@@ -327,8 +318,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     }
   };
 
-  // handleOpenPrivacySettingsModal removed
-
   const handleAvatarFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -390,8 +379,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     setIsEditProfileModalOpen(false);
   };
 
-  // handleSavePrivacySettings removed
-
   const handleSendMessage = () => {
     if (!currentSessionUserId || !profileUser || currentSessionUserId === profileUser.id) return;
     router.push(`/dm?userId=${profileUser.id}`);
@@ -423,35 +410,21 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const isFollowButtonDisabled = profileUser.accountType === 'private' && isRequestedByCSUtoPU && !isCurrentUserFollowingProfile;
 
 
-  const ProfileSettingsMenuItems = () => (
-    <>
-      {isCurrentUserProfile && (
-        <DropdownMenuItem onClick={handleOpenEditProfileModal} className="cursor-pointer">
-          <Edit3 className="mr-2 h-4 w-4" />
-          Edit Profil
-        </DropdownMenuItem>
-        // Privacy Settings menu item removed
-      )}
-    </>
-  );
-
-
   return (
     <div className="max-w-4xl mx-auto">
         <Card className="mb-8 shadow-lg rounded-xl overflow-hidden">
           <CardHeader className="relative p-6 bg-card flex flex-col md:flex-row items-center gap-6">
             {isCurrentUserProfile && (
               <div className="absolute top-4 right-4 md:hidden">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-9 w-9">
-                      <Settings className="h-5 w-5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <ProfileSettingsMenuItems />
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9"
+                  onClick={handleOpenEditProfileModal}
+                  aria-label="Edit Profil"
+                >
+                  <Edit3 className="h-5 w-5" />
+                </Button>
               </div>
             )}
             <div className="relative">
@@ -493,16 +466,15 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             </div>
             {isCurrentUserProfile ? (
                 <div className="hidden md:flex md:items-center md:gap-2 md:absolute md:top-6 md:right-6">
-                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="px-2 w-9 md:hover:bg-accent md:hover:text-accent-foreground">
-                        <Settings className="h-5 w-5" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <ProfileSettingsMenuItems />
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 md:hover:bg-accent md:hover:text-accent-foreground"
+                    onClick={handleOpenEditProfileModal}
+                    aria-label="Edit Profil"
+                  >
+                    <Edit3 className="h-5 w-5" />
+                  </Button>
                 </div>
             ) : currentSessionUserId && (
                 <div className="flex w-full justify-center items-center gap-2 mt-4 md:w-auto md:absolute md:top-6 md:right-6 md:mt-0">
@@ -606,8 +578,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Privacy Settings Dialog removed from here */}
 
       <div className="mt-8 w-full sm:max-w-2xl sm:mx-auto">
         {canViewProfileContent ? (
