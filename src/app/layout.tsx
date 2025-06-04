@@ -12,11 +12,14 @@ import React, { useState, useEffect } from 'react';
 import { ThemeProvider } from 'next-themes';
 import Image from 'next/image'; // Added for logo in minimal header
 import Link from 'next/link'; // Added for logo link
-import { PanelLeft } from 'lucide-react'; // Import PanelLeft
+// PanelLeft import removed as SidebarTrigger is removed from mobile header
+// import { PanelLeft } from 'lucide-react';
 
-import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'; // SidebarTrigger removed from here
 import { AppSidebar } from '@/components/AppSidebar';
-import { Button } from '@/components/ui/button'; // For SidebarTrigger if styled as button
+// Button import removed as it's not directly used here for SidebarTrigger anymore
+// import { Button } from '@/components/ui/button';
+import { MobileHeaderIcons } from '@/components/MobileHeaderIcons'; // Import the new component
 
 export default function RootLayout({
   children,
@@ -47,16 +50,17 @@ export default function RootLayout({
           <SidebarProvider defaultOpen={true}>
             <AppSidebar />
             <SidebarInset>
-              {/* Minimal top bar for mobile to house the sidebar trigger and potentially a logo */}
+              {/* Minimal top bar for mobile */}
               <header className={cn(
                 "sticky top-0 z-30 h-14 flex items-center justify-between px-4 border-b bg-background/80 backdrop-blur-sm md:hidden",
-                actualHideBottomNavbarAndMainPadding && "md:hidden" // Hide this mobile header on full-screen pages too
+                actualHideBottomNavbarAndMainPadding && "hidden" // Hide this mobile header on full-screen pages too
               )}>
                 <Link href="/" className="flex items-center gap-2">
                   <Image src="/hand.png" alt="Ngeser logo" width={28} height={28} data-ai-hint="logo hand mobile" />
                   <span className="font-headline text-xl font-semibold text-foreground">Ngeser</span>
                 </Link>
-                <SidebarTrigger />
+                {/* Replace SidebarTrigger with MobileHeaderIcons */}
+                <MobileHeaderIcons />
               </header>
 
               <main className={cn(
