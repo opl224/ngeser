@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from './PostCard';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialUsers, initialPosts, initialNotifications, getCurrentUserId } from '@/lib/data';
-import { Edit3, ImageIcon as ImageIconLucide, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, LayoutGrid, Video, BadgeCheck, ListChecks, Heart } from 'lucide-react'; // Settings icon removed, Edit3 kept/added
+import { Edit3, ImageIcon as ImageIconLucide, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, LayoutGrid, Video, BadgeCheck, ListChecks, Heart, UserPlus, UserCheck as UserCheckIcon } from 'lucide-react'; // Settings icon removed, Edit3 kept/added
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
@@ -398,7 +398,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
   if (isCurrentUserFollowingProfile) {
     followButtonText = "Mengikuti";
-    FollowButtonIconComponent = UserCheck;
+    FollowButtonIconComponent = UserCheckIcon;
   } else if (isRequestedByCSUtoPU && profileUser.accountType === 'private') {
     followButtonText = "Diminta";
     FollowButtonIconComponent = UserPlus;
