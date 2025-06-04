@@ -491,13 +491,8 @@ function DmPageContent() {
                 }
 
                 return (
-                  <div key={msg.id} className={cn("group flex items-center gap-2 max-w-[85%] sm:max-w-[75%] mb-3", isCurrentUserSender ? "ml-auto flex-row-reverse" : "mr-auto")}>
-                    {!isCurrentUserSender && (
-                       <Avatar className="h-7 w-7 self-start flex-shrink-0 hidden sm:flex">
-                         <AvatarImage src={sender?.avatarUrl} alt={sender?.username} data-ai-hint="message sender avatar"/>
-                         <AvatarFallback>{sender?.username.substring(0,1).toUpperCase()}</AvatarFallback>
-                       </Avatar>
-                    )}
+                  <div key={msg.id} className={cn("group flex items-end gap-2 max-w-[85%] sm:max-w-[75%] mb-3", isCurrentUserSender ? "ml-auto flex-row-reverse" : "mr-auto")}>
+                    {/* Avatar sender (pengguna lain) dihapus dari sini */}
                     <div className={cn(
                         "p-2.5 rounded-xl text-sm leading-relaxed shadow-sm",
                         isCurrentUserSender ? "bg-primary text-primary-foreground rounded-br-none" : "bg-muted text-foreground rounded-bl-none"
