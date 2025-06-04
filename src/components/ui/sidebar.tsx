@@ -263,8 +263,8 @@ Sidebar.displayName = "Sidebar"
 const SidebarTrigger = React.forwardRef<
   React.ElementRef<typeof Button>,
   React.ComponentProps<typeof Button>
->(({ className, onClick, ...props }, ref) => {
-  const { toggleSidebar } = useSidebar()
+>(({ className, onClick, children, asChild: localAsChildProp, ...buttonSpecificProps }, ref) => {
+  const { toggleSidebar } = useSidebar();
 
   return (
     <Button
@@ -274,16 +274,21 @@ const SidebarTrigger = React.forwardRef<
       size="icon"
       className={cn("h-7 w-7", className)}
       onClick={(event) => {
-        onClick?.(event)
-        toggleSidebar()
+        onClick?.(event);
+        toggleSidebar();
       }}
-      {...props}
+      asChild={localAsChildProp}
+      {...buttonSpecificProps}
     >
-      <PanelLeft />
-      <span className="sr-only">Alihkan Sidebar</span>
+      {localAsChildProp ? children : (
+        <>
+          <PanelLeft />
+          <span className="sr-only">Alihkan Sidebar</span>
+        </>
+      )}
     </Button>
-  )
-})
+  );
+});
 SidebarTrigger.displayName = "SidebarTrigger"
 
 const SidebarRail = React.forwardRef<
@@ -730,6 +735,21 @@ const SidebarMenuSubButton = React.forwardRef<
 })
 SidebarMenuSubButton.displayName = "SidebarMenuSubButton"
 
+// Ensuring all exports are present, including the missing SidebarMenuSubItem
+const SidebarMenuSubItem = React.forwardRef<
+  HTMLLIElement,
+  React.ComponentProps<"li">
+>(({ className, ...props }, ref) => (
+  <li
+    ref={ref}
+    data-sidebar="menu-sub-item"
+    className={cn("group/menu-sub-item relative", className)}
+    {...props}
+  />
+))
+SidebarMenuSubItem.displayName = "SidebarMenuSubItem"
+
+
 export {
   Sidebar,
   SidebarContent,
@@ -749,7 +769,7 @@ export {
   SidebarMenuSkeleton,
   SidebarMenuSub,
   SidebarMenuSubButton,
-  SidebarMenuSubItem,
+  SidebarMenuSubItem, // Added export
   SidebarProvider,
   SidebarRail,
   SidebarSeparator,

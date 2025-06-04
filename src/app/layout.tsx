@@ -12,6 +12,7 @@ import React, { useState, useEffect } from 'react';
 import { ThemeProvider } from 'next-themes';
 import Image from 'next/image'; // Added for logo in minimal header
 import Link from 'next/link'; // Added for logo link
+import { PanelLeft } from 'lucide-react'; // Import PanelLeft
 
 import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
@@ -57,7 +58,8 @@ export default function RootLayout({
                 </Link>
                 <SidebarTrigger asChild>
                   <Button variant="ghost" size="icon">
-                    {/* Icon will be PanelLeft from SidebarTrigger itself */}
+                    <PanelLeft />
+                    <span className="sr-only">Alihkan Sidebar</span>
                   </Button>
                 </SidebarTrigger>
               </header>
