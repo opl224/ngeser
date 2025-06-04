@@ -1,22 +1,15 @@
 
 "use client";
 
-import type { Metadata } from 'next';
+// import type { Metadata } from 'next'; // Static metadata is fine here, or use generateMetadata in page.tsx
 import './globals.css';
 import { AppNavbar } from '@/components/AppNavbar';
-import { BottomNavbar } from '@/components/BottomNavbar'; // Import BottomNavbar
+import { BottomNavbar } from '@/components/BottomNavbar';
 import { Toaster } from "@/components/ui/toaster";
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import React from 'react'; // Import React
+import React, { useState, useEffect } from 'react'; // Import useState, useEffect
 import { ThemeProvider } from 'next-themes';
-
-// Metadata can still be defined but won't be dynamic in this client component
-// For dynamic metadata based on path, specific page.tsx files should export it.
-// export const metadata: Metadata = {
-//   title: 'Ngeser',
-//   description: 'Pengalaman media sosial yang sederhana namun elegan.',
-// };
 
 export default function RootLayout({
   children,
@@ -24,9 +17,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
-  const isDMPage = pathname === '/dm';
-  const isReelsPage = pathname === '/reels';
-  const hideNavbars = isDMPage || isReelsPage;
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  // Determine navbar visibility:
+  // On server & initial client render (hasMounted = false), navbars are shown.
+  // After client mount (hasMounted = true), visibility is based on pathname.
+  const actualHideNavbars = hasMounted ? (pathname === '/dm' || pathname === '/reels') : false;
 
   return (
     <html lang="id" suppressHydrationWarning>
@@ -40,18 +40,18 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased min-h-screen flex flex-col bg-background">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          {!hideNavbars && <AppNavbar />}
+          {!actualHideNavbars && <AppNavbar />}
           <main className={cn(
             "flex-grow",
-            !hideNavbars && "pt-10", // Apply pt-10 only when navbars are shown
-            hideNavbars ? "" : "container mx-auto px-4 pb-20 sm:pb-8"
+            !actualHideNavbars && "pt-10", // Apply pt-10 only when navbars are shown
+            actualHideNavbars ? "" : "container mx-auto px-4 pb-20 sm:pb-8"
           )}>
             {/* Wrap children with a div having pathname as key to force re-mount on navigation */}
             <div key={pathname}>
               {children}
             </div>
           </main>
-          {!hideNavbars && <BottomNavbar />}
+          {!actualHideNavbars && <BottomNavbar />}
           <Toaster />
         </ThemeProvider>
       </body>
