@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from './PostCard';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialUsers, initialPosts, initialNotifications, getCurrentUserId } from '@/lib/data';
-import { Edit3, ImageIcon as ImageIconLucide, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, LayoutGrid, Video, BadgeCheck, ListChecks, Heart, UserPlus, UserCheck as UserCheckIcon, Settings as SettingsIcon } from 'lucide-react';
+import { Edit3, ImageIcon as ImageIconLucide, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, LayoutGrid, Video, BadgeCheck, ListChecks, Heart, UserPlus, UserCheck as UserCheckIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
@@ -412,20 +412,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   return (
     <div className="max-w-4xl mx-auto">
         <Card className="mb-8 shadow-lg rounded-xl overflow-hidden">
-          <CardHeader className="relative p-6 bg-card flex flex-col md:flex-row items-center gap-6">
-            {isCurrentUserProfile && (
-              <div className="absolute top-4 right-4 md:hidden">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9"
-                  onClick={handleOpenEditProfileModal}
-                  aria-label="Edit Profil"
-                >
-                  <SettingsIcon className="h-5 w-5" />
-                </Button>
-              </div>
-            )}
+          <CardHeader className="relative p-6 bg-card flex flex-col md:flex-row items-center md:items-start gap-6">
             <div className="relative">
               <Avatar className="h-28 w-28 md:h-36 md:w-36 border-4 border-primary shadow-md">
                 <AvatarImage src={profileUser.avatarUrl} alt={profileUser.username} data-ai-hint="portrait person large" />
@@ -436,7 +423,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                   variant="outline"
                   size="icon"
                   onClick={handleOpenEditProfileModal}
-                  className="absolute -bottom-2 -right-2 h-9 w-9 rounded-full p-2 bg-background border-2 border-primary/70 shadow-md md:hidden md:md:hover:bg-accent"
+                  className="absolute -bottom-2 -right-2 h-9 w-9 rounded-full p-2 bg-background border-2 border-primary/70 shadow-md md:hidden md:hover:bg-accent"
                   aria-label="Edit Profil"
                 >
                   <Edit3 className="h-4 w-4" />
@@ -462,21 +449,10 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                 <div><span className="font-semibold">{canViewProfileContent ? (profileUser.followers || []).length : "-"}</span> Pengikut</div>
                 <div><span className="font-semibold">{canViewProfileContent ? (profileUser.following || []).length : "-"}</span> Mengikuti</div>
               </div>
-            </div>
-            {isCurrentUserProfile ? (
-                <div className="hidden md:flex md:items-center md:gap-2 md:absolute md:top-6 md:right-6">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 md:hover:bg-accent md:hover:text-accent-foreground"
-                    onClick={handleOpenEditProfileModal}
-                    aria-label="Edit Profil"
-                  >
-                    <Edit3 className="h-5 w-5" />
-                  </Button>
-                </div>
-            ) : currentSessionUserId && (
-                <div className="flex w-full justify-center items-center gap-2 mt-4 md:w-auto md:absolute md:top-6 md:right-6 md:mt-0">
+
+              {/* DESKTOP Follow/Message buttons */}
+              {!isCurrentUserProfile && currentSessionUserId && (
+                <div className="hidden md:flex md:items-center md:justify-start md:gap-2 md:mt-4">
                     <Button
                       onClick={handleFollowToggle}
                       variant={isCurrentUserFollowingProfile ? "secondary" : "default"}
@@ -487,9 +463,54 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                       <FollowButtonIconComponent className="mr-2 h-4 w-4" />
                       {followButtonText}
                     </Button>
-                    <Button onClick={handleSendMessage} variant="outline" size="sm" className="px-3 md:hover:bg-accent md:hover:text-accent-foreground">
-                        <MessageSquare className="h-4 w-4 md:mr-2" />
-                        <span className="hidden md:inline">Pesan</span>
+                    <Button 
+                      onClick={handleSendMessage} 
+                      variant="outline" 
+                      size="sm" 
+                      className="px-3 md:hover:bg-accent md:hover:text-accent-foreground"
+                    >
+                        <MessageSquare className="h-4 w-4 mr-2" />
+                        <span>Pesan</span>
+                    </Button>
+                </div>
+              )}
+            </div>
+            
+            {/* Desktop Edit Button - top right of card */}
+            {isCurrentUserProfile && (
+              <div className="hidden md:flex md:absolute md:top-6 md:right-6">
+                 <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 md:hover:bg-accent md:hover:text-accent-foreground"
+                    onClick={handleOpenEditProfileModal}
+                    aria-label="Edit Profil"
+                  >
+                    <Edit3 className="h-5 w-5" />
+                </Button>
+              </div>
+            )}
+
+            {/* MOBILE Follow/Message buttons - flow after main content block */}
+            {!isCurrentUserProfile && currentSessionUserId && (
+                <div className="flex w-full justify-center items-center gap-2 mt-4 md:hidden">
+                    <Button
+                      onClick={handleFollowToggle}
+                      variant={isCurrentUserFollowingProfile ? "secondary" : "default"}
+                      size="sm"
+                      disabled={isFollowButtonDisabled}
+                    >
+                      <FollowButtonIconComponent className="mr-2 h-4 w-4" />
+                      {followButtonText}
+                    </Button>
+                    <Button 
+                      onClick={handleSendMessage} 
+                      variant="outline" 
+                      size="sm" 
+                      className="px-3"
+                    >
+                        <MessageSquare className="h-4 w-4" />
+                         {/* Text span removed for mobile for icon-only display */}
                     </Button>
                 </div>
             )}
