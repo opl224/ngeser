@@ -491,7 +491,7 @@ function DmPageContent() {
                 }
 
                 return (
-                  <div key={msg.id} className={cn("group flex items-end gap-2 max-w-[85%] sm:max-w-[75%] mb-3", isCurrentUserSender ? "ml-auto flex-row-reverse" : "mr-auto")}>
+                  <div key={msg.id} className={cn("group flex items-center gap-2 max-w-[85%] sm:max-w-[75%] mb-3", isCurrentUserSender ? "ml-auto flex-row-reverse" : "mr-auto")}>
                     {/* Avatar sender (pengguna lain) dihapus dari sini */}
                     <div className={cn(
                         "p-2.5 rounded-xl text-sm leading-relaxed shadow-sm",
@@ -513,7 +513,7 @@ function DmPageContent() {
                               "data-[state=open]:opacity-100 bg-card/50 md:hover:bg-card"
                             )}
                           >
-                            <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                            <MoreVertical className="h-4 w-4 text-muted-foreground " />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align={isCurrentUserSender ? "end" : "start"} sideOffset={5}>
