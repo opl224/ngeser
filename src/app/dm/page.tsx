@@ -383,7 +383,7 @@ function DmPageContent() {
         isMobileViewAndViewingMessages ? "hidden md:flex" : "flex"
       )}>
         <div className="p-3 border-b border-border flex items-center gap-2 sticky top-0 bg-card/30 z-10">
-          <Button variant="ghost" size="icon" onClick={() => router.back()} aria-label="Kembali">
+          <Button variant="ghost" size="icon" onClick={() => router.back()} aria-label="Kembali" className="md:hidden">
               <ArrowLeft className="h-5 w-5" />
           </Button>
           <span className="font-headline text-md font-semibold text-foreground">Pesan</span>
@@ -492,7 +492,6 @@ function DmPageContent() {
 
                 return (
                   <div key={msg.id} className={cn("group flex items-center gap-2 max-w-[85%] sm:max-w-[75%] mb-3", isCurrentUserSender ? "ml-auto flex-row-reverse" : "mr-auto")}>
-                    {/* Avatar sender (pengguna lain) dihapus dari sini */}
                     <div className={cn(
                         "p-2.5 rounded-xl text-sm leading-relaxed shadow-sm",
                         isCurrentUserSender ? "bg-primary text-primary-foreground rounded-br-none" : "bg-muted text-foreground rounded-bl-none"
