@@ -13,8 +13,9 @@ import { ThemeProvider } from 'next-themes';
 import Image from 'next/image'; // Added for logo in minimal header
 import Link from 'next/link'; // Added for logo link
 
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'; 
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
+import { MobileHeaderIcons } from '@/components/MobileHeaderIcons';
 
 
 export default function RootLayout({
@@ -46,16 +47,16 @@ export default function RootLayout({
           <SidebarProvider defaultOpen={true}>
             <AppSidebar />
             <SidebarInset>
-              {/* Minimal top bar for mobile - SidebarTrigger is definitively removed here */}
+              {/* Minimal top bar for mobile */}
               <header className={cn(
                 "sticky top-0 z-30 h-14 flex items-center justify-between px-4 border-b bg-background/80 backdrop-blur-sm md:hidden",
-                actualHideBottomNavbarAndMainPadding && "hidden" 
+                actualHideBottomNavbarAndMainPadding && "hidden"
               )}>
                 <Link href="/" className="flex items-center gap-2">
                   <Image src="/hand.png" alt="Ngeser logo" width={28} height={28} data-ai-hint="logo hand mobile" />
                   <span className="font-headline text-xl font-semibold text-foreground">Ngeser</span>
                 </Link>
-                {/* NO SidebarTrigger HERE */}
+                <MobileHeaderIcons />
               </header>
 
               <main className={cn(
