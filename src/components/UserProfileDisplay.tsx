@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from './PostCard';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialUsers, initialPosts, initialNotifications, getCurrentUserId } from '@/lib/data';
-import { Settings, UserPlus, UserCheck, Edit3, LogOut, Trash2, ImageIcon as ImageIconLucide, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, ShieldQuestion, Moon, Sun, Laptop, LayoutGrid, Video, BadgeCheck } from 'lucide-react';
+import { Settings, UserPlus, UserCheck, Edit3, LogOut, Trash2, ImageIcon as ImageIconLucide, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, ShieldQuestion, Moon, Sun, Laptop, LayoutGrid, Video, BadgeCheck, ListChecks, Heart } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
@@ -50,7 +50,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area"; // ScrollBar removed as it wasn't used for the filter tabs
 import { cn } from '@/lib/utils';
 import type React_dot_FC from 'react'; 
 import { useTheme } from 'next-themes';
@@ -146,8 +146,26 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
 
   const savedPostsForCurrentUser = useMemo(() => {
-    if (!currentSessionUser) return [];
+    if (!currentSessionUser || !currentSessionUser.savedPosts) return [];
     return allPosts.filter(post => (currentSessionUser.savedPosts || []).includes(post.id))
+                   .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }, [allPosts, currentSessionUser]);
+
+  const likedPostsForCurrentUser = useMemo(() => {
+    if (!currentSessionUser) return [];
+    return allPosts.filter(post => (post.likes || []).includes(currentSessionUser.id))
+                   .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }, [allPosts, currentSessionUser]);
+
+  const commentedPostsForCurrentUser = useMemo(() => {
+    if (!currentSessionUser) return [];
+    const commentedPostIds = new Set<string>();
+    allPosts.forEach(post => {
+      if ((post.comments || []).some(comment => comment.userId === currentSessionUser.id)) {
+        commentedPostIds.add(post.id);
+      }
+    });
+    return allPosts.filter(post => commentedPostIds.has(post.id))
                    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }, [allPosts, currentSessionUser]);
   
@@ -193,16 +211,10 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       }));
       toast({ title: "Permintaan Dibatalkan", description: `Permintaan mengikuti ${targetProfileUser.username} dibatalkan.` });
     } else { 
-      
-      if (isProfileUserFollowingCSU && !isCurrentUserFollowingProfile) {
-        
+      if (targetProfileUser.accountType === 'public') {
         setAllUsers(prevUsers => prevUsers.map(u => {
-          if (u.id === currentSessionUserId) { 
-            return { ...u, following: [...new Set([...(u.following || []), targetProfileUser.id])] };
-          }
-          if (u.id === targetProfileUser.id) { 
-            return { ...u, followers: [...new Set([...(u.followers || []), currentSessionUserId])] };
-          }
+          if (u.id === currentSessionUserId) return { ...u, following: [...new Set([...(u.following || []), targetProfileUser.id])] };
+          if (u.id === targetProfileUser.id) return { ...u, followers: [...new Set([...(u.followers || []), currentSessionUserId])] };
           return u;
         }));
         toast({ title: "Mulai Mengikuti", description: `Anda sekarang mengikuti ${targetProfileUser.username}.` });
@@ -211,8 +223,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           actorUserId: currentSessionUserId, 
           type: 'follow' 
         });
-      } else {
-        
+      } else { // Private account
         setAllUsers(prevUsers => prevUsers.map(u => {
           if (u.id === currentSessionUserId) return { ...u, sentFollowRequests: [...new Set([...(u.sentFollowRequests || []), targetProfileUser.id])] };
           if (u.id === targetProfileUser.id) return { ...u, pendingFollowRequests: [...new Set([...(u.pendingFollowRequests || []), currentSessionUserId])] };
@@ -497,18 +508,16 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   if (isCurrentUserFollowingProfile) {
     followButtonText = "Mengikuti";
     FollowButtonIconComponent = UserCheck;
-  } else if (isRequestedByCSUtoPU) { 
+  } else if (isRequestedByCSUtoPU && profileUser.accountType === 'private') { 
     followButtonText = "Diminta";
-    FollowButtonIconComponent = UserPlus;
-  } else if (isProfileUserFollowingCSU && !isCurrentUserFollowingProfile) {
-    followButtonText = "Ikuti Balik";
-    FollowButtonIconComponent = UserPlus;
-  } else {
+    FollowButtonIconComponent = UserPlus; // Or a clock icon if available for "pending"
+  } else { // Not following, not requested, or public account (request state doesn't matter for initial text)
     followButtonText = "Ikuti";
     FollowButtonIconComponent = UserPlus;
   }
-
-  const isFollowButtonDisabled = isRequestedByCSUtoPU && !isCurrentUserFollowingProfile;
+  
+  // If target is private and current user sent a request
+  const isFollowButtonDisabled = profileUser.accountType === 'private' && isRequestedByCSUtoPU && !isCurrentUserFollowingProfile;
 
 
   const SettingsMenuItemsContent = () => (
@@ -822,11 +831,12 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               <TabsTrigger value="posts" className="font-headline"><LayoutGrid className="h-4 w-4 mr-2"/>Postingan</TabsTrigger>
               <TabsTrigger value="followers" className="font-headline">Pengikut</TabsTrigger>
               <TabsTrigger value="following" className="font-headline">Mengikuti</TabsTrigger>
-              {isCurrentUserProfile && <TabsTrigger value="saved" className="font-headline"><Bookmark className="h-4 w-4 mr-2"/>Disimpan</TabsTrigger>}
+              {isCurrentUserProfile && <TabsTrigger value="activity" className="font-headline"><ListChecks className="h-4 w-4 mr-2"/>Aktivitas Saya</TabsTrigger>}
             </TabsList>
+            
             <TabsContent value="posts">
               <div className="mb-4">
-                <Tabs defaultValue="all" onValueChange={(value) => setPostFilterType(value as 'all' | 'photo' | 'reel')}>
+                <Tabs defaultValue={postFilterType} onValueChange={(value) => setPostFilterType(value as 'all' | 'photo' | 'reel')}>
                    <TabsList className="grid w-full grid-cols-3 h-10 items-center p-1 text-muted-foreground bg-muted/50 rounded-lg">
                     <TabsTrigger value="all" className="font-headline"><LayoutGrid className="h-3.5 w-3.5 mr-1.5"/>Semua</TabsTrigger>
                     <TabsTrigger value="photo" className="font-headline"><ImageIconLucide className="h-3.5 w-3.5 mr-1.5"/>Foto</TabsTrigger>
@@ -854,39 +864,90 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                   </div>
                 ) : (
                   <p className="text-center text-muted-foreground py-8 font-body">
-                    Belum ada {postFilterType === 'photo' ? 'foto' : postFilterType === 'reel' ? 'reel' : 'postingan'}.
+                    Belum ada {postFilterType === 'all' ? 'postingan' : postFilterType}.
                   </p>
                 )}
             </TabsContent>
+            
             <TabsContent value="followers">
               <UserList userIds={profileUser.followers || []} allUsers={allUsers} listTitle="Pengikut" />
             </TabsContent>
             <TabsContent value="following">
               <UserList userIds={profileUser.following || []} allUsers={allUsers} listTitle="Mengikuti" />
             </TabsContent>
+
             {isCurrentUserProfile && (
-              <TabsContent value="saved">
-                {savedPostsForCurrentUser.length > 0 ? (
-                  <div className="grid grid-cols-1 gap-4">
-                    {savedPostsForCurrentUser.map(post => {
-                      const isSavedByCurrentSessUser = (currentSessionUser?.savedPosts || []).includes(post.id);
-                      return(
-                      <PostCard
-                        key={post.id}
-                        post={post}
-                        onLikePost={handleLikePost}
-                        onAddComment={handleAddComment}
-                        onUpdatePostCaption={handleUpdatePostCaptionOnProfile}
-                        onDeletePost={handleDeletePostOnProfile}
-                        onToggleSavePost={handleToggleSavePost}
-                        isSavedByCurrentUser={isSavedByCurrentSessUser}
-                      />
-                    );
-                  })}
-                  </div>
-                ) : (
-                  <p className="text-center text-muted-foreground py-8 font-body">Belum ada postingan yang disimpan.</p>
-                )}
+              <TabsContent value="activity">
+                <Tabs defaultValue="saved_nested" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3 mb-6 bg-muted/50 rounded-lg">
+                    <TabsTrigger value="saved_nested" className="font-headline"><Bookmark className="h-4 w-4 mr-2"/>Disimpan</TabsTrigger>
+                    <TabsTrigger value="liked_nested" className="font-headline"><Heart className="h-4 w-4 mr-2"/>Disukai</TabsTrigger>
+                    <TabsTrigger value="commented_nested" className="font-headline"><MessageSquare className="h-4 w-4 mr-2"/>Dikomentari</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="saved_nested">
+                    {savedPostsForCurrentUser.length > 0 ? (
+                      <div className="grid grid-cols-1 gap-4">
+                        {savedPostsForCurrentUser.map(post => (
+                          <PostCard
+                            key={post.id}
+                            post={post}
+                            onLikePost={handleLikePost}
+                            onAddComment={handleAddComment}
+                            onUpdatePostCaption={handleUpdatePostCaptionOnProfile}
+                            onDeletePost={handleDeletePostOnProfile}
+                            onToggleSavePost={handleToggleSavePost}
+                            isSavedByCurrentUser={(currentSessionUser?.savedPosts || []).includes(post.id)}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-center text-muted-foreground py-8 font-body">Belum ada postingan yang disimpan.</p>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="liked_nested">
+                    {likedPostsForCurrentUser.length > 0 ? (
+                      <div className="grid grid-cols-1 gap-4">
+                        {likedPostsForCurrentUser.map(post => (
+                          <PostCard
+                            key={post.id}
+                            post={post}
+                            onLikePost={handleLikePost}
+                            onAddComment={handleAddComment}
+                            onUpdatePostCaption={handleUpdatePostCaptionOnProfile}
+                            onDeletePost={handleDeletePostOnProfile}
+                            onToggleSavePost={handleToggleSavePost}
+                            isSavedByCurrentUser={(currentSessionUser?.savedPosts || []).includes(post.id)}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-center text-muted-foreground py-8 font-body">Belum ada postingan yang disukai.</p>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="commented_nested">
+                    {commentedPostsForCurrentUser.length > 0 ? (
+                      <div className="grid grid-cols-1 gap-4">
+                        {commentedPostsForCurrentUser.map(post => (
+                          <PostCard
+                            key={post.id}
+                            post={post}
+                            onLikePost={handleLikePost}
+                            onAddComment={handleAddComment}
+                            onUpdatePostCaption={handleUpdatePostCaptionOnProfile}
+                            onDeletePost={handleDeletePostOnProfile}
+                            onToggleSavePost={handleToggleSavePost}
+                            isSavedByCurrentUser={(currentSessionUser?.savedPosts || []).includes(post.id)}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-center text-muted-foreground py-8 font-body">Belum ada postingan yang dikomentari.</p>
+                    )}
+                  </TabsContent>
+                </Tabs>
               </TabsContent>
             )}
           </Tabs>
@@ -941,3 +1002,4 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
   );
 }
 
+      
