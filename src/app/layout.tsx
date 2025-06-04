@@ -3,13 +3,19 @@
 
 // import type { Metadata } from 'next'; // Static metadata is fine here, or use generateMetadata in page.tsx
 import './globals.css';
-import { AppNavbar } from '@/components/AppNavbar';
+// AppNavbar removed
 import { BottomNavbar } from '@/components/BottomNavbar';
 import { Toaster } from "@/components/ui/toaster";
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import React, { useState, useEffect } from 'react'; // Import useState, useEffect
+import React, { useState, useEffect } from 'react';
 import { ThemeProvider } from 'next-themes';
+import Image from 'next/image'; // Added for logo in minimal header
+import Link from 'next/link'; // Added for logo link
+
+import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
+import { AppSidebar } from '@/components/AppSidebar';
+import { Button } from '@/components/ui/button'; // For SidebarTrigger if styled as button
 
 export default function RootLayout({
   children,
@@ -23,10 +29,7 @@ export default function RootLayout({
     setHasMounted(true);
   }, []);
 
-  // Determine navbar visibility:
-  // On server & initial client render (hasMounted = false), navbars are shown.
-  // After client mount (hasMounted = true), visibility is based on pathname.
-  const actualHideNavbars = hasMounted ? (pathname === '/dm' || pathname === '/reels') : false;
+  const actualHideBottomNavbarAndMainPadding = hasMounted ? (pathname === '/dm' || pathname === '/reels' || pathname === '/login' || pathname === '/register') : false;
 
   return (
     <html lang="id" suppressHydrationWarning>
@@ -40,18 +43,38 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased min-h-screen flex flex-col bg-background">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          {!actualHideNavbars && <AppNavbar />}
-          <main className={cn(
-            "flex-grow",
-            !actualHideNavbars && "pt-10", // Apply pt-10 only when navbars are shown
-            actualHideNavbars ? "" : "container mx-auto px-4 pb-20 sm:pb-8"
-          )}>
-            {/* Wrap children with a div having pathname as key to force re-mount on navigation */}
-            <div key={pathname}>
-              {children}
-            </div>
-          </main>
-          {!actualHideNavbars && <BottomNavbar />}
+          <SidebarProvider defaultOpen={true}>
+            <AppSidebar />
+            <SidebarInset>
+              {/* Minimal top bar for mobile to house the sidebar trigger and potentially a logo */}
+              <header className={cn(
+                "sticky top-0 z-30 h-14 flex items-center justify-between px-4 border-b bg-background/80 backdrop-blur-sm md:hidden",
+                actualHideBottomNavbarAndMainPadding && "md:hidden" // Hide this mobile header on full-screen pages too
+              )}>
+                <Link href="/" className="flex items-center gap-2">
+                  <Image src="/hand.png" alt="Ngeser logo" width={28} height={28} data-ai-hint="logo hand mobile" />
+                  <span className="font-headline text-xl font-semibold text-foreground">Ngeser</span>
+                </Link>
+                <SidebarTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    {/* Icon will be PanelLeft from SidebarTrigger itself */}
+                  </Button>
+                </SidebarTrigger>
+              </header>
+
+              <main className={cn(
+                "flex-grow",
+                // If bottom navbar is hidden, content can go full height.
+                // Container, px, and pb are only applied when bottom navbar is shown.
+                actualHideBottomNavbarAndMainPadding ? "" : "container mx-auto px-4 pb-20 sm:pb-8"
+              )}>
+                <div key={pathname}>
+                  {children}
+                </div>
+              </main>
+              {!actualHideBottomNavbarAndMainPadding && <BottomNavbar />}
+            </SidebarInset>
+          </SidebarProvider>
           <Toaster />
         </ThemeProvider>
       </body>

@@ -2,10 +2,10 @@
 "use client";
 
 import Link from 'next/link';
-import Image from 'next/image'; // Added import for Image
-import { Home, BadgePlus, User, LogIn, Search as SearchIconLucide, Bell, Trash2, X as XIcon, MessageSquare, UserCheck, UserX, ShieldQuestion, Film } from 'lucide-react'; // Handshake removed, Film added
+import Image from 'next/image';
+import { Home, BadgePlus, User, LogIn, Search as SearchIconLucide, Bell, Trash2, X as XIcon, MessageSquare, UserCheck, UserX, ShieldQuestion, Film } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+// Input replaced by SidebarInput
 import { usePathname, useRouter } from 'next/navigation';
 import { cn, formatTimestamp } from '@/lib/utils';
 import { useEffect, useState, FormEvent, useMemo, Dispatch, SetStateAction } from 'react';
@@ -21,9 +21,22 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { Notification, User as UserType, NotificationType, Conversation } from '@/lib/types';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
-import { Badge } from '@/components/ui/badge';
+import { Badge as ShadBadge } from '@/components/ui/badge'; // Renamed to avoid conflict
 import { useToast } from "@/hooks/use-toast";
 
+import {
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  // SidebarFooter, // Not used for now
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarInput,
+  SidebarSeparator, // If needed
+  SidebarMenuBadge,
+  useSidebar, // To get collapse state for tooltips
+} from '@/components/ui/sidebar';
 
 function createAndAddNotification(
   setNotificationsGlobal: Dispatch<SetStateAction<Notification[]>>, 
@@ -41,8 +54,7 @@ function createAndAddNotification(
   setNotificationsGlobal(prev => [notification, ...prev]);
 }
 
-
-export function AppNavbar() {
+export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
@@ -54,6 +66,7 @@ export function AppNavbar() {
   const [allUsers, setAllUsers] = useLocalStorageState<UserType[]>('users', initialUsers);
   const [conversations, setConversations] = useLocalStorageState<Conversation[]>('conversations', initialConversations);
 
+  const { state: sidebarState } = useSidebar(); // Get sidebar collapse state for tooltips
 
   useEffect(() => {
     setIsClient(true);
@@ -73,7 +86,6 @@ export function AppNavbar() {
 
   const unreadNotifications = useMemo(() => {
     if (!currentUserId || !isClient) return [];
-    
     return notifications.filter(n => n.recipientUserId === currentUserId && !n.isRead && n.type !== 'follow_request_handled');
   }, [notifications, currentUserId, isClient]);
 
@@ -81,7 +93,6 @@ export function AppNavbar() {
 
   const unreadMessagesCount = useMemo(() => {
     if (!currentUserId || !isClient || !conversations) return 0;
-    
     let totalUnread = 0;
     conversations.forEach(convo => {
       if (convo.participantIds.includes(currentUserId) && convo.unreadCount && convo.unreadCount[currentUserId]) {
@@ -90,7 +101,6 @@ export function AppNavbar() {
     });
     return totalUnread;
   }, [conversations, currentUserId, isClient]);
-
 
   const sortedNotificationsForDisplay = useMemo(() => {
     if (!currentUserId || !isClient) return [];
@@ -205,7 +215,6 @@ export function AppNavbar() {
     }
   };
   
-
   const handleDeclineFollowRequest = (requesterId: string, notificationId: string) => {
     if (!currentUserId) {
         toast({ title: "Kesalahan Pengguna", description: "Pengguna saat ini tidak terdefinisi.", variant: "destructive"});
@@ -247,22 +256,14 @@ export function AppNavbar() {
     toast({ title: "Permintaan Ditolak", description: `Kamu menolak permintaan mengikuti dari ${requesterUser.username}.` });
   };
 
-
-  const baseNavItems = [
-    { href: '/', label: 'Beranda', icon: Home },
-  ];
-
+  const baseNavItems = [ { href: '/', label: 'Beranda', icon: Home }, ];
   const authNavItems = [
     { href: '/upload', label: 'Unggah', icon: BadgePlus },
     { href: '/reels', label: 'Reels', icon: Film },
     { href: '/profile', label: 'Profil', icon: User },
   ];
-
   const loginNavItem = { href: '/login', label: 'Masuk', icon: LogIn };
-
-  const allNavItems = currentUserId
-    ? [...baseNavItems, ...authNavItems]
-    : [...baseNavItems, loginNavItem];
+  const allNavItems = currentUserId ? [...baseNavItems, ...authNavItems] : [...baseNavItems, loginNavItem];
 
   const handleSearchSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -272,122 +273,109 @@ export function AppNavbar() {
     }
   };
 
-  if (!isClient) {
-    return (
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-             <Image src="/hand.png" alt="Ngeser logo" width={28} height={28} /> 
-            <span className="font-headline text-2xl font-semibold text-foreground">Ngeser</span>
-          </Link>
-        </div>
-      </header>
-    );
+  if (!isClient && (pathname === '/login' || pathname === '/register')) {
+    // Don't render the sidebar shell on login/register pages during SSR/initial client render to prevent flash
+    return null;
   }
-
-  if (pathname === '/login') {
-     return (
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-center">
-          <Link href="/" className="flex items-center gap-2">
-             <Image src="/hand.png" alt="Ngeser logo" width={28} height={28} /> 
-            <span className="font-headline text-2xl font-semibold text-foreground">Ngeser</span>
-          </Link>
-        </div>
-      </header>
-    );
+  if (isClient && (pathname === '/login' || pathname === '/register')) {
+    return null; // Fully hide sidebar on login/register
   }
+  
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between gap-x-4">
-        <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-           <Image src="/hand.png" alt="Ngeser logo" width={28} height={28} /> 
-          <span className="font-headline text-2xl font-semibold text-foreground">Ngeser</span>
+    <Sidebar side="left" collapsible="icon" variant="sidebar" className="border-r">
+      <SidebarHeader className="p-3">
+        <Link href="/" className="flex items-center gap-2">
+          <Image src="/hand.png" alt="Ngeser logo" width={32} height={32} data-ai-hint="logo hand" />
+          <span className="font-headline text-2xl font-semibold text-sidebar-foreground group-data-[collapsible=icon]:hidden">
+            Ngeser
+          </span>
         </Link>
+        <form onSubmit={handleSearchSubmit} className="flex items-center relative w-full mt-2 group-data-[collapsible=icon]:hidden">
+          <SearchIconLucide className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <SidebarInput
+            type="search"
+            placeholder="Cari pengguna..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+            data-ai-hint="search users input sidebar"
+          />
+        </form>
+      </SidebarHeader>
 
-        <div className="flex-1 hidden sm:flex justify-center px-2 md:px-4">
-          <form onSubmit={handleSearchSubmit} className="flex items-center relative w-full max-w-sm md:max-w-md">
-            <SearchIconLucide className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-            <Input
-              type="search"
-              placeholder="Cari pengguna..."
-              className="pl-10 pr-3 py-2 text-sm h-9 w-full rounded-md bg-muted/50 md:hover:bg-muted focus:bg-background"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              data-ai-hint="search users input"
-            />
-          </form>
-        </div>
-
-        <div className="flex items-center gap-x-1 sm:gap-x-2">
-            <nav className="items-center gap-1 sm:gap-0 flex-shrink-0 hidden sm:flex">
-            {allNavItems.map((item) => {
-              const isActive = pathname === item.href || (item.href === '/reels' && pathname.startsWith('/reels'));
-              return (
-                <Button
-                key={item.label}
-                variant="ghost"
-                asChild
-                className={cn(
-                    "text-sm font-medium px-2 sm:px-3",
-                    isActive ? "text-primary md:hover:text-primary bg-primary/10" : "text-muted-foreground md:hover:text-foreground"
-                )}
-                >
-                <Link href={item.href} className="flex items-center gap-2">
-                    <item.icon className="h-5 w-5" />
-                    <span className="inline">{item.label}</span>
-                </Link>
-                </Button>
-              );
-            })}
-            </nav>
-
-            {currentUserId && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="icon"
+      <SidebarContent className="p-0">
+        <SidebarMenu className="px-3 py-2">
+          {allNavItems.map((item) => {
+            const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+            return (
+              <SidebarMenuItem key={item.label}>
+                <SidebarMenuButton
                   asChild
-                  className={cn(
-                    "relative text-muted-foreground md:hover:text-foreground", // Added relative for badge positioning
-                    pathname === '/dm' && "text-primary bg-primary/10"
-                  )}
-                  aria-label="Pesan Langsung"
+                  isActive={isActive}
+                  tooltip={{content: item.label, side: "right", hidden: sidebarState === "expanded" || !isClient}}
                 >
-                  <Link href="/dm">
-                    <MessageSquare className="h-5 w-5" />
-                     {isClient && unreadMessagesCount > 0 && (
-                        <Badge
-                          variant="destructive"
-                          className="absolute -top-1 -right-1 h-4 w-4 min-w-min p-0.5 text-xs flex items-center justify-center rounded-full pointer-events-none"
-                        >
-                          {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
-                        </Badge>
-                      )}
+                  <Link href={item.href} className="flex items-center justify-start">
+                    <item.icon className="h-5 w-5 shrink-0" />
+                    <span className="ml-3 group-data-[collapsible=icon]:hidden">{item.label}</span>
                   </Link>
-                </Button>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            );
+          })}
 
+          {currentUserId && (
+            <>
+              <SidebarMenuItem className="relative">
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname.startsWith('/dm')}
+                  tooltip={{content: "Pesan Langsung", side: "right", hidden: sidebarState === "expanded" || !isClient}}
+                >
+                  <Link href="/dm" className="flex items-center justify-start">
+                    <MessageSquare className="h-5 w-5 shrink-0" />
+                    <span className="ml-3 group-data-[collapsible=icon]:hidden">Pesan</span>
+                    {isClient && unreadMessagesCount > 0 && (
+                      <SidebarMenuBadge className="group-data-[collapsible=icon]:hidden">{unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}</SidebarMenuBadge>
+                    )}
+                  </Link>
+                </SidebarMenuButton>
+                 {isClient && unreadMessagesCount > 0 && sidebarState === "collapsed" && (
+                    <div className="absolute top-1 right-1">
+                        <ShadBadge variant="destructive" className="h-3 w-3 p-0 flex items-center justify-center rounded-full pointer-events-none text-[8px] leading-none"></ShadBadge>
+                    </div>
+                 )}
+              </SidebarMenuItem>
+
+              <SidebarMenuItem className="relative">
                 <DropdownMenu onOpenChange={handleOpenNotifications}>
                   <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Notifikasi"
-                      className="relative text-muted-foreground md:hover:text-foreground"
+                    <SidebarMenuButton
+                       className="w-full justify-start"
+                       tooltip={{content: "Notifikasi", side: "right", hidden: sidebarState === "expanded" || !isClient}}
                     >
-                      <Bell className="h-5 w-5" />
-                      {isClient && unreadNotificationCount > 0 && (
-                        <Badge
-                          variant="destructive"
-                          className="absolute -top-1 -right-1 h-4 w-4 min-w-min p-0.5 text-xs flex items-center justify-center rounded-full pointer-events-none"
-                        >
-                          {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
-                        </Badge>
+                      <Bell className="h-5 w-5 shrink-0" />
+                      <span className="ml-3 group-data-[collapsible=icon]:hidden">Notifikasi</span>
+                       {isClient && unreadNotificationCount > 0 && (
+                         <SidebarMenuBadge className="group-data-[collapsible=icon]:hidden">{unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}</SidebarMenuBadge>
                       )}
-                    </Button>
+                    </SidebarMenuButton>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-80 md:w-96 max-h-[70vh] overflow-y-auto">
+                  {isClient && unreadNotificationCount > 0 && sidebarState === "collapsed" && (
+                    <div className="absolute top-1 right-1">
+                        <ShadBadge variant="destructive" className="h-3 w-3 p-0 flex items-center justify-center rounded-full pointer-events-none text-[8px] leading-none"></ShadBadge>
+                    </div>
+                  )}
+                  <DropdownMenuContent 
+                    side="right" 
+                    align="start" 
+                    sideOffset={sidebarState === "collapsed" ? 10 : 5}
+                    className={cn(
+                        "w-80 md:w-96 max-h-[calc(100vh-100px)] overflow-y-auto z-[60]", 
+                        sidebarState === "collapsed" ? "ml-1" : ""
+                    )}
+                    onCloseAutoFocus={(e) => e.preventDefault()}
+                  >
                     <DropdownMenuLabel className="font-headline">
                       <div className="flex items-center justify-between">
                         <span>Notifikasi</span>
@@ -395,11 +383,8 @@ export function AppNavbar() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 text-muted-foreground md:hover:text-destructive"
-                            onClick={(e) => {
-                              e.stopPropagation(); 
-                              handleClearAllNotifications();
-                            }}
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={(e) => { e.stopPropagation(); handleClearAllNotifications(); }}
                             aria-label="Hapus semua notifikasi"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -464,9 +449,9 @@ export function AppNavbar() {
 
                         return (
                           <div key={notification.id} className={cn("group/notif-item relative", !notification.isRead && isClient && notification.type !== 'follow_request_handled' ? 'bg-primary/10' : '')}>
-                            <DropdownMenuItem asChild className={cn("cursor-pointer w-full pr-8", !notification.isRead && isClient && notification.type !== 'follow_request_handled' ? 'md:hover:!bg-primary/20' : 'md:hover:!bg-accent/80')}>
+                            <DropdownMenuItem asChild className={cn("cursor-pointer w-full pr-8 focus:bg-accent/80", !notification.isRead && isClient && notification.type !== 'follow_request_handled' ? 'hover:!bg-primary/20' : 'hover:!bg-accent/80')}>
                               <Link href={linkHref} className="flex items-start gap-3 p-2 w-full">
-                                <Avatar className="h-8 w-8 mt-0.5 flex-shrink-0">
+                                <Avatar className="h-8 w-8 mt-0.5 shrink-0">
                                   <AvatarImage src={avatarSrc} alt={actor?.username || 'Notifikasi'} data-ai-hint="notification actor person"/>
                                   <AvatarFallback>{avatarFallback}</AvatarFallback>
                                 </Avatar>
@@ -503,12 +488,8 @@ export function AppNavbar() {
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-6 w-6 absolute top-1 right-1 text-muted-foreground md:hover:text-destructive opacity-0 md:group-hover/notif-item:opacity-100 focus:opacity-100 transition-opacity"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  handleDeleteNotification(notification.id);
-                                }}
+                                className="h-6 w-6 absolute top-1 right-1 text-muted-foreground hover:text-destructive opacity-0 group-hover/notif-item:opacity-100 focus:opacity-100 transition-opacity"
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteNotification(notification.id); }}
                                 aria-label="Hapus notifikasi ini"
                               >
                                 <XIcon className="h-4 w-4" />
@@ -523,26 +504,11 @@ export function AppNavbar() {
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
-              </>
-            )}
-        </div>
-      </div>
-    </header>
+              </SidebarMenuItem>
+            </>
+          )}
+        </SidebarMenu>
+      </SidebarContent>
+    </Sidebar>
   );
 }
-
-interface Notification {
-  id: string;
-  recipientUserId: string;
-  actorUserId: string;
-  type: NotificationType;
-  postId?: string;
-  commentId?: string;
-  postMediaUrl?: string;
-  timestamp: string;
-  isRead: boolean;
-  processedState?: 'accepted' | 'declined';
-  messageOverride?: string; 
-}
-
-    
