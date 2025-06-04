@@ -553,6 +553,17 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                   <Edit3 className="h-4 w-4" />
                 </Button>
               )}
+               {isCurrentUserProfile && !isMobile && isClient && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleOpenEditProfileModal}
+                  className="absolute -bottom-2 -right-2 h-9 w-9 rounded-full p-2 bg-background border-2 border-primary/70 shadow-md md:hover:bg-accent hidden md:flex"
+                  aria-label="Edit Profil"
+                >
+                  <Edit3 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
             <div className="flex-1 text-center md:text-left">
               <div className="flex flex-col items-center md:items-start">
@@ -717,7 +728,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
 
       <Dialog open={isEditProfileModalOpen} onOpenChange={setIsEditProfileModalOpen}>
-        <DialogContent className="sm:max-w-[420px]">
+        <DialogContent className="w-[calc(100%-2rem)] max-h-[calc(100dvh-4rem)] overflow-y-auto sm:w-auto sm:max-w-[420px] sm:max-h-[85vh]">
           <DialogHeader>
             <EditDialogTitle className="font-headline text-2xl flex items-center gap-2">
               <Edit3 className="h-6 w-6 text-primary"/>Edit Profil
