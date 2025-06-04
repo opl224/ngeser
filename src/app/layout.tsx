@@ -12,10 +12,8 @@ import React, { useState, useEffect } from 'react';
 import { ThemeProvider } from 'next-themes';
 import Image from 'next/image'; // Added for logo in minimal header
 import Link from 'next/link'; // Added for logo link
-// PanelLeft import removed as SidebarTrigger is removed from mobile header
 
-
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'; // SidebarTrigger removed from here if only used in mobile header
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'; 
 import { AppSidebar } from '@/components/AppSidebar';
 
 
@@ -48,7 +46,7 @@ export default function RootLayout({
           <SidebarProvider defaultOpen={true}>
             <AppSidebar />
             <SidebarInset>
-              {/* Minimal top bar for mobile - SidebarTrigger removed */}
+              {/* Minimal top bar for mobile - SidebarTrigger is definitively removed here */}
               <header className={cn(
                 "sticky top-0 z-30 h-14 flex items-center justify-between px-4 border-b bg-background/80 backdrop-blur-sm md:hidden",
                 actualHideBottomNavbarAndMainPadding && "hidden" 
@@ -57,7 +55,7 @@ export default function RootLayout({
                   <Image src="/hand.png" alt="Ngeser logo" width={28} height={28} data-ai-hint="logo hand mobile" />
                   <span className="font-headline text-xl font-semibold text-foreground">Ngeser</span>
                 </Link>
-                {/* SidebarTrigger was here, now removed for mobile */}
+                {/* NO SidebarTrigger HERE */}
               </header>
 
               <main className={cn(
