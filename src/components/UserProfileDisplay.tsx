@@ -542,12 +542,12 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                 <AvatarImage src={profileUser.avatarUrl} alt={profileUser.username} data-ai-hint="portrait person large" />
                 <AvatarFallback className="text-4xl font-headline">{profileUser.username.substring(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
-               {isCurrentUserProfile && !isMobile && ( // Desktop edit button
+               {isCurrentUserProfile && isMobile && ( // Mobile edit button below avatar
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={handleOpenEditProfileModal}
-                  className="absolute -bottom-2 -right-2 h-9 w-9 rounded-full p-2 bg-background border-2 border-primary/70 shadow-md md:hover:bg-accent"
+                  className="absolute -bottom-2 -right-2 h-9 w-9 rounded-full p-2 bg-background border-2 border-primary/70 shadow-md"
                   aria-label="Edit Profil"
                 >
                   <Edit3 className="h-4 w-4" />
@@ -619,7 +619,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                              <DropdownMenuItem onClick={handleOpenEditProfileModal} className="cursor-pointer">
                                 <Edit3 className="mr-2 h-4 w-4" /> Edit Profil
                             </DropdownMenuItem>
-                            <DropdownMenuSeparator />
+                             <DropdownMenuSeparator />
                              <DropdownMenuSub>
                                 <DropdownMenuSubTrigger>
                                     <ListChecks className="mr-2 h-4 w-4" /> Aktivitas Saya
@@ -677,12 +677,12 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
-                ) : ( // Desktop settings trigger (remains Edit icon for now, can be changed to SettingsIcon too if desired)
+                ) : ( // Desktop settings trigger
                      <Button
                         variant="ghost"
                         size="icon"
                         className="h-9 w-9 hidden md:inline-flex md:hover:bg-accent md:hover:text-accent-foreground"
-                        onClick={handleOpenEditProfileModal}
+                        onClick={handleOpenEditProfileModal} 
                         aria-label="Edit Profil Desktop"
                     >
                         <Edit3 className="h-5 w-5" />
@@ -871,8 +871,11 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
       <div className="mt-8 w-full sm:max-w-2xl sm:mx-auto">
         {canViewProfileContent ? (
-          <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="w-full">
-            <TabsList className={`grid w-full mb-6 bg-muted/50 rounded-lg grid-cols-3`}>
+           <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="w-full">
+            <TabsList className={cn(
+                "grid w-full mb-6 bg-muted/50 rounded-lg",
+                 isCurrentUserProfile ? "grid-cols-3" : "grid-cols-3" 
+            )}>
               <TabsTrigger value="posts" className="font-headline"><LayoutGrid className="h-4 w-4 mr-2"/>Postingan</TabsTrigger>
               <TabsTrigger value="followers" className="font-headline">Pengikut</TabsTrigger>
               <TabsTrigger value="following" className="font-headline">Mengikuti</TabsTrigger>
