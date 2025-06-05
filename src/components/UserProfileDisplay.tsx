@@ -120,9 +120,8 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
   const [isPostDetailModalOpen, setIsPostDetailModalOpen] = useState(false);
   const [selectedPostForModal, setSelectedPostForModal] = useState<Post | null>(null);
-  const [galleryPosts, setGalleryPosts] = useState<Post[]>([]);
-  const [initialGalleryScrollId, setInitialGalleryScrollId] = useState<string | null>(null);
-  const galleryContainerRef = useRef<HTMLDivElement>(null);
+  // galleryPosts, initialGalleryScrollId, and galleryContainerRef are no longer needed for mobile reels gallery
+  // They might be reintroduced if a similar full-screen modal is needed for stories or other types on mobile.
 
 
   useEffect(() => {
@@ -304,9 +303,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           if (selectedPostForModal && selectedPostForModal.id === postId) {
             setSelectedPostForModal(prev => prev ? { ...prev, likes } : null);
           }
-          if (galleryPosts.some(gp => gp.id === postId)) {
-            setGalleryPosts(prevGalleryPosts => prevGalleryPosts.map(gp => gp.id === postId ? { ...gp, likes } : gp));
-          }
           return { ...post, likes };
         }
         return post;
@@ -341,9 +337,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             const updatedPost = { ...post, comments: [...(post.comments || []), newComment] };
             if (selectedPostForModal && selectedPostForModal.id === postId) {
                 setSelectedPostForModal(prev => prev ? { ...prev, comments: updatedPost.comments } : null);
-            }
-            if (galleryPosts.some(gp => gp.id === postId)) {
-                setGalleryPosts(prevGalleryPosts => prevGalleryPosts.map(gp => gp.id === postId ? { ...gp, comments: updatedPost.comments } : gp));
             }
           return updatedPost;
         }
@@ -589,36 +582,17 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         return;
       }
       if (type === 'reel') {
-        const userFilteredReels = userPostsAndStories.filter(p => p.type === 'reel')
-                                     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-        setGalleryPosts(userFilteredReels);
-        setSelectedPostForModal(post);
-        setInitialGalleryScrollId(post.id);
-        setIsPostDetailModalOpen(true);
+        router.push(`/profile/${userId}/reels`);
         return;
       }
-      // For stories on mobile, if triggered from a context that needs a modal (e.g., not the custom cards)
+      // For stories on mobile, or other types if any, open a single post modal
       setSelectedPostForModal(post);
-      setGalleryPosts([]); 
-      setInitialGalleryScrollId(null);
       setIsPostDetailModalOpen(true);
-
-    } else { // Desktop: photos or reels use single post modal
+    } else { // Desktop: photos, reels, or stories use single post modal
       setSelectedPostForModal(post);
-      setGalleryPosts([]); 
-      setInitialGalleryScrollId(null);
       setIsPostDetailModalOpen(true);
     }
   };
-
-  useEffect(() => {
-    if (isMobile && isPostDetailModalOpen && initialGalleryScrollId && galleryContainerRef.current && galleryPosts.length > 0) {
-      const element = document.getElementById(`gallery-item-${initialGalleryScrollId}`);
-      if (element) {
-        galleryContainerRef.current.scrollTo({ top: element.offsetTop, behavior: 'auto' });
-      }
-    }
-  }, [isMobile, isPostDetailModalOpen, initialGalleryScrollId, galleryPosts]);
   
   if (!profileUser) {
     return <div className="text-center py-10"><p className="text-xl text-muted-foreground font-headline">Pengguna tidak ditemukan.</p></div>;
@@ -1027,121 +1001,36 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isPostDetailModalOpen} onOpenChange={(open) => {
+      {/* Modal for Desktop Post Detail */}
+      <Dialog open={isPostDetailModalOpen && (!isMobile || postFilterType === 'story')} onOpenChange={(open) => {
           setIsPostDetailModalOpen(open);
           if (!open) {
-            setGalleryPosts([]);
             setSelectedPostForModal(null);
-            setInitialGalleryScrollId(null);
           }
         }}>
         <DialogContent className={cn(
-          "sm:max-w-3xl md:max-w-4xl lg:max-w-5xl w-[95vw] max-h-[90vh] p-0 flex flex-col bg-card text-card-foreground shadow-xl rounded-lg",
-          (isMobile && galleryPosts.length > 0) && "fixed inset-0 w-screen h-dvh bg-black p-0 flex flex-col rounded-none border-none shadow-none [&>button[aria-label=Close]]:hidden"
+          "sm:max-w-3xl md:max-w-4xl lg:max-w-5xl w-[95vw] max-h-[90vh] p-0 flex flex-col bg-card text-card-foreground shadow-xl rounded-lg"
         )}>
-          
-          {isMobile && galleryPosts.length > 0 && selectedPostForModal && (
-          <>
-            <DialogHeader className="sr-only">
-                <EditDialogTitle>Galeri Reels Pengguna {profileUser?.username || ''}</EditDialogTitle>
-            </DialogHeader>
-            <div className="flex-1 flex flex-col h-full w-full">
-                <div className="absolute top-0 left-0 right-0 z-20 p-3 flex items-center justify-start bg-gradient-to-b from-black/60 to-transparent">
-                    <Button variant="ghost" size="icon" onClick={() => setIsPostDetailModalOpen(false)} className="text-white hover:bg-white/10">
-                        <ArrowLeft className="h-6 w-6" />
-                    </Button>
-                    {profileUser && (
-                        <Link href={`/profile/${profileUser.id}`} onClick={() => setIsPostDetailModalOpen(false)} className="ml-3 flex items-center gap-2 group">
-                        <Avatar className="h-7 w-7 border border-white/50">
-                            <AvatarImage src={profileUser.avatarUrl} alt={profileUser.username} data-ai-hint="gallery author avatar small"/>
-                            <AvatarFallback>{profileUser.username.substring(0,1).toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                        <span className="text-sm font-semibold text-white group-hover:underline">{profileUser.username}</span>
-                        </Link>
-                    )}
-                </div>
-
-                <div ref={galleryContainerRef} className="flex-1 h-full w-full overflow-y-auto snap-y snap-mandatory">
-                    {galleryPosts.map((galleryPost) => {
-                        const postAuthor = allUsers.find(u => u.id === galleryPost.userId);
-                        return (
-                        <div
-                            key={galleryPost.id}
-                            id={`gallery-item-${galleryPost.id}`}
-                            className="h-full w-full snap-start flex items-center justify-center relative"
-                        >
-                            {galleryPost.mediaMimeType?.startsWith('image/') ? (
-                            <Image src={galleryPost.mediaUrl} alt={galleryPost.caption || 'Post media'} layout="fill" objectFit="contain" className="object-center" data-ai-hint={`${galleryPost.type} gallery image`}/>
-                            ) : galleryPost.mediaMimeType?.startsWith('video/') ? (
-                            <video src={galleryPost.mediaUrl} controls className="max-w-full max-h-full object-contain object-center" data-ai-hint="gallery video content" autoPlay={galleryPost.id === initialGalleryScrollId} playsInline loop={galleryPost.id === initialGalleryScrollId} muted={galleryPost.id === initialGalleryScrollId} />
-                            ) : (
-                            <p className="text-white">Media tidak didukung.</p>
-                            )}
-                            
-                            <div className="absolute bottom-0 left-0 right-0 p-4 pb-8 z-10 bg-gradient-to-t from-black/70 via-black/40 to-transparent text-white">
-                                {postAuthor && (
-                                <div className="flex flex-col items-center justify-center gap-0.5 mb-1.5 text-center">
-                                    <Link href={`/profile/${postAuthor.id}`} onClick={() => setIsPostDetailModalOpen(false)}>
-                                    <Avatar className="h-8 w-8 border-2 border-white/70">
-                                        <AvatarImage src={postAuthor.avatarUrl} data-ai-hint="gallery author avatar overlay"/>
-                                        <AvatarFallback>{postAuthor.username.substring(0,1).toUpperCase()}</AvatarFallback>
-                                    </Avatar>
-                                    </Link>
-                                    <Link href={`/profile/${postAuthor.id}`} onClick={() => setIsPostDetailModalOpen(false)}>
-                                        <p className="font-semibold text-sm hover:underline">{postAuthor.username}</p>
-                                    </Link>
-                                </div>
-                                )}
-                                {galleryPost.caption && <p className="text-xs line-clamp-2 mb-2 text-center">{galleryPost.caption}</p>}
-                                
-                                <div className="flex items-center justify-center gap-4">
-                                    <Button variant="ghost" size="sm" onClick={() => handleLikePost(galleryPost.id)} className="text-white/80 hover:text-white p-0 flex items-center gap-1">
-                                        <Heart className={cn("h-5 w-5", (galleryPost.likes || []).includes(currentSessionUserId!) && "fill-red-500 text-red-500")} />
-                                        <span className="text-xs">{(galleryPost.likes || []).length}</span>
-                                    </Button>
-                                    <Button variant="ghost" size="sm" className="text-white/80 hover:text-white p-0 flex items-center gap-1">
-                                        <MessageSquare className="h-5 w-5" />
-                                        <span className="text-xs">{(galleryPost.comments || []).length + (galleryPost.comments || []).reduce((acc, curr) => acc + (curr.replies?.length || 0), 0)}</span>
-                                    </Button>
-                                    <Button variant="ghost" size="sm" className="text-white/80 p-0 flex items-center gap-1">
-                                        <Eye className="h-5 w-5" />
-                                        <span className="text-xs">{galleryPost.viewCount || 0}</span>
-                                    </Button>
-                                    {currentSessionUserId && (
-                                        <Button variant="ghost" size="icon" onClick={() => handleToggleSavePost(galleryPost.id)} className="text-white/80 hover:text-white p-0 h-auto w-auto">
-                                        <Bookmark className={cn("h-5 w-5", (currentSessionUser?.savedPosts || []).includes(galleryPost.id) && "fill-white")} />
-                                        </Button>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                        );
-                    })}
-                </div>
-              </div>
-          </>
-          )}
-
-          {(!isMobile || galleryPosts.length === 0) && selectedPostForModal && modalPostAuthor && (
+          {selectedPostForModal && modalPostAuthor && (
             <>
               <DialogHeader className="p-3 border-b flex flex-row items-center justify-between sticky top-0 bg-card z-10">
-                <div className="flex items-center gap-3">
-                  <Link href={`/profile/${modalPostAuthor.id}`} onClick={() => setIsPostDetailModalOpen(false)}>
-                    <Avatar className="h-9 w-9">
-                      <AvatarImage src={modalPostAuthor.avatarUrl} alt={modalPostAuthor.username} data-ai-hint="user avatar modal" />
-                      <AvatarFallback>{modalPostAuthor.username.substring(0,1).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                  </Link>
-                  <div>
-                    <EditDialogTitle className="text-sm font-semibold font-headline">
-                      <Link href={`/profile/${modalPostAuthor.id}`} onClick={() => setIsPostDetailModalOpen(false)} className="hover:underline">
-                        {modalPostAuthor.username}
-                      </Link>
-                    </EditDialogTitle>
-                    <p className="text-xs text-muted-foreground">{formatTimestamp(selectedPostForModal.timestamp)}</p>
+                  <div className="flex items-center gap-3">
+                    <Link href={`/profile/${modalPostAuthor.id}`} onClick={() => setIsPostDetailModalOpen(false)}>
+                      <Avatar className="h-9 w-9">
+                        <AvatarImage src={modalPostAuthor.avatarUrl} alt={modalPostAuthor.username} data-ai-hint="user avatar modal" />
+                        <AvatarFallback>{modalPostAuthor.username.substring(0,1).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                    </Link>
+                    <div>
+                      <EditDialogTitle className="text-sm font-semibold font-headline">
+                        <Link href={`/profile/${modalPostAuthor.id}`} onClick={() => setIsPostDetailModalOpen(false)} className="hover:underline">
+                          {modalPostAuthor.username}
+                        </Link>
+                      </EditDialogTitle>
+                      <p className="text-xs text-muted-foreground">{formatTimestamp(selectedPostForModal.timestamp)}</p>
+                    </div>
                   </div>
-                </div>
-              </DialogHeader>
+                </DialogHeader>
               <ScrollArea className="flex-1 min-h-0 bg-background">
                 <div className="p-0 md:p-1 flex flex-col lg:flex-row gap-0">
                   <div className={cn(
@@ -1205,7 +1094,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             </>
           )}
          {!selectedPostForModal && isPostDetailModalOpen && ( 
-            <DialogHeader>
+             <DialogHeader> {/* Added DialogHeader for accessibility */}
                 <EditDialogTitle className="sr-only">Memuat Detail Postingan</EditDialogTitle>
                 <div className="flex items-center justify-center h-full">
                     <p>Memuat...</p>
@@ -1356,7 +1245,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                         </p>
                     )
                 ) : filteredGridContent.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
+                  <div className={cn("grid gap-1", isMobile ? "grid-cols-2" : "sm:grid-cols-3")}>
                     {filteredGridContent.map(post => (
                       <div 
                         key={post.id} 
@@ -1531,3 +1420,4 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
+

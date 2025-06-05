@@ -31,7 +31,8 @@ export default function RootLayout({
   }, []);
 
   const isPhotoGalleryPage = pathname.startsWith('/profile/') && pathname.endsWith('/photos');
-  const actualHideBottomNavbarAndMainPadding = hasMounted ? (pathname === '/dm' || pathname === '/reels' || isPhotoGalleryPage || pathname === '/login' || pathname === '/register') : false;
+  const isReelGalleryPage = pathname.startsWith('/profile/') && pathname.endsWith('/reels');
+  const actualHideBottomNavbarAndMainPadding = hasMounted ? (pathname === '/dm' || pathname === '/reels' || isPhotoGalleryPage || isReelGalleryPage || pathname === '/login' || pathname === '/register') : false;
 
   return (
     <html lang="id" suppressHydrationWarning>
