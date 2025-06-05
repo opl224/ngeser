@@ -1,7 +1,6 @@
-
 // No "use client" directive here
 import { UserProfileDisplay } from '@/components/UserProfileDisplay';
-import React, { use } from 'react'; // Import React.use
+import React from 'react'; // Changed from: import React, { use } from 'react';
 
 // Removed generateStaticParams as it returns [], which is the default.
 // export async function generateStaticParams() {
@@ -14,7 +13,7 @@ interface ProfilePageProps {
 
 // Page component no longer needs to be async unless it uses await for other operations
 export default function ProfilePage({ params }: ProfilePageProps) { // Accept params directly
-  const actualParams = use(params); // Unwrap params using React.use()
+  const actualParams = React.use(params); // Changed from: use(params)
   const userId = actualParams.userId; // Correctly access userId from the unwrapped params
 
   return (

@@ -1,11 +1,10 @@
-
 // No "use client" directive here
 
 import { PostDetailClientPage } from '@/components/PostDetailClientPage';
 import type { Metadata } from 'next';
 // Assuming initialPosts, initialUsers are representative for metadata. Removed for now as not directly used in generateMetadata.
 // import { initialPosts, initialUsers } from '@/lib/data';
-import { use } from 'react'; // Import React.use
+import React from 'react'; // Changed from: import { use } from 'react';
 
 // Removed generateStaticParams as it returns [], which is the default.
 // export async function generateStaticParams() {
@@ -13,11 +12,11 @@ import { use } from 'react'; // Import React.use
 // }
 
 export async function generateMetadata(
-  { params: { postId } }: { params: { postId: string } } // Destructuring here is fine for generateMetadata
+  { params }: { params: { postId: string } } // Destructuring here is fine for generateMetadata
 ): Promise<Metadata> {
   // In a real app, fetch post data by postId to generate dynamic metadata
   // For this example, we'll use a generic title.
-  
+  const postId = params.postId;
   // Simulating data fetching for metadata:
   // const post = initialPosts.find(p => p.id === postId);
   // const author = post ? initialUsers.find(u => u.id === post.userId) : null;
@@ -40,7 +39,7 @@ interface PostPageProps {
 }
 
 export default function PostPage({ params }: PostPageProps) { // Accept params directly
-  const actualParams = use(params); // Unwrap params using React.use()
+  const actualParams = React.use(params); // Changed from: use(params)
   const postId = actualParams.postId; // Access postId from the unwrapped params
 
   return <PostDetailClientPage postId={postId} />;
