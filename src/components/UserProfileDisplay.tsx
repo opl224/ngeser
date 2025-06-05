@@ -702,30 +702,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" sideOffset={5} className="z-[60]">   
-                            <DropdownMenuItem onClick={handleOpenEditProfileModal} className="cursor-pointer">
-                                <Edit3 className="mr-2 h-4 w-4" /> Edit Profil
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />                         
-                            <DropdownMenuSub>
-                                <DropdownMenuSubTrigger>
-                                    <ListChecks className="mr-2 h-4 w-4" /> Aktivitas Saya
-                                </DropdownMenuSubTrigger>
-                                <DropdownMenuPortal>
-                                <DropdownMenuSubContent>
-                                     <DropdownMenuItem onClick={() => { setActiveMainTab("activity"); setActiveActivitySubTab("saved_nested"); }}>
-                                        <Bookmark className="mr-2 h-4 w-4" /> Disimpan
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => { setActiveMainTab("activity"); setActiveActivitySubTab("liked_nested"); }}>
-                                        <Heart className="mr-2 h-4 w-4" /> Disukai
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => { setActiveMainTab("activity"); setActiveActivitySubTab("commented_nested"); }}>
-                                        <MessageSquare className="mr-2 h-4 w-4" /> Dikomentari
-                                    </DropdownMenuItem>
-                                </DropdownMenuSubContent>
-                                </DropdownMenuPortal>
-                            </DropdownMenuSub>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuSub>
+                        <DropdownMenuSub>
                                 <DropdownMenuSubTrigger>
                                     {theme === 'light' && <Sun className="mr-2 h-4 w-4" />}
                                     {theme === 'dark' && <Moon className="mr-2 h-4 w-4" />}
@@ -747,7 +724,26 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                                     </DropdownMenuRadioGroup>
                                 </DropdownMenuSubContent>
                                 </DropdownMenuPortal>
-                            </DropdownMenuSub>
+                            </DropdownMenuSub>    
+                            <DropdownMenuSeparator/>         
+                            <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>
+                                    <ListChecks className="mr-2 h-4 w-4" /> Aktivitas Saya
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuPortal>
+                                <DropdownMenuSubContent>
+                                     <DropdownMenuItem onClick={() => { setActiveMainTab("activity"); setActiveActivitySubTab("saved_nested"); }}>
+                                        <Bookmark className="mr-2 h-4 w-4" /> Disimpan
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => { setActiveMainTab("activity"); setActiveActivitySubTab("liked_nested"); }}>
+                                        <Heart className="mr-2 h-4 w-4" /> Disukai
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => { setActiveMainTab("activity"); setActiveActivitySubTab("commented_nested"); }}>
+                                        <MessageSquare className="mr-2 h-4 w-4" /> Dikomentari
+                                    </DropdownMenuItem>
+                                </DropdownMenuSubContent>
+                                </DropdownMenuPortal>
+                            </DropdownMenuSub>                            
                             <DropdownMenuItem onClick={handleOpenPrivacySettingsModal} className="cursor-pointer">
                                 <ShieldQuestion className="mr-2 h-4 w-4" /> Pengaturan Privasi
                             </DropdownMenuItem>
