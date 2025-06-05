@@ -1027,7 +1027,8 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           "sm:max-w-3xl md:max-w-4xl lg:max-w-5xl w-[95vw] max-h-[90vh] p-0 flex flex-col bg-card text-card-foreground shadow-xl rounded-lg",
           (isMobile && galleryPosts.length > 0) && "fixed inset-0 w-screen h-dvh bg-black p-0 flex flex-col rounded-none border-none shadow-none [&>button[aria-label=Close]]:hidden"
         )}>
-          {(isMobile && galleryPosts.length > 0) && (
+          
+          {isMobile && galleryPosts.length > 0 && (
             <DialogHeader>
                 <EditDialogTitle className="sr-only">Galeri Postingan Pengguna</EditDialogTitle>
             </DialogHeader>
@@ -1063,7 +1064,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                             {galleryPost.mediaMimeType?.startsWith('image/') ? (
                             <Image src={galleryPost.mediaUrl} alt={galleryPost.caption || 'Post media'} layout="fill" objectFit="contain" className="object-center" data-ai-hint={`${galleryPost.type} gallery image`}/>
                             ) : galleryPost.mediaMimeType?.startsWith('video/') ? (
-                            <video src={galleryPost.mediaUrl} controls className="w-full h-full object-contain object-center" data-ai-hint="gallery video content" autoPlay={galleryPost.id === initialGalleryScrollId} playsInline loop={galleryPost.id === initialGalleryScrollId} muted={galleryPost.id === initialGalleryScrollId} />
+                            <video src={galleryPost.mediaUrl} controls className="max-w-full max-h-full object-contain object-center" data-ai-hint="gallery video content" autoPlay={galleryPost.id === initialGalleryScrollId} playsInline loop={galleryPost.id === initialGalleryScrollId} muted={galleryPost.id === initialGalleryScrollId} />
                             ) : (
                             <p className="text-white">Media tidak didukung.</p>
                             )}
@@ -1346,7 +1347,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                         </p>
                     )
                 ) : filteredGridContent.length > 0 ? (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-1">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
                     {filteredGridContent.map(post => (
                       <div 
                         key={post.id} 
