@@ -111,7 +111,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const [activeMainTab, setActiveMainTab] = useState<'posts' | 'followers' | 'following' | 'activity'>('posts');
   const [activeActivitySubTab, setActiveActivitySubTab] = useState<'saved_nested' | 'liked_nested' | 'commented_nested'>('saved_nested');
 
-  // State for custom story card actions
   const [showDeleteStoryConfirmDialog, setShowDeleteStoryConfirmDialog] = useState(false);
   const [storyToDeleteId, setStoryToDeleteId] = useState<string | null>(null);
   const [showEditStoryCaptionDialog, setShowEditStoryCaptionDialog] = useState(false);
@@ -528,7 +527,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     router.push('/login');
   };
 
-  // Handlers for custom story card actions
   const handleOpenDeleteStoryDialog = (storyId: string) => {
     setStoryToDeleteId(storyId);
     setShowDeleteStoryConfirmDialog(true);
@@ -1107,7 +1105,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                         </p>
                     )
                 ) : filteredGridContent.length > 0 ? (
-                  <div className="grid grid-cols-3 gap-1">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
                     {filteredGridContent.map(post => (
                       <Link href={`/post/${post.id}`} key={post.id} className="relative aspect-square block group bg-muted/30">
                         <Image
