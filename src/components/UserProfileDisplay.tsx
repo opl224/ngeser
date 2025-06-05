@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, ChangeEvent, useMemo, Dispatch, SetStateAction, useRef, useCallback } from 'react';
@@ -1030,7 +1031,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           
           {isMobile && galleryPosts.length > 0 && (
             <DialogHeader>
-                <EditDialogTitle className="sr-only">Galeri Postingan Pengguna</EditDialogTitle>
+              <EditDialogTitle className="sr-only">Galeri Postingan Pengguna</EditDialogTitle>
             </DialogHeader>
           )}
           
@@ -1059,7 +1060,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                         <div
                             key={galleryPost.id}
                             id={`gallery-item-${galleryPost.id}`}
-                            className="h-dvh w-screen snap-start flex items-center justify-center relative"
+                            className="h-full w-full snap-start flex items-center justify-center relative"
                         >
                             {galleryPost.mediaMimeType?.startsWith('image/') ? (
                             <Image src={galleryPost.mediaUrl} alt={galleryPost.caption || 'Post media'} layout="fill" objectFit="contain" className="object-center" data-ai-hint={`${galleryPost.type} gallery image`}/>
@@ -1522,4 +1523,5 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
+
 
