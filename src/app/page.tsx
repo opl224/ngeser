@@ -7,7 +7,7 @@ import { initialPosts, initialUsers, initialNotifications, getCurrentUserId } fr
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { useEffect, useState, useMemo, useRef, Dispatch, SetStateAction, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowUp, Send } from 'lucide-react';
+import { ArrowUp, Send, Heart } from 'lucide-react'; // Added Heart
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
@@ -606,6 +606,28 @@ export default function FeedPage() {
                 ) : (
                   <p className="text-center">Format media tidak didukung.</p>
                 )}
+
+                {/* Like Button for Story */}
+                {currentUserId && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent story navigation
+                      handleLikePost(storyModalContent.post.id);
+                    }}
+                    className="absolute bottom-16 right-4 z-30 flex flex-col items-center text-white p-2 rounded-full bg-black/40 hover:bg-black/60 transition-colors active:scale-95"
+                    aria-label="Sukai cerita"
+                  >
+                    <Heart
+                      className={cn(
+                        "h-6 w-6",
+                        storyModalContent.post.likes.includes(currentUserId) && "fill-red-500 text-red-500"
+                      )}
+                    />
+                    <span className="text-xs font-medium mt-1">
+                      {storyModalContent.post.likes.length > 0 ? storyModalContent.post.likes.length : ''}
+                    </span>
+                  </button>
+                )}
               </div>
 
               {storyModalContent.post.caption && !storyCommentInputVisible && (
@@ -638,5 +660,3 @@ export default function FeedPage() {
     </div>
   );
 }
-
-    
