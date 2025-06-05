@@ -654,7 +654,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                 </Button>
               )}
             </div>
-            <div className="flex-1 text-center md:text-left">
+            <div className="text-center md:text-left md:flex-1">
               <div className="flex flex-col items-center md:items-start">
                 {profileUser.fullName &&
                   <div className="flex items-center gap-2">
@@ -1029,12 +1029,16 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           // Mobile Gallery Override
           (isMobile && galleryPosts.length > 0) && "fixed inset-0 w-screen h-dvh bg-black p-0 flex flex-col rounded-none border-none shadow-none [&>button[aria-label=Close]]:hidden"
         )}>
+           {/* Conditional DialogHeader for Mobile Gallery */}
+          {isMobile && galleryPosts.length > 0 && (
+            <DialogHeader className="sr-only">
+              <EditDialogTitle>Galeri Postingan Pengguna</EditDialogTitle>
+            </DialogHeader>
+          )}
+          
           {/* Mobile Gallery View */}
           {isMobile && galleryPosts.length > 0 && selectedPostForModal && (
             <>
-               <DialogHeader className="sr-only">
-                <EditDialogTitle>Galeri Postingan Pengguna</EditDialogTitle>
-              </DialogHeader>
               <div className="flex-1 flex flex-col h-full w-full">
                 <div className="absolute top-0 left-0 right-0 z-20 p-3 flex items-center justify-start bg-gradient-to-b from-black/60 to-transparent">
                     <Button variant="ghost" size="icon" onClick={() => setIsPostDetailModalOpen(false)} className="text-white hover:bg-white/10">
@@ -1522,3 +1526,4 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
+
