@@ -1070,7 +1070,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                             
                             <div className="absolute bottom-0 left-0 right-0 p-4 pb-8 z-10 bg-gradient-to-t from-black/70 via-black/40 to-transparent text-white">
                                 {postAuthor && (
-                                <div className="flex items-center gap-2 mb-1.5">
+                                <div className="flex items-center justify-start gap-2 mb-1.5 text-left">
                                     <Link href={`/profile/${postAuthor.id}`} onClick={() => setIsPostDetailModalOpen(false)}>
                                     <Avatar className="h-8 w-8 border-2 border-white/70">
                                         <AvatarImage src={postAuthor.avatarUrl} data-ai-hint="gallery author avatar overlay"/>
@@ -1082,9 +1082,9 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                                     </Link>
                                 </div>
                                 )}
-                                {galleryPost.caption && <p className="text-xs line-clamp-2 mb-2">{galleryPost.caption}</p>}
+                                {galleryPost.caption && <p className="text-xs line-clamp-2 mb-2 text-center">{galleryPost.caption}</p>}
                                 
-                                <div className="flex items-center gap-4">
+                                <div className="flex items-center justify-center gap-4">
                                     <Button variant="ghost" size="sm" onClick={() => handleLikePost(galleryPost.id)} className="text-white/80 hover:text-white p-0 flex items-center gap-1">
                                         <Heart className={cn("h-5 w-5", (galleryPost.likes || []).includes(currentSessionUserId!) && "fill-red-500 text-red-500")} />
                                         <span className="text-xs">{(galleryPost.likes || []).length}</span>
@@ -1098,7 +1098,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                                         <span className="text-xs">{galleryPost.viewCount || 0}</span>
                                     </Button>
                                     {currentSessionUserId && (
-                                        <Button variant="ghost" size="icon" onClick={() => handleToggleSavePost(galleryPost.id)} className="ml-auto text-white/80 hover:text-white p-0 h-auto w-auto">
+                                        <Button variant="ghost" size="icon" onClick={() => handleToggleSavePost(galleryPost.id)} className="text-white/80 hover:text-white p-0 h-auto w-auto">
                                         <Bookmark className={cn("h-5 w-5", (currentSessionUser?.savedPosts || []).includes(galleryPost.id) && "fill-white")} />
                                         </Button>
                                     )}
@@ -1195,7 +1195,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               </ScrollArea>
             </>
           )}
-         {!selectedPostForModal && isPostDetailModalOpen && ( /* Fallback for open modal without selected post */
+         {!selectedPostForModal && isPostDetailModalOpen && ( 
             <DialogHeader>
                 <EditDialogTitle className="sr-only">Memuat Detail Postingan</EditDialogTitle>
                 <div className="flex items-center justify-center h-full">
@@ -1249,7 +1249,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                               return (
                                  <Link href={`/post/${storyPost.id}`} key={storyPost.id} className="block max-w-xs mx-auto group">
                                   <Card className="overflow-hidden shadow-md bg-card/80 md:hover:shadow-lg transition-shadow">
-                                    <CardHeader className="flex flex-row items-center justify-between p-3 space-y-0">
+                                    <CardHeader className="relative flex flex-row items-center justify-between p-3 space-y-0">
                                       <div className="flex items-center gap-2">
                                         <Avatar className="h-8 w-8">
                                           <AvatarImage src={storyAuthor.avatarUrl} alt={storyAuthor.username} data-ai-hint="user avatar small"/>
@@ -1260,7 +1260,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                                           <p className="text-xs text-muted-foreground">{formatTimestamp(storyPost.timestamp)}</p>
                                         </div>
                                       </div>
-                                      {isCurrentUserProfile && (
+                                       {isCurrentUserProfile && (
                                         <DropdownMenu>
                                           <DropdownMenuTrigger asChild>
                                             <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground opacity-50 group-hover:opacity-100 focus:opacity-100 transition-opacity">
@@ -1522,5 +1522,6 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
+
 
 
