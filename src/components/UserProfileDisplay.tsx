@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from './PostCard';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialUsers, initialPosts, initialNotifications, getCurrentUserId, initialConversations } from '@/lib/data';
-import { Edit3, ImageIcon as ImageIconLucide, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, LayoutGrid, Video, BadgeCheck, ListChecks, Heart, UserPlus, UserCheck as UserCheckIcon, Settings as SettingsIcon, Moon, Sun, Laptop, ShieldQuestion, LogOut, Trash2, GalleryVerticalEnd } from 'lucide-react';
+import { Edit3, ImageIcon as ImageIconLucide, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, LayoutGrid, Video, BadgeCheck, ListChecks, Heart, UserPlus, UserCheck as UserCheckIcon, Settings as SettingsIcon, Moon, Sun, Laptop, ShieldQuestion, LogOut, Trash2, GalleryVerticalEnd, PlayCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
@@ -52,6 +52,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useTheme } from 'next-themes';
@@ -894,6 +895,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               <div className="mb-4">
                 <Tabs 
                   defaultValue="story" 
+                  value={postFilterType}
                   onValueChange={(value) => setPostFilterType(value as 'story' | 'photo' | 'reel')}
                 >
                    <TabsList className="grid w-full grid-cols-3 h-10 items-center p-1 text-muted-foreground bg-muted/50 rounded-lg">
@@ -904,22 +906,28 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                 </Tabs>
               </div>
                 {filteredDisplayContent.length > 0 ? (
-                  <div className="grid grid-cols-1 gap-4">
-                    {filteredDisplayContent.map(post => {
-                      const isSavedByCurrentSessUser = (currentSessionUser?.savedPosts || []).includes(post.id);
-                      return(
-                      <PostCard
-                        key={post.id}
-                        post={post}
-                        onLikePost={handleLikePost}
-                        onAddComment={handleAddComment}
-                        onUpdatePostCaption={handleUpdatePostCaptionOnProfile}
-                        onDeletePost={handleDeletePostOnProfile}
-                        onToggleSavePost={handleToggleSavePost}
-                        isSavedByCurrentUser={isSavedByCurrentSessUser}
-                      />
-                    );
-                  })}
+                  <div className="grid grid-cols-3 gap-1">
+                    {filteredDisplayContent.map(post => (
+                      <Link href={`/post/${post.id}`} key={post.id} className="relative aspect-square block group bg-muted/30">
+                        <Image
+                          src={post.mediaUrl}
+                          alt={post.caption || `Postingan ${post.type} oleh ${profileUser.username}`}
+                          layout="fill"
+                          objectFit="cover"
+                          className="transition-opacity group-hover:opacity-80"
+                          data-ai-hint={`${post.type} thumbnail`}
+                        />
+                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            {post.type === 'reel' && <PlayCircle className="h-10 w-10 text-white" />}
+                            {post.type === 'story' && post.mediaMimeType?.startsWith('video/') && <PlayCircle className="h-10 w-10 text-white" />}
+                        </div>
+                        <div className="absolute top-1 right-1 p-0.5 bg-black/40 rounded-sm">
+                            {post.type === 'story' && <GalleryVerticalEnd className="h-3.5 w-3.5 text-white" />}
+                            {post.type === 'photo' && <ImageIconLucide className="h-3.5 w-3.5 text-white" />}
+                            {post.type === 'reel' && <Video className="h-3.5 w-3.5 text-white" />}
+                        </div>
+                      </Link>
+                    ))}
                   </div>
                 ) : (
                   <p className="text-center text-muted-foreground py-8 font-body">
