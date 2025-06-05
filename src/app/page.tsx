@@ -619,7 +619,7 @@ export default function FeedPage() {
                   >
                     <Heart
                       className={cn(
-                        "h-6 w-6",
+                        "h-6 w-6 transition-colors duration-150 ease-in-out",
                         storyModalContent.post.likes.includes(currentUserId) && "fill-red-500 text-red-500"
                       )}
                     />
