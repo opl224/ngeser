@@ -533,7 +533,7 @@ export default function FeedPage() {
             (() => {
               // Always get the latest post data from the 'posts' state for rendering
               const currentPostInModal = posts.find(p => p.id === storyModalContent.post.id) || storyModalContent.post;
-              const userForStory = allUsers.find(u => u.id === currentPostInModal.userId) || storyModalContent.user;
+              const userForStory = users.find(u => u.id === currentPostInModal.userId) || storyModalContent.user;
 
               return (
                 <div
