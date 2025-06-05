@@ -541,6 +541,7 @@ export default function FeedPage() {
         >
           {storyModalContent && currentUserStories.length > 0 && (
             (() => {
+              // Always get the latest post data from the 'posts' state for rendering
               const currentPostInModal = posts.find(p => p.id === storyModalContent.post.id) || storyModalContent.post;
               const userForStory = users.find(u => u.id === currentPostInModal.userId) || storyModalContent.user;
 
@@ -640,9 +641,7 @@ export default function FeedPage() {
                             currentPostInModal.likes.includes(currentUserId) && "fill-red-500 text-red-500"
                           )}
                         />
-                        <span className="text-xs font-medium mt-1">
-                          {currentPostInModal.likes.length > 0 ? currentPostInModal.likes.length : ''}
-                        </span>
+                        {/* Like count display removed as per request */}
                       </button>
                     )}
                   </div>
