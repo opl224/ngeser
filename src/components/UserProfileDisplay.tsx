@@ -777,7 +777,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                   type="file"
                   accept="image/*"
                   onChange={handleAvatarFileChange}
-                  className="mt-1 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary md:hover:file:bg-primary/20"
+                  className="mt-1 file:mr-4 file:py-0 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary md:hover:file:bg-primary/20"
                 />
               </div>
               {editedAvatarPreview && (

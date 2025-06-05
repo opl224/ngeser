@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, MessageSquare, Send, ArrowLeft, Users, Info, MoreHorizontal, Edit, Trash2, CornerUpLeft, MoreVertical, X, Save } from 'lucide-react';
+import { Loader2, MessageSquare, Send, ArrowLeft, Users, Info, MoreHorizontal, Edit, Trash2, CornerUpLeft, MoreVertical, X, Save, Check, CheckCheck } from 'lucide-react';
 import Link from 'next/link';
 import { formatTimestamp } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
@@ -417,7 +417,6 @@ function DmPageContent() {
                           <p className="text-xs text-muted-foreground flex-shrink-0 ml-2">{formatTimestamp(convo.lastMessageTimestamp)}</p>
                         )}
                       </div>
-                       {/* Last message preview removed as per request */}
                     </div>
                   </div>
                 </div>
@@ -455,7 +454,6 @@ function DmPageContent() {
             <ScrollArea className="flex-1 p-4">
               {selectedConversation.messages.map(msg => {
                 const isCurrentUserSender = msg.senderId === currentUserId;
-                // Sender avatar logic removed here
                 const oldParsedReply = !msg.replyToInfo ? parseOldReply(msg.text) : null;
                 
                 let messageDisplayContent;
@@ -491,6 +489,18 @@ function DmPageContent() {
                     messageDisplayContent = <p className="whitespace-pre-wrap">{msg.text}</p>;
                 }
 
+                let readReceiptIcon = null;
+                if (isCurrentUserSender && selectedConversation?.otherParticipant) {
+                  const otherParticipantId = selectedConversation.otherParticipant.id;
+                  const unreadByOther = selectedConversation.unreadCount?.[otherParticipantId];
+
+                  if (unreadByOther === 0 || unreadByOther === undefined) {
+                    readReceiptIcon = <CheckCheck className="h-3.5 w-3.5 ml-1 text-sky-500 shrink-0" />;
+                  } else {
+                    readReceiptIcon = <Check className="h-3.5 w-3.5 ml-1 text-muted-foreground shrink-0" />;
+                  }
+                }
+
                 return (
                   <div key={msg.id} className={cn("group flex items-center gap-2 max-w-[85%] sm:max-w-[75%] mb-3", isCurrentUserSender ? "ml-auto flex-row-reverse" : "mr-auto")}>
                     <div className={cn(
@@ -498,9 +508,13 @@ function DmPageContent() {
                         isCurrentUserSender ? "bg-primary text-primary-foreground rounded-br-none" : "bg-muted text-foreground rounded-bl-none"
                       )}>
                         {messageDisplayContent}
-                        <p className={cn("text-xs mt-1", isCurrentUserSender ? "text-primary-foreground/70 text-right" : "text-muted-foreground/80 text-left")}>
+                        <p className={cn(
+                            "text-xs mt-1 flex items-center",
+                             isCurrentUserSender ? "text-primary-foreground/70 text-right justify-end" : "text-muted-foreground/80 text-left"
+                          )}>
                           {formatTimestamp(msg.timestamp)}
-                          {msg.editedTimestamp && <span className="italic text-xs"> (diedit)</span>}
+                          {msg.editedTimestamp && <span className="italic text-xs ml-1">(diedit)</span>}
+                          {readReceiptIcon}
                         </p>
                     </div>
                      <DropdownMenu>
