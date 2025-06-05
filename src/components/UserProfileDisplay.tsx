@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, ChangeEvent, useMemo, Dispatch, SetStateAction } from 'react';
+import { useState, useEffect, ChangeEvent, useMemo, Dispatch, SetStateAction, useRef, useCallback } from 'react';
 import type { User, Post, Comment as CommentType, Notification, Conversation } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from './PostCard';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialUsers, initialPosts, initialNotifications, getCurrentUserId, initialConversations } from '@/lib/data';
-import { Edit3, ImageIcon as ImageIconLucide, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, LayoutGrid, Video, BadgeCheck, ListChecks, Heart, UserPlus, UserCheck as UserCheckIcon, Settings as SettingsIcon, Moon, Sun, Laptop, ShieldQuestion, LogOut, Trash2, GalleryVerticalEnd, PlayCircle } from 'lucide-react';
+import { Edit3, ImageIcon as ImageIconLucide, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, LayoutGrid, Video, BadgeCheck, ListChecks, Heart, UserPlus, UserCheck as UserCheckIcon, Settings as SettingsIcon, Moon, Sun, Laptop, ShieldQuestion, LogOut, Trash2, GalleryVerticalEnd, PlayCircle, Send as SendIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
@@ -51,7 +51,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
-import { cn } from '@/lib/utils';
+import { cn, formatTimestamp } from '@/lib/utils';
 import Image from 'next/image';
 
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -111,6 +111,20 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const [activeMainTab, setActiveMainTab] = useState<'posts' | 'followers' | 'following' | 'activity'>('posts');
   const [activeActivitySubTab, setActiveActivitySubTab] = useState<'saved_nested' | 'liked_nested' | 'commented_nested'>('saved_nested');
 
+  // State for Story Modal (adapted from FeedPage)
+  const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
+  const [storyModalContent, setStoryModalContent] = useState<{ user: User; post: Post; storyCount: number } | null>(null);
+  const [profileUserActiveStories, setProfileUserActiveStories] = useState<Post[]>([]);
+  const [currentStoryIndexInModal, setCurrentStoryIndexInModal] = useState(0);
+  const [storyProgress, setStoryProgress] = useState(0);
+  const [storyCommentInputVisible, setStoryCommentInputVisible] = useState(false); // Mobile swipe-up comment
+  const [storyCommentText, setStoryCommentText] = useState('');
+  const [isStoryVideoManuallyPaused, setIsStoryVideoManuallyPaused] = useState(false);
+  const storyVideoRef = useRef<HTMLVideoElement>(null);
+  const touchStartY = useRef<number | null>(null); // For mobile swipe-up story comment
+  const touchCurrentY = useRef<number | null>(null); // For mobile swipe-up story comment
+  const SWIPE_THRESHOLD = 50;
+
 
   useEffect(() => {
     setIsClient(true);
@@ -151,9 +165,19 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()), 
     [allPosts, userId]
   );
+  
+  const activeStoriesForProfileUser = useMemo(() => {
+    if (!profileUser) return [];
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    return allPosts
+      .filter(p => p.userId === profileUser.id && p.type === 'story' && new Date(p.timestamp) > twentyFourHoursAgo)
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  }, [allPosts, profileUser]);
 
-  const filteredDisplayContent = useMemo(() => {
+
+  const filteredDisplayContent = useMemo(() => { // Used for 'photo' and 'reel' grid
     if (!userPostsAndStories) return [];
+    if (postFilterType === 'story') return []; // Stories are handled separately now
     return userPostsAndStories.filter(post => post.type === postFilterType);
   }, [userPostsAndStories, postFilterType]);
 
@@ -252,7 +276,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     }
   };
 
-
   const handleLikePost = (postId: string) => {
     if (!currentSessionUserId) return;
     setAllPosts(prevPosts =>
@@ -271,6 +294,10 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                 postId: post.id,
                 postMediaUrl: post.mediaUrl,
             });
+          }
+           // Update storyModalContent if it's the one being liked
+          if (storyModalContent && storyModalContent.post.id === postId) {
+            setStoryModalContent(prev => prev ? { ...prev, post: { ...prev.post, likes } } : null);
           }
           return { ...post, likes };
         }
@@ -310,7 +337,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     );
     toast({ title: "Komentar Ditambahkan", description: "Komentar Anda telah diposting."});
   };
-
+  
   const handleUpdatePostCaptionOnProfile = (postId: string, newCaption: string) => {
     setAllPosts(prevPosts =>
       prevPosts.map(post =>
@@ -445,7 +472,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     }
      setAllUsers(prevUsers =>
       prevUsers.map(user => {
-        if (user.id === currentSessionUserId) {
+        if (user.id === currentSessionUserId) { // Only current user can change their own privacy
           return {
             ...user,
             accountType: editedAccountType,
@@ -479,7 +506,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       }
 
       window.dispatchEvent(new CustomEvent('authChange'));
-      localStorage.removeItem('currentUserId');
+      localStorage.removeItem('currentSessionUserId');
     }
     toast({
       title: "Berhasil Keluar",
@@ -495,7 +522,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     setConversations([]);
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('authChange'));
-      localStorage.removeItem('currentUserId');
+      localStorage.removeItem('currentSessionUserId');
       localStorage.setItem('posts', '[]');
       localStorage.setItem('users', '[]');
       localStorage.setItem('notifications', '[]');
@@ -509,6 +536,161 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     setShowDeleteDataConfirm(false);
     router.push('/login');
   };
+  
+  // --- Story Modal Logic (adapted from FeedPage) ---
+  const navigateStoryInModal = useCallback((direction: 'next' | 'prev') => {
+    if (!storyModalContent || profileUserActiveStories.length === 0) {
+      setIsStoryModalOpen(false);
+      return;
+    }
+
+    let newIndex = currentStoryIndexInModal;
+    if (direction === 'next') {
+      newIndex = currentStoryIndexInModal + 1;
+    } else {
+      newIndex = currentStoryIndexInModal - 1;
+    }
+
+    if (newIndex >= 0 && newIndex < profileUserActiveStories.length) {
+      setCurrentStoryIndexInModal(newIndex);
+      setStoryModalContent(prev => {
+        if (!prev) return null;
+        const nextStoryData = allPosts.find(p => p.id === profileUserActiveStories[newIndex].id) || profileUserActiveStories[newIndex];
+        return { ...prev, post: nextStoryData };
+      });
+      setStoryProgress(0);
+      setStoryCommentInputVisible(false);
+      setStoryCommentText("");
+    } else if (direction === 'next' && newIndex >= profileUserActiveStories.length) {
+      setIsStoryModalOpen(false); // Close modal if it's the end
+    }
+    // If newIndex < 0 (trying to go prev from first story), do nothing.
+  }, [profileUserActiveStories, currentStoryIndexInModal, storyModalContent, allPosts, setIsStoryModalOpen, setCurrentStoryIndexInModal, setStoryModalContent, setStoryProgress, setStoryCommentInputVisible, setStoryCommentText]);
+
+  useEffect(() => { // Reset story modal state on close
+    if (!isStoryModalOpen) {
+      // setProfileUserActiveStories([]); // Don't reset this, it's derived from profileUser
+      setCurrentStoryIndexInModal(0);
+      setStoryCommentInputVisible(false);
+      setStoryCommentText("");
+      setIsStoryVideoManuallyPaused(false);
+      if (storyVideoRef.current) {
+        storyVideoRef.current.pause();
+        storyVideoRef.current.src = "";
+      }
+      setStoryProgress(0);
+      setStoryModalContent(null);
+    }
+  }, [isStoryModalOpen]);
+
+  useEffect(() => { // Image story timer
+    let imageTimer: NodeJS.Timeout | undefined;
+    if (isStoryModalOpen && storyModalContent?.post.mediaMimeType?.startsWith('image/')) {
+      setStoryProgress(0);
+      const duration = 7000; // 7 seconds for image stories
+      const interval = 50;
+      const steps = duration / interval;
+      let currentStep = 0;
+
+      imageTimer = setInterval(() => {
+        currentStep++;
+        setStoryProgress((currentStep / steps) * 100);
+        if (currentStep >= steps) {
+          clearInterval(imageTimer!);
+          imageTimer = undefined;
+          navigateStoryInModal('next');
+        }
+      }, interval);
+    }
+    return () => {
+      if (imageTimer) clearInterval(imageTimer);
+    };
+  }, [isStoryModalOpen, storyModalContent?.post.id, currentStoryIndexInModal, navigateStoryInModal]);
+
+  useEffect(() => { // Video story playback
+    if (isStoryModalOpen && storyModalContent?.post.mediaMimeType?.startsWith('video/') && storyVideoRef.current) {
+      setIsStoryVideoManuallyPaused(false);
+      storyVideoRef.current.currentTime = 0;
+      storyVideoRef.current.play().catch(e => console.warn("Video story autoplay error:", e));
+    }
+  }, [isStoryModalOpen, storyModalContent?.post.id, storyModalContent?.post.mediaUrl]);
+  
+  useEffect(() => { // Pause video for mobile comment input
+    if (isStoryModalOpen && storyModalContent?.post.mediaMimeType?.startsWith('video/') && storyVideoRef.current) {
+      if (storyCommentInputVisible && isMobile) {
+        if (!storyVideoRef.current.paused) storyVideoRef.current.pause();
+      } else {
+        if (storyVideoRef.current.paused && !isStoryVideoManuallyPaused) {
+          storyVideoRef.current.play().catch(e => console.error("Error resuming video:", e));
+        }
+      }
+    }
+  }, [storyCommentInputVisible, isStoryModalOpen, storyModalContent?.post.mediaMimeType, isStoryVideoManuallyPaused, isMobile]);
+
+  const handleVideoClickInModal = () => {
+    if (storyVideoRef.current && storyModalContent?.post.mediaMimeType?.startsWith('video/')) {
+      if (storyVideoRef.current.paused) {
+        storyVideoRef.current.play().catch(e => console.error("Error playing video on tap:", e));
+        setIsStoryVideoManuallyPaused(false);
+      } else {
+        storyVideoRef.current.pause();
+        setIsStoryVideoManuallyPaused(true);
+      }
+    }
+  };
+  
+  const handleOpenProfileUserStoryViewer = () => {
+    if (!profileUser || activeStoriesForProfileUser.length === 0) {
+      toast({ title: "Tidak Ada Cerita", description: "Pengguna ini tidak memiliki cerita aktif.", variant: "default" });
+      return;
+    }
+    setProfileUserActiveStories(activeStoriesForProfileUser); // Redundant if already up-to-date, but safe
+    setCurrentStoryIndexInModal(0);
+    const initialStoryPost = allPosts.find(p => p.id === activeStoriesForProfileUser[0].id) || activeStoriesForProfileUser[0];
+    setStoryModalContent({
+      user: profileUser,
+      post: initialStoryPost,
+      storyCount: activeStoriesForProfileUser.length
+    });
+    setIsStoryModalOpen(true);
+    setStoryProgress(0);
+    setStoryCommentInputVisible(false);
+    setStoryCommentText("");
+    setIsStoryVideoManuallyPaused(false);
+  };
+
+  const handleTouchStartStoryModal = (e: React.TouchEvent<HTMLDivElement>) => {
+    touchStartY.current = e.touches[0].clientY;
+    touchCurrentY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchMoveStoryModal = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (touchStartY.current === null) return;
+    touchCurrentY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEndStoryModal = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (touchStartY.current === null || touchCurrentY.current === null) {
+      touchStartY.current = null;
+      touchCurrentY.current = null;
+      return;
+    }
+    const deltaY = touchStartY.current - touchCurrentY.current;
+    if (deltaY > SWIPE_THRESHOLD) setStoryCommentInputVisible(true);
+    else if (deltaY < -SWIPE_THRESHOLD && storyCommentInputVisible) setStoryCommentInputVisible(false);
+    touchStartY.current = null;
+    touchCurrentY.current = null;
+  };
+
+  const handlePostStoryCommentInModal = () => {
+    if (!storyCommentText.trim() || !storyModalContent || !currentSessionUserId) return;
+    const currentPostInModal = allPosts.find(p => p.id === storyModalContent.post.id) || storyModalContent.post;
+    handleAddComment(currentPostInModal.id, storyCommentText.trim());
+    setStoryCommentText('');
+    if (isMobile) setStoryCommentInputVisible(false);
+  };
+
+  // --- End of Story Modal Logic ---
 
 
   if (!profileUser) {
@@ -821,6 +1003,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                     id="account-type-switch-profile"
                     checked={editedAccountType === 'private'}
                     onCheckedChange={(checked) => setEditedAccountType(checked ? 'private' : 'public')}
+                    disabled={!isCurrentUserProfile}
                     />
                     <Label htmlFor="account-type-switch-profile" className="text-sm flex items-center gap-1.5 cursor-pointer">
                     {editedAccountType === 'private' ? <Lock className="h-4 w-4"/> : <ShieldOff className="h-4 w-4"/>}
@@ -838,6 +1021,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                     id="account-verified-switch-profile"
                     checked={editedIsVerified}
                     onCheckedChange={setEditedIsVerified}
+                    disabled={!isCurrentUserProfile}
                     />
                     <Label htmlFor="account-verified-switch-profile" className="text-sm flex items-center gap-1.5 cursor-pointer">
                     {editedIsVerified ? <BadgeCheck className="h-4 w-4 text-primary"/> : <BadgeCheck className="h-4 w-4 text-muted"/>}
@@ -851,7 +1035,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             </div>
             <DialogFooter>
                 <Button variant="outline" onClick={() => setIsPrivacySettingsModalOpen(false)} className="md:hover:bg-accent md:hover:text-accent-foreground">Batal</Button>
-                <Button onClick={handleSavePrivacySettings} className="md:hover:bg-primary/90"><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
+                <Button onClick={handleSavePrivacySettings} className="md:hover:bg-primary/90" disabled={!isCurrentUserProfile}><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
             </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -905,7 +1089,38 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                   </TabsList>
                 </Tabs>
               </div>
-                {filteredDisplayContent.length > 0 ? (
+                {postFilterType === 'story' ? (
+                    activeStoriesForProfileUser.length > 0 && profileUser ? (
+                        <div className="flex justify-center items-center py-4">
+                             <div 
+                                onClick={handleOpenProfileUserStoryViewer}
+                                className="flex flex-col items-center space-y-1 group w-24 cursor-pointer"
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => e.key === 'Enter' && handleOpenProfileUserStoryViewer()}
+                                aria-label={`Lihat cerita ${profileUser.username}`}
+                                >
+                                <div className="relative p-0.5 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-pink-500 md:group-hover:from-yellow-300 md:group-hover:via-red-400 md:group-hover:to-pink-400 transition-all">
+                                    <Avatar className="h-20 w-20 border-2 border-background">
+                                    <AvatarImage src={profileUser.avatarUrl} alt={profileUser.username} data-ai-hint="story avatar profile user"/>
+                                    <AvatarFallback>{profileUser.username.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                    </Avatar>
+                                    {activeStoriesForProfileUser.length > 1 && (
+                                    <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-background">
+                                        {activeStoriesForProfileUser.length}
+                                    </div>
+                                    )}
+                                </div>
+                                <p className="text-sm text-foreground truncate w-full text-center md:group-hover:text-primary">{profileUser.username}</p>
+                                <p className="text-xs text-muted-foreground">Cerita Aktif</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <p className="text-center text-muted-foreground py-8 font-body">
+                        Belum ada cerita aktif dari pengguna ini.
+                        </p>
+                    )
+                ) : filteredDisplayContent.length > 0 ? (
                   <div className="grid grid-cols-3 gap-1">
                     {filteredDisplayContent.map(post => (
                       <Link href={`/post/${post.id}`} key={post.id} className="relative aspect-square block group bg-muted/30">
@@ -918,8 +1133,9 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                           data-ai-hint={`${post.type} thumbnail`}
                         />
                         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            {post.type === 'reel' && <PlayCircle className="h-10 w-10 text-white" />}
-                            {post.type === 'story' && post.mediaMimeType?.startsWith('video/') && <PlayCircle className="h-10 w-10 text-white" />}
+                            {(post.type === 'reel' || (post.type === 'story' && post.mediaMimeType?.startsWith('video/'))) && 
+                                <PlayCircle className="h-10 w-10 text-white" />
+                            }
                         </div>
                         <div className="absolute top-1 right-1 p-0.5 bg-black/40 rounded-sm">
                             {post.type === 'story' && <GalleryVerticalEnd className="h-3.5 w-3.5 text-white" />}
@@ -931,7 +1147,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                   </div>
                 ) : (
                   <p className="text-center text-muted-foreground py-8 font-body">
-                    Belum ada {postFilterType === 'story' ? 'cerita' : (postFilterType === 'photo' ? 'foto' : 'reel')}.
+                    Belum ada {postFilterType === 'photo' ? 'foto' : 'reel'}.
                   </p>
                 )}
             </TabsContent>
@@ -1032,6 +1248,164 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           </Card>
         )}
       </div>
+
+      {/* Story Modal - Adapted from FeedPage */}
+      <Dialog open={isStoryModalOpen} onOpenChange={setIsStoryModalOpen}>
+        <DialogContent
+          className={cn(
+            "p-0 bg-black text-white flex flex-col items-center justify-center overflow-hidden",
+            "max-w-sm w-full h-auto max-h-[90vh] aspect-[9/16] rounded-lg"
+          )}
+          onCloseAutoFocus={(e) => e.preventDefault()} // Prevents focus jump on close
+        >
+          {storyModalContent && profileUserActiveStories.length > 0 && profileUser && (
+            (() => {
+              const currentPostInModal = allPosts.find(p => p.id === storyModalContent.post.id) || storyModalContent.post;
+              const userForStoryDisplay = profileUser; // Use profileUser for display
+
+              return (
+                <div
+                  className="relative w-full h-full"
+                  onTouchStart={isMobile ? handleTouchStartStoryModal : undefined}
+                  onTouchMove={isMobile ? handleTouchMoveStoryModal : undefined}
+                  onTouchEnd={isMobile ? handleTouchEndStoryModal : undefined}
+                >
+                  <DialogHeader className="absolute top-0 left-0 right-0 px-3 pt-4 pb-3 z-20 bg-gradient-to-b from-black/60 to-transparent">
+                    <EditDialogTitle className="sr-only">
+                      Cerita oleh {userForStoryDisplay.username}
+                    </EditDialogTitle>
+                    {profileUserActiveStories.length > 0 && (
+                      <div className="flex space-x-1 mb-2 h-1 w-full">
+                        {profileUserActiveStories.map((story, index) => (
+                          <div key={story.id} className="flex-1 bg-white/30 rounded-full overflow-hidden">
+                            {index === currentStoryIndexInModal && currentPostInModal.mediaMimeType?.startsWith('image/') && (
+                              <div className="h-full bg-white rounded-full" style={{ width: `${storyProgress}%` }}></div>
+                            )}
+                            {index === currentStoryIndexInModal && currentPostInModal.mediaMimeType?.startsWith('video/') && (
+                              <div className="h-full bg-white rounded-full w-full"></div> // Full for video as progress is via video player
+                            )}
+                            {index < currentStoryIndexInModal && (
+                              <div className="h-full bg-white rounded-full w-full opacity-80"></div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-7 w-7 border-2 border-white">
+                        <AvatarImage src={userForStoryDisplay.avatarUrl} alt={userForStoryDisplay.username} />
+                        <AvatarFallback className="bg-black/50 text-white">{userForStoryDisplay.username.substring(0,1).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <span className="font-semibold text-xs">{userForStoryDisplay.username}</span>
+                      <span className="text-xs text-gray-300 ml-1">
+                        {formatTimestamp(currentPostInModal.timestamp)}
+                      </span>
+                    </div>
+                  </DialogHeader>
+
+                  <div className="w-full h-full flex items-center justify-center relative">
+                    <div
+                      className="absolute left-0 top-0 h-full w-1/3 z-10 cursor-pointer"
+                      onClick={() => navigateStoryInModal('prev')}
+                      role="button"
+                      aria-label="Cerita Sebelumnya"
+                    />
+                    <div
+                      className="absolute right-0 top-0 h-full w-1/3 z-10 cursor-pointer"
+                      onClick={() => navigateStoryInModal('next')}
+                      role="button"
+                      aria-label="Cerita Berikutnya"
+                    />
+                    {currentPostInModal.mediaMimeType?.startsWith('image/') ? (
+                      <Image
+                        key={currentPostInModal.id}
+                        src={currentPostInModal.mediaUrl}
+                        alt={currentPostInModal.caption || 'Story image'}
+                        layout="fill"
+                        objectFit="contain"
+                        className="rounded-md"
+                        data-ai-hint="story content image profile"
+                      />
+                    ) : currentPostInModal.mediaMimeType?.startsWith('video/') ? (
+                      <video
+                        key={currentPostInModal.id}
+                        ref={storyVideoRef}
+                        src={currentPostInModal.mediaUrl}
+                        playsInline
+                        className="w-full h-full object-contain"
+                        data-ai-hint="story content video profile"
+                        onEnded={() => navigateStoryInModal('next')}
+                        onClick={handleVideoClickInModal}
+                      />
+                    ) : (
+                      <p className="text-center">Format media tidak didukung.</p>
+                    )}
+                    {currentSessionUserId && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleLikePost(currentPostInModal.id); }}
+                        className="absolute bottom-16 right-4 z-30 flex flex-col items-center text-white p-2 rounded-full bg-black/40 hover:bg-black/60 transition-colors active:scale-95"
+                        aria-label="Sukai cerita"
+                      >
+                        <Heart
+                          className={cn(
+                            "h-6 w-6 transition-colors duration-150 ease-in-out",
+                            currentPostInModal.likes.includes(currentSessionUserId) && "fill-red-500 text-red-500"
+                          )}
+                        />
+                      </button>
+                    )}
+                  </div>
+                  
+                  {!isMobile && isStoryModalOpen && storyModalContent && currentSessionUser && (
+                    <div className="absolute bottom-3 left-3 right-3 p-0 z-30 flex items-center gap-2">
+                      <Avatar className="h-9 w-9 flex-shrink-0">
+                        <AvatarImage src={currentSessionUser.avatarUrl} alt={currentSessionUser.username} data-ai-hint="user avatar story comment desktop"/>
+                        <AvatarFallback>{currentSessionUser.username.substring(0,1).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <Textarea
+                        placeholder={`Balas cerita ${userForStoryDisplay.username}...`}
+                        value={storyCommentText}
+                        onChange={(e) => setStoryCommentText(e.target.value)}
+                        className="text-sm min-h-[40px] max-h-[100px] flex-grow resize-none bg-black/50 text-white placeholder:text-gray-300 border-gray-600 focus:border-white rounded-full px-4 py-2"
+                        rows={1}
+                        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handlePostStoryCommentInModal(); }}}
+                      />
+                      <Button size="icon" onClick={handlePostStoryCommentInModal} disabled={!storyCommentText.trim()} className="h-9 w-9 bg-primary hover:bg-primary/80 rounded-full flex-shrink-0">
+                        <SendIcon className="h-4 w-4"/>
+                      </Button>
+                    </div>
+                  )}
+
+                  {currentPostInModal.caption && (!isMobile || !storyCommentInputVisible) && (
+                    <div className={cn("absolute left-0 right-0 p-3 z-20 bg-gradient-to-t from-black/50 to-transparent text-center", !isMobile && currentSessionUser ? "bottom-16" : "bottom-0" )}>
+                      <p className="text-xs text-white">{currentPostInModal.caption}</p>
+                    </div>
+                  )}
+                </div>
+              )
+            })()
+          )}
+          {isMobile && isStoryModalOpen && storyModalContent && storyCommentInputVisible && currentSessionUser && profileUser && (
+            <div className="absolute bottom-0 left-0 right-0 p-3 bg-background/80 backdrop-blur-sm z-30 flex items-start gap-2 sm:hidden">
+              <Avatar className="h-8 w-8 mt-1">
+                <AvatarImage src={currentSessionUser.avatarUrl} alt={currentSessionUser.username} data-ai-hint="user avatar small story reply" />
+                <AvatarFallback>{currentSessionUser.username.substring(0,1).toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <Textarea
+                placeholder={`Balas cerita ${profileUser.username}...`}
+                value={storyCommentText}
+                onChange={(e) => setStoryCommentText(e.target.value)}
+                className="text-sm min-h-[40px] flex-grow resize-none bg-white/20 text-white placeholder:text-gray-300 border-gray-400 focus:border-white"
+                rows={1}
+              />
+              <Button size="icon" onClick={handlePostStoryCommentInModal} disabled={!storyCommentText.trim()} className="h-10 w-10 bg-primary hover:bg-primary/80">
+                <SendIcon className="h-4 w-4"/>
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
@@ -1072,3 +1446,4 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
+
