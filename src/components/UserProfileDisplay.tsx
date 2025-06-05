@@ -1,13 +1,13 @@
 
-
 "use client";
 
 import { useState, useEffect, ChangeEvent, useMemo, Dispatch, SetStateAction, useRef, useCallback } from 'react';
 import type { User, Post, Comment as CommentType, Notification, Conversation } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter as CustomStoryCardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+// PostCard is not used for stories anymore, but kept for activity feed
 import { PostCard } from './PostCard';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialUsers, initialPosts, initialNotifications, getCurrentUserId, initialConversations } from '@/lib/data';
@@ -21,7 +21,7 @@ import {
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle as EditDialogTitle,
+  DialogTitle as EditDialogTitle, // aliased to avoid conflict
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -1032,7 +1032,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           {/* Mobile Gallery View */}
           {isMobile && galleryPosts.length > 0 && selectedPostForModal && (
             <>
-              <DialogHeader className="sr-only">
+               <DialogHeader className="sr-only">
                 <EditDialogTitle>Galeri Postingan Pengguna</EditDialogTitle>
               </DialogHeader>
               <div className="flex-1 flex flex-col h-full w-full">
@@ -1070,7 +1070,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                             
                             <div className="absolute bottom-0 left-0 right-0 p-4 pb-8 z-10 bg-gradient-to-t from-black/70 via-black/40 to-transparent text-white">
                                 {postAuthor && (
-                                <div className="flex items-center justify-start gap-2 mb-1.5 text-left">
+                                <div className="flex items-center justify-center gap-2 mb-1.5 text-center">
                                     <Link href={`/profile/${postAuthor.id}`} onClick={() => setIsPostDetailModalOpen(false)}>
                                     <Avatar className="h-8 w-8 border-2 border-white/70">
                                         <AvatarImage src={postAuthor.avatarUrl} data-ai-hint="gallery author avatar overlay"/>
@@ -1315,7 +1315,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                                         <p className="text-xs text-muted-foreground line-clamp-2">{storyPost.caption}</p>
                                       </CardContent>
                                     )}
-                                    <CustomStoryCardFooter className="px-3 pb-3 pt-1 flex items-center gap-3 text-xs text-muted-foreground">
+                                    <CardFooter className="px-3 pb-3 pt-1 flex items-center gap-3 text-xs text-muted-foreground">
                                       <button
                                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleLikePost(storyPost.id); }}
                                         className={cn(
@@ -1335,7 +1335,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                                         <Eye className="h-3.5 w-3.5" />
                                         <span>{storyPost.viewCount || 0}</span>
                                       </div>
-                                    </CustomStoryCardFooter>
+                                    </CardFooter>
                                   </Card>
                                 </Link>
                               );
@@ -1522,6 +1522,3 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
-
-
-
