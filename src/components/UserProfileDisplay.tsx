@@ -585,7 +585,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="mx-auto w-full sm:max-w-2xl">
         <Card className="mb-8 shadow-lg rounded-xl overflow-hidden">
           <CardHeader className="relative p-6 bg-card flex flex-col md:flex-row items-center md:items-start gap-6">
             <div className="relative">
@@ -967,7 +967,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       </Dialog>
 
 
-      <div className="mt-8 w-full sm:max-w-2xl sm:mx-auto">
+      <div className="mt-8 w-full">
         {canViewProfileContent ? (
           <Tabs 
             value={activeMainTab} 
@@ -999,17 +999,18 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               </div>
                 {postFilterType === 'story' ? (
                     activeStoriesForProfileUser.length > 0 ? (
-                        <div className="space-y-3">
-                            {activeStoriesForProfileUser.map(storyPost => {
-                                const storyAuthor = allUsers.find(u => u.id === storyPost.userId);
-                                if (!storyAuthor) return null;
-                                const totalCommentsAndReplies = storyPost.comments.length + storyPost.comments.reduce((acc, curr) => acc + (curr.replies?.length || 0), 0);
-                                const isStoryLikedByCurrentUser = currentSessionUserId ? storyPost.likes.includes(currentSessionUserId) : false;
+                        <div className="space-y-4">
+                          {activeStoriesForProfileUser.map(storyPost => {
+                              const storyAuthor = allUsers.find(u => u.id === storyPost.userId);
+                              if (!storyAuthor) return null;
+                              const totalCommentsAndReplies = storyPost.comments.length + storyPost.comments.reduce((acc, curr) => acc + (curr.replies?.length || 0), 0);
+                              const isStoryLikedByCurrentUser = currentSessionUserId ? storyPost.likes.includes(currentSessionUserId) : false;
 
-                                return (
-                                  <Card key={storyPost.id} className="overflow-hidden shadow-md bg-card/80 max-w-xs mx-auto">
+                              return (
+                                <Link href={`/post/${storyPost.id}`} key={storyPost.id} className="block max-w-xs mx-auto">
+                                  <Card className="overflow-hidden shadow-md bg-card/80">
                                     <CardHeader className="flex flex-row items-center justify-between p-3 space-y-0">
-                                      <Link href={`/post/${storyPost.id}`} className="flex items-center gap-2 group">
+                                      <div className="flex items-center gap-2 group">
                                         <Avatar className="h-8 w-8">
                                           <AvatarImage src={storyAuthor.avatarUrl} alt={storyAuthor.username} data-ai-hint="user avatar small"/>
                                           <AvatarFallback>{storyAuthor.username.substring(0,1).toUpperCase()}</AvatarFallback>
@@ -1018,7 +1019,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                                           <p className="text-xs font-semibold font-headline group-hover:text-primary">{storyAuthor.username}</p>
                                           <p className="text-xs text-muted-foreground">{formatTimestamp(storyPost.timestamp)}</p>
                                         </div>
-                                      </Link>
+                                      </div>
                                       {isCurrentUserProfile && (
                                         <DropdownMenu>
                                           <DropdownMenuTrigger asChild>
@@ -1027,13 +1028,13 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                                             </Button>
                                           </DropdownMenuTrigger>
                                           <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={() => handleOpenEditStoryCaptionDialog(storyPost)}>
+                                            <DropdownMenuItem onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleOpenEditStoryCaptionDialog(storyPost); }}>
                                               <Edit3 className="mr-2 h-4 w-4" />
                                               <span>Edit Keterangan</span>
                                             </DropdownMenuItem>
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem
-                                              onClick={() => handleOpenDeleteStoryDialog(storyPost.id)}
+                                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleOpenDeleteStoryDialog(storyPost.id);}}
                                               className="text-destructive focus:text-destructive focus:bg-destructive/10"
                                             >
                                               <Trash2 className="mr-2 h-4 w-4" />
@@ -1043,34 +1044,32 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                                         </DropdownMenu>
                                       )}
                                     </CardHeader>
-                                    <Link href={`/post/${storyPost.id}`} className="block group">
-                                      <div className="relative w-full aspect-[9/16] bg-muted/20 rounded-md overflow-hidden my-2 max-h-64">
-                                        {storyPost.mediaMimeType?.startsWith('image/') ? (
-                                          <Image
+                                    <div className="relative w-full aspect-[9/16] bg-muted/20 rounded-md overflow-hidden my-2 max-h-64">
+                                      {storyPost.mediaMimeType?.startsWith('image/') ? (
+                                        <Image
+                                          src={storyPost.mediaUrl}
+                                          alt={storyPost.caption || `Cerita oleh ${profileUser.username}`}
+                                          layout="fill"
+                                          objectFit="cover"
+                                          className="transition-opacity group-hover:opacity-90"
+                                          data-ai-hint="story preview image"
+                                        />
+                                      ) : storyPost.mediaMimeType?.startsWith('video/') ? (
+                                        <>
+                                          <video
                                             src={storyPost.mediaUrl}
-                                            alt={storyPost.caption || `Cerita oleh ${profileUser.username}`}
-                                            layout="fill"
-                                            objectFit="cover"
-                                            className="transition-opacity group-hover:opacity-90"
-                                            data-ai-hint="story preview image"
+                                            className="w-full h-full object-cover"
+                                            playsInline
+                                            muted
+                                            loop
+                                            data-ai-hint="story preview video"
                                           />
-                                        ) : storyPost.mediaMimeType?.startsWith('video/') ? (
-                                          <>
-                                            <video
-                                              src={storyPost.mediaUrl}
-                                              className="w-full h-full object-cover"
-                                              playsInline
-                                              muted
-                                              loop
-                                              data-ai-hint="story preview video"
-                                            />
-                                            <PlayCircle className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 text-white/80 pointer-events-none" />
-                                          </>
-                                        ) : (
-                                          <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">Media tidak didukung</div>
-                                        )}
-                                      </div>
-                                    </Link>
+                                          <PlayCircle className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 text-white/80 pointer-events-none" />
+                                        </>
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">Media tidak didukung</div>
+                                      )}
+                                    </div>
                                     {storyPost.caption && (
                                       <CardContent className="p-3 pt-0 pb-2">
                                         <p className="text-xs text-muted-foreground line-clamp-2">{storyPost.caption}</p>
@@ -1078,7 +1077,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                                     )}
                                     <CustomStoryCardFooter className="px-3 pb-3 pt-1 flex items-center gap-3 text-xs text-muted-foreground">
                                       <button
-                                        onClick={() => handleLikePost(storyPost.id)}
+                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleLikePost(storyPost.id); }}
                                         className={cn(
                                           "flex items-center gap-1 hover:text-destructive",
                                           isStoryLikedByCurrentUser && "text-destructive"
@@ -1088,18 +1087,19 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                                         <Heart className={cn("h-3.5 w-3.5", isStoryLikedByCurrentUser && "fill-destructive")} />
                                         <span>{storyPost.likes.length}</span>
                                       </button>
-                                      <Link href={`/post/${storyPost.id}#comments`} className="flex items-center gap-1 hover:text-primary">
+                                      <div className="flex items-center gap-1">
                                         <MessageSquare className="h-3.5 w-3.5" />
                                         <span>{totalCommentsAndReplies}</span>
-                                      </Link>
+                                      </div>
                                       <div className="flex items-center gap-1">
                                         <Eye className="h-3.5 w-3.5" />
                                         <span>{storyPost.viewCount || 0}</span>
                                       </div>
                                     </CustomStoryCardFooter>
                                   </Card>
-                                );
-                            })}
+                                </Link>
+                              );
+                          })}
                         </div>
                     ) : (
                         <p className="text-center text-muted-foreground py-8 font-body">
@@ -1274,3 +1274,4 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
+
