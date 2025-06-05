@@ -30,7 +30,8 @@ export default function RootLayout({
     setHasMounted(true);
   }, []);
 
-  const actualHideBottomNavbarAndMainPadding = hasMounted ? (pathname === '/dm' || pathname === '/reels' || pathname === '/login' || pathname === '/register') : false;
+  const isPhotoGalleryPage = pathname.startsWith('/profile/') && pathname.endsWith('/photos');
+  const actualHideBottomNavbarAndMainPadding = hasMounted ? (pathname === '/dm' || pathname === '/reels' || isPhotoGalleryPage || pathname === '/login' || pathname === '/register') : false;
 
   return (
     <html lang="id" suppressHydrationWarning>

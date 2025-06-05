@@ -2,13 +2,12 @@
 
 "use client";
 
-import { useState, useEffect, ChangeEvent, useMemo, Dispatch, SetStateAction, useRef, useCallback } from 'react';
+import { useState, useEffect, ChangeEvent, useMemo, Dispatch, SetStateAction, useRef } from 'react';
 import type { User, Post, Comment as CommentType, Notification, Conversation } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-// PostCard is not used for stories anymore, but kept for activity feed
 import { PostCard } from './PostCard';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialUsers, initialPosts, initialNotifications, getCurrentUserId, initialConversations } from '@/lib/data';
@@ -22,7 +21,7 @@ import {
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle as EditDialogTitle, // aliased to avoid conflict
+  DialogTitle as EditDialogTitle, 
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -584,14 +583,27 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   };
 
   const handleOpenPostDetailModal = (post: Post, type: 'photo' | 'reel' | 'story') => {
-    if (isMobile && (type === 'photo' || type === 'reel')) {
-      const userFilteredContent = userPostsAndStories.filter(p => p.type === type)
-                                   .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      setGalleryPosts(userFilteredContent);
-      setSelectedPostForModal(post); 
-      setInitialGalleryScrollId(post.id);
+    if (isMobile) {
+      if (type === 'photo') {
+        router.push(`/profile/${userId}/photos`);
+        return;
+      }
+      if (type === 'reel') {
+        const userFilteredReels = userPostsAndStories.filter(p => p.type === 'reel')
+                                     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        setGalleryPosts(userFilteredReels);
+        setSelectedPostForModal(post);
+        setInitialGalleryScrollId(post.id);
+        setIsPostDetailModalOpen(true);
+        return;
+      }
+      // For stories on mobile, if triggered from a context that needs a modal (e.g., not the custom cards)
+      setSelectedPostForModal(post);
+      setGalleryPosts([]); 
+      setInitialGalleryScrollId(null);
       setIsPostDetailModalOpen(true);
-    } else {
+
+    } else { // Desktop: photos or reels use single post modal
       setSelectedPostForModal(post);
       setGalleryPosts([]); 
       setInitialGalleryScrollId(null);
@@ -605,7 +617,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       if (element) {
         galleryContainerRef.current.scrollTo({ top: element.offsetTop, behavior: 'auto' });
       }
-      // setInitialGalleryScrollId(null); // Keep it to identify the initially clicked item for autoplay
     }
   }, [isMobile, isPostDetailModalOpen, initialGalleryScrollId, galleryPosts]);
   
@@ -1029,27 +1040,24 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           (isMobile && galleryPosts.length > 0) && "fixed inset-0 w-screen h-dvh bg-black p-0 flex flex-col rounded-none border-none shadow-none [&>button[aria-label=Close]]:hidden"
         )}>
           
-          {isMobile && galleryPosts.length > 0 && (
-            <DialogHeader>
-              <EditDialogTitle className="sr-only">Galeri Postingan Pengguna</EditDialogTitle>
-            </DialogHeader>
-          )}
-          
           {isMobile && galleryPosts.length > 0 && selectedPostForModal && (
-            <>
-              <div className="flex-1 flex flex-col h-full w-full">
+          <>
+            <DialogHeader className="sr-only">
+                <EditDialogTitle>Galeri Reels Pengguna {profileUser?.username || ''}</EditDialogTitle>
+            </DialogHeader>
+            <div className="flex-1 flex flex-col h-full w-full">
                 <div className="absolute top-0 left-0 right-0 z-20 p-3 flex items-center justify-start bg-gradient-to-b from-black/60 to-transparent">
                     <Button variant="ghost" size="icon" onClick={() => setIsPostDetailModalOpen(false)} className="text-white hover:bg-white/10">
                         <ArrowLeft className="h-6 w-6" />
                     </Button>
                     {profileUser && (
-                       <Link href={`/profile/${profileUser.id}`} onClick={() => setIsPostDetailModalOpen(false)} className="ml-3 flex items-center gap-2 group">
-                         <Avatar className="h-7 w-7 border border-white/50">
-                           <AvatarImage src={profileUser.avatarUrl} alt={profileUser.username} data-ai-hint="gallery author avatar small"/>
-                           <AvatarFallback>{profileUser.username.substring(0,1).toUpperCase()}</AvatarFallback>
-                         </Avatar>
-                         <span className="text-sm font-semibold text-white group-hover:underline">{profileUser.username}</span>
-                       </Link>
+                        <Link href={`/profile/${profileUser.id}`} onClick={() => setIsPostDetailModalOpen(false)} className="ml-3 flex items-center gap-2 group">
+                        <Avatar className="h-7 w-7 border border-white/50">
+                            <AvatarImage src={profileUser.avatarUrl} alt={profileUser.username} data-ai-hint="gallery author avatar small"/>
+                            <AvatarFallback>{profileUser.username.substring(0,1).toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm font-semibold text-white group-hover:underline">{profileUser.username}</span>
+                        </Link>
                     )}
                 </div>
 
@@ -1072,7 +1080,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                             
                             <div className="absolute bottom-0 left-0 right-0 p-4 pb-8 z-10 bg-gradient-to-t from-black/70 via-black/40 to-transparent text-white">
                                 {postAuthor && (
-                                <div className="flex items-center justify-center gap-2 mb-1.5 text-center">
+                                <div className="flex flex-col items-center justify-center gap-0.5 mb-1.5 text-center">
                                     <Link href={`/profile/${postAuthor.id}`} onClick={() => setIsPostDetailModalOpen(false)}>
                                     <Avatar className="h-8 w-8 border-2 border-white/70">
                                         <AvatarImage src={postAuthor.avatarUrl} data-ai-hint="gallery author avatar overlay"/>
@@ -1111,7 +1119,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                     })}
                 </div>
               </div>
-            </>
+          </>
           )}
 
           {(!isMobile || galleryPosts.length === 0) && selectedPostForModal && modalPostAuthor && (
@@ -1264,11 +1272,11 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                                        {isCurrentUserProfile && (
                                         <DropdownMenu>
                                           <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground opacity-50 group-hover:opacity-100 focus:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground opacity-50 group-hover:opacity-100 focus:opacity-100 transition-opacity" onClick={(e) => {e.preventDefault(); e.stopPropagation();}}>
                                               <MoreHorizontal className="h-4 w-4" />
                                             </Button>
                                           </DropdownMenuTrigger>
-                                          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                          <DropdownMenuContent align="end" onClick={(e) => {e.preventDefault(); e.stopPropagation();}}>
                                             <DropdownMenuItem onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleOpenEditStoryCaptionDialog(storyPost); }}>
                                               <Edit3 className="mr-2 h-4 w-4" />
                                               <span>Edit Keterangan</span>
@@ -1523,5 +1531,3 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
-
-
