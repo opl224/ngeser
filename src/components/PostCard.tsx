@@ -219,7 +219,7 @@ export function PostCard({
           {isImageContent ? (
             <Image src={post.mediaUrl} alt={post.caption || 'Gambar postingan'} layout="fill" objectFit="cover" data-ai-hint={post.type === 'story' ? "story image" : "social media image"}/>
           ) : isVideoContent ? (
-            <div className="w-full h-full flex items-center justify-center">
+            <div className="w-full flex items-center justify-center">
                <video
                 src={post.mediaUrl}
                 className="w-full h-full object-cover"

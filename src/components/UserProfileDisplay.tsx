@@ -919,20 +919,67 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               </div>
                 {postFilterType === 'story' ? (
                     activeStoriesForProfileUser.length > 0 ? (
-                        <div className="space-y-4">
-                            {activeStoriesForProfileUser.map(post => (
-                                <div key={post.id} className="max-w-md mx-auto">
-                                    <PostCard
-                                        post={post}
-                                        onLikePost={handleLikePost}
-                                        onAddComment={handleAddComment}
-                                        onUpdatePostCaption={handleUpdatePostCaptionOnProfile}
-                                        onDeletePost={handleDeletePostOnProfile}
-                                        onToggleSavePost={handleToggleSavePost}
-                                        isSavedByCurrentUser={(currentSessionUser?.savedPosts || []).includes(post.id)}
-                                    />
-                                </div>
-                            ))}
+                        <div className="space-y-3">
+                            {activeStoriesForProfileUser.map(storyPost => {
+                                const storyAuthor = allUsers.find(u => u.id === storyPost.userId);
+                                if (!storyAuthor) return null;
+
+                                return (
+                                  <Link
+                                    href={`/post/${storyPost.id}`}
+                                    key={storyPost.id}
+                                    className="block group rounded-lg md:hover:shadow-lg transition-shadow duration-200 max-w-xs mx-auto"
+                                  >
+                                    <Card className="overflow-hidden shadow-md bg-card/80">
+                                      <CardHeader className="flex flex-row items-center justify-between p-3 space-y-0">
+                                        <div className="flex items-center gap-2">
+                                          <Avatar className="h-8 w-8">
+                                            <AvatarImage src={storyAuthor.avatarUrl} alt={storyAuthor.username} data-ai-hint="user avatar small"/>
+                                            <AvatarFallback>{storyAuthor.username.substring(0,1).toUpperCase()}</AvatarFallback>
+                                          </Avatar>
+                                          <div>
+                                            <p className="text-xs font-semibold font-headline group-hover:text-primary">{storyAuthor.username}</p>
+                                            <p className="text-xs text-muted-foreground">{formatTimestamp(storyPost.timestamp)}</p>
+                                          </div>
+                                        </div>
+                                        <GalleryVerticalEnd className="h-4 w-4 text-muted-foreground" />
+                                      </CardHeader>
+                                      {/* Media Preview Section */}
+                                      <div className="relative w-full aspect-[9/16] bg-muted/20 rounded-md overflow-hidden my-2 max-h-64">
+                                        {storyPost.mediaMimeType?.startsWith('image/') ? (
+                                          <Image
+                                            src={storyPost.mediaUrl}
+                                            alt={storyPost.caption || `Cerita oleh ${profileUser.username}`}
+                                            layout="fill"
+                                            objectFit="cover"
+                                            className="transition-opacity group-hover:opacity-90"
+                                            data-ai-hint="story preview image"
+                                          />
+                                        ) : storyPost.mediaMimeType?.startsWith('video/') ? (
+                                          <>
+                                            <video
+                                              src={storyPost.mediaUrl}
+                                              className="w-full h-full object-cover"
+                                              playsInline
+                                              muted
+                                              loop
+                                              data-ai-hint="story preview video"
+                                            />
+                                            <PlayCircle className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 text-white/80 pointer-events-none" />
+                                          </>
+                                        ) : (
+                                          <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">Media tidak didukung</div>
+                                        )}
+                                      </div>
+                                      {storyPost.caption && (
+                                        <CardContent className="p-3 pt-1">
+                                          <p className="text-xs text-muted-foreground line-clamp-2">{storyPost.caption}</p>
+                                        </CardContent>
+                                      )}
+                                    </Card>
+                                  </Link>
+                                );
+                            })}
                         </div>
                     ) : (
                         <p className="text-center text-muted-foreground py-8 font-body">
