@@ -17,6 +17,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import Image from 'next/image';
 import { Textarea } from '@/components/ui/textarea';
 import { formatTimestamp, cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 
 interface UserWithStoryCount extends User {
@@ -45,6 +46,7 @@ export default function FeedPage() {
   // Hooks are ordered: state, refs, other hooks (router, toast), memo, callback, effects
   const router = useRouter();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   const [posts, setPosts] = useLocalStorageState<Post[]>('posts', initialPosts);
   const [users, setUsers] = useLocalStorageState<User[]>('users', initialUsers);
@@ -267,7 +269,7 @@ export default function FeedPage() {
 
   useEffect(() => {
     if (isStoryModalOpen && storyModalContent?.post.mediaMimeType?.startsWith('video/') && videoRef.current) {
-      if (storyCommentInputVisible) {
+      if (storyCommentInputVisible && isMobile) { // Only pause for mobile swipe-up input
         if (!videoRef.current.paused) {
           videoRef.current.pause();
         }
@@ -277,7 +279,7 @@ export default function FeedPage() {
         }
       }
     }
-  }, [storyCommentInputVisible, isStoryModalOpen, storyModalContent?.post.mediaMimeType, isStoryVideoManuallyPaused]);
+  }, [storyCommentInputVisible, isStoryModalOpen, storyModalContent?.post.mediaMimeType, isStoryVideoManuallyPaused, isMobile]);
 
   // Helper functions (defined after all hooks)
   const handleVideoClick = () => {
@@ -310,6 +312,11 @@ export default function FeedPage() {
                 postId: post.id,
                 postMediaUrl: post.mediaUrl,
             });
+          }
+          // Ensure storyModalContent's post is updated if it's the one being liked,
+          // to reflect changes immediately in the modal.
+          if (storyModalContent && storyModalContent.post.id === postId) {
+            setStoryModalContent(prev => prev ? { ...prev, post: { ...prev.post, likes } } : null);
           }
           return { ...post, likes };
         }
@@ -447,11 +454,14 @@ export default function FeedPage() {
 
   const handlePostStoryComment = () => {
     if (!storyCommentText.trim() || !storyModalContent || !currentUserId) return;
+    // Ensure we are using the latest post data for comment association
     const currentPostInModal = posts.find(p => p.id === storyModalContent.post.id) || storyModalContent.post;
     handleAddComment(currentPostInModal.id, storyCommentText.trim());
 
     setStoryCommentText('');
-    setStoryCommentInputVisible(false);
+    if (isMobile) { // Only hide mobile input on submit
+      setStoryCommentInputVisible(false);
+    }
   };
 
   const scrollToTop = () => {
@@ -531,16 +541,15 @@ export default function FeedPage() {
         >
           {storyModalContent && currentUserStories.length > 0 && (
             (() => {
-              // Always get the latest post data from the 'posts' state for rendering
               const currentPostInModal = posts.find(p => p.id === storyModalContent.post.id) || storyModalContent.post;
               const userForStory = users.find(u => u.id === currentPostInModal.userId) || storyModalContent.user;
 
               return (
                 <div
                   className="relative w-full h-full"
-                  onTouchStart={handleTouchStartStory}
-                  onTouchMove={handleTouchMoveStory}
-                  onTouchEnd={handleTouchEndStory}
+                  onTouchStart={isMobile ? handleTouchStartStory : undefined}
+                  onTouchMove={isMobile ? handleTouchMoveStory : undefined}
+                  onTouchEnd={isMobile ? handleTouchEndStory : undefined}
                 >
                   <DialogHeader className="absolute top-0 left-0 right-0 px-3 pt-4 pb-3 z-20 bg-gradient-to-b from-black/60 to-transparent">
                     <DialogTitle className="sr-only">
@@ -555,7 +564,6 @@ export default function FeedPage() {
                               <div className="h-full bg-white rounded-full" style={{ width: `${storyProgress}%` }}></div>
                             )}
                             {index === currentStoryIndex && currentPostInModal.mediaMimeType?.startsWith('video/') && (
-                              // For video, progress might be handled by video element's events or a simpler full bar
                               <div className="h-full bg-white rounded-full w-full"></div>
                             )}
                             {index < currentStoryIndex && (
@@ -620,7 +628,7 @@ export default function FeedPage() {
                     {currentUserId && (
                       <button
                         onClick={(e) => {
-                          e.stopPropagation(); // Prevent story navigation
+                          e.stopPropagation(); 
                           handleLikePost(currentPostInModal.id);
                         }}
                         className="absolute bottom-16 right-4 z-30 flex flex-col items-center text-white p-2 rounded-full bg-black/40 hover:bg-black/60 transition-colors active:scale-95"
@@ -638,17 +646,50 @@ export default function FeedPage() {
                       </button>
                     )}
                   </div>
-
-                  {currentPostInModal.caption && !storyCommentInputVisible && (
-                    <div className="absolute bottom-0 left-0 right-0 p-3 z-20 bg-gradient-to-t from-black/60 to-transparent">
-                      <p className="text-xs text-white text-center">{currentPostInModal.caption}</p>
+                  
+                  {/* Desktop Comment Input */}
+                  {!isMobile && isStoryModalOpen && storyModalContent && currentSessionUser && (
+                    <div className="absolute bottom-3 left-3 right-3 p-0 z-30 flex items-center gap-2">
+                      <Avatar className="h-9 w-9 flex-shrink-0">
+                        <AvatarImage src={currentSessionUser.avatarUrl} alt={currentSessionUser.username} data-ai-hint="user avatar story comment desktop"/>
+                        <AvatarFallback>{currentSessionUser.username.substring(0,1).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <Textarea
+                        placeholder={`Balas cerita ${storyModalContent.user.username}...`}
+                        value={storyCommentText}
+                        onChange={(e) => setStoryCommentText(e.target.value)}
+                        className="text-sm min-h-[40px] max-h-[100px] flex-grow resize-none bg-black/50 text-white placeholder:text-gray-300 border-gray-600 focus:border-white rounded-full px-4 py-2"
+                        rows={1}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handlePostStoryComment();
+                          }
+                        }}
+                      />
+                      <Button size="icon" onClick={handlePostStoryComment} disabled={!storyCommentText.trim()} className="h-9 w-9 bg-primary hover:bg-primary/80 rounded-full flex-shrink-0">
+                        <Send className="h-4 w-4"/>
+                      </Button>
                     </div>
+                  )}
+
+                  {/* Caption */}
+                  {currentPostInModal.caption && (
+                    (!isMobile || !storyCommentInputVisible) && ( // Hide if mobile comment input is visible
+                      <div className={cn(
+                        "absolute left-0 right-0 p-3 z-20 bg-gradient-to-t from-black/50 to-transparent text-center",
+                        !isMobile && currentSessionUser ? "bottom-16" : "bottom-0" // Position above desktop comment bar if present
+                      )}>
+                        <p className="text-xs text-white">{currentPostInModal.caption}</p>
+                      </div>
+                    )
                   )}
                 </div>
               )
             })()
           )}
-          {isStoryModalOpen && storyModalContent && storyCommentInputVisible && currentSessionUser && (
+          {/* Mobile Comment Input (Swipe-up) */}
+          {isMobile && isStoryModalOpen && storyModalContent && storyCommentInputVisible && currentSessionUser && (
             <div className="absolute bottom-0 left-0 right-0 p-3 bg-background/80 backdrop-blur-sm z-30 flex items-start gap-2 sm:hidden">
               <Avatar className="h-8 w-8 mt-1">
                 <AvatarImage src={currentSessionUser.avatarUrl} alt={currentSessionUser.username} data-ai-hint="user avatar small" />
