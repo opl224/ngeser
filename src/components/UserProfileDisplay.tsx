@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from './PostCard';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialUsers, initialPosts, initialNotifications, getCurrentUserId, initialConversations } from '@/lib/data';
-import { Edit3, ImageIcon as ImageIconLucide, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, LayoutGrid, Video, BadgeCheck, ListChecks, Heart, UserPlus, UserCheck as UserCheckIcon, Settings as SettingsIcon, Moon, Sun, Laptop, ShieldQuestion, LogOut, Trash2 } from 'lucide-react';
+import { Edit3, ImageIcon as ImageIconLucide, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, LayoutGrid, Video, BadgeCheck, ListChecks, Heart, UserPlus, UserCheck as UserCheckIcon, Settings as SettingsIcon, Moon, Sun, Laptop, ShieldQuestion, LogOut, Trash2, GalleryVerticalEnd } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
@@ -101,7 +101,8 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
   const [editedBio, setEditedBio] = useState('');
   const [editedAvatarFile, setEditedAvatarFile] = useState<File | null>(null);
   const [editedAvatarPreview, setEditedAvatarPreview] = useState<string | null>(null);
-  const [postFilterType, setPostFilterType] = useState<'all' | 'photo' | 'reel'>('all');
+  
+  const [postFilterType, setPostFilterType] = useState<'story' | 'photo' | 'reel'>('story');
 
   const [editedAccountType, setEditedAccountType] = useState<'public' | 'private'>('public');
   const [editedIsVerified, setEditedIsVerified] = useState(false);
@@ -143,16 +144,17 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     return isCurrentUserFollowingProfile;
   }, [profileUser, currentSessionUserId, isCurrentUserFollowingProfile]);
 
-  const allProfilePostsNonStory = useMemo(() => allPosts
-    .filter(p => p.userId === userId && p.type !== 'story')
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()), [allPosts, userId]);
+  const userPostsAndStories = useMemo(() => 
+    allPosts
+      .filter(p => p.userId === userId)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()), 
+    [allPosts, userId]
+  );
 
-  const filteredDisplayPosts = useMemo(() => {
-    if (postFilterType === 'all') {
-      return allProfilePostsNonStory;
-    }
-    return allProfilePostsNonStory.filter(post => post.type === postFilterType);
-  }, [allProfilePostsNonStory, postFilterType]);
+  const filteredDisplayContent = useMemo(() => {
+    if (!userPostsAndStories) return [];
+    return userPostsAndStories.filter(post => post.type === postFilterType);
+  }, [userPostsAndStories, postFilterType]);
 
 
   const savedPostsForCurrentUser = useMemo(() => {
@@ -569,7 +571,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               </div>
               {profileUser.bio && <p className="text-muted-foreground mt-2 font-body text-sm md:text-base">{profileUser.bio}</p>}
               <div className="flex justify-center md:justify-start gap-4 mt-4 text-sm">
-                <div><span className="font-semibold">{canViewProfileContent ? allProfilePostsNonStory.length : "-"}</span> Postingan</div>
+                <div><span className="font-semibold">{canViewProfileContent ? userPostsAndStories.length : "-"}</span> Postingan</div>
                 <div><span className="font-semibold">{canViewProfileContent ? (profileUser.followers || []).length : "-"}</span> Pengikut</div>
                 <div><span className="font-semibold">{canViewProfileContent ? (profileUser.following || []).length : "-"}</span> Mengikuti</div>
               </div>
@@ -890,17 +892,20 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
             <TabsContent value="posts">
               <div className="mb-4">
-                <Tabs defaultValue={postFilterType} onValueChange={(value) => setPostFilterType(value as 'all' | 'photo' | 'reel')}>
+                <Tabs 
+                  defaultValue="story" 
+                  onValueChange={(value) => setPostFilterType(value as 'story' | 'photo' | 'reel')}
+                >
                    <TabsList className="grid w-full grid-cols-3 h-10 items-center p-1 text-muted-foreground bg-muted/50 rounded-lg">
-                    <TabsTrigger value="all" className="font-headline"><LayoutGrid className="h-3.5 w-3.5 mr-1.5"/>Semua</TabsTrigger>
+                    <TabsTrigger value="story" className="font-headline"><GalleryVerticalEnd className="h-3.5 w-3.5 mr-1.5"/>Cerita</TabsTrigger>
                     <TabsTrigger value="photo" className="font-headline"><ImageIconLucide className="h-3.5 w-3.5 mr-1.5"/>Foto</TabsTrigger>
                     <TabsTrigger value="reel" className="font-headline"><Video className="h-3.5 w-3.5 mr-1.5"/>Reels</TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
-                {filteredDisplayPosts.length > 0 ? (
+                {filteredDisplayContent.length > 0 ? (
                   <div className="grid grid-cols-1 gap-4">
-                    {filteredDisplayPosts.map(post => {
+                    {filteredDisplayContent.map(post => {
                       const isSavedByCurrentSessUser = (currentSessionUser?.savedPosts || []).includes(post.id);
                       return(
                       <PostCard
@@ -918,7 +923,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                   </div>
                 ) : (
                   <p className="text-center text-muted-foreground py-8 font-body">
-                    Belum ada {postFilterType === 'all' ? 'postingan' : postFilterType}.
+                    Belum ada {postFilterType === 'story' ? 'cerita' : (postFilterType === 'photo' ? 'foto' : 'reel')}.
                   </p>
                 )}
             </TabsContent>
@@ -1059,4 +1064,3 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
-
