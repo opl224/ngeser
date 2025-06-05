@@ -1024,19 +1024,15 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
           }
         }}>
         <DialogContent className={cn(
-          // Default (Desktop single post or mobile story)
           "sm:max-w-3xl md:max-w-4xl lg:max-w-5xl w-[95vw] max-h-[90vh] p-0 flex flex-col bg-card text-card-foreground shadow-xl rounded-lg",
-          // Mobile Gallery Override
           (isMobile && galleryPosts.length > 0) && "fixed inset-0 w-screen h-dvh bg-black p-0 flex flex-col rounded-none border-none shadow-none [&>button[aria-label=Close]]:hidden"
         )}>
-           {/* Conditional DialogHeader for Mobile Gallery */}
-          {isMobile && galleryPosts.length > 0 && (
-            <DialogHeader className="sr-only">
-              <EditDialogTitle>Galeri Postingan Pengguna</EditDialogTitle>
+          {(isMobile && galleryPosts.length > 0) && (
+            <DialogHeader>
+                <EditDialogTitle className="sr-only">Galeri Postingan Pengguna</EditDialogTitle>
             </DialogHeader>
           )}
           
-          {/* Mobile Gallery View */}
           {isMobile && galleryPosts.length > 0 && selectedPostForModal && (
             <>
               <div className="flex-1 flex flex-col h-full w-full">
@@ -1065,9 +1061,9 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                             className="h-dvh w-screen snap-start flex items-center justify-center relative"
                         >
                             {galleryPost.mediaMimeType?.startsWith('image/') ? (
-                            <Image src={galleryPost.mediaUrl} alt={galleryPost.caption || 'Post media'} layout="fill" objectFit="contain" data-ai-hint={`${galleryPost.type} gallery image`}/>
+                            <Image src={galleryPost.mediaUrl} alt={galleryPost.caption || 'Post media'} layout="fill" objectFit="contain" className="object-center" data-ai-hint={`${galleryPost.type} gallery image`}/>
                             ) : galleryPost.mediaMimeType?.startsWith('video/') ? (
-                            <video src={galleryPost.mediaUrl} controls className="w-full h-full object-contain" data-ai-hint="gallery video content" autoPlay={galleryPost.id === initialGalleryScrollId} playsInline loop={galleryPost.id === initialGalleryScrollId} muted={galleryPost.id === initialGalleryScrollId} />
+                            <video src={galleryPost.mediaUrl} controls className="w-full h-full object-contain object-center" data-ai-hint="gallery video content" autoPlay={galleryPost.id === initialGalleryScrollId} playsInline loop={galleryPost.id === initialGalleryScrollId} muted={galleryPost.id === initialGalleryScrollId} />
                             ) : (
                             <p className="text-white">Media tidak didukung.</p>
                             )}
@@ -1116,7 +1112,6 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
             </>
           )}
 
-          {/* Desktop Single Post View or Mobile Story View (or when gallery is empty) */}
           {(!isMobile || galleryPosts.length === 0) && selectedPostForModal && modalPostAuthor && (
             <>
               <DialogHeader className="p-3 border-b flex flex-row items-center justify-between sticky top-0 bg-card z-10">
@@ -1144,9 +1139,9 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                       selectedPostForModal.type === 'story' ? 'lg:aspect-[9/16] lg:max-h-[calc(90vh-120px)]' : 'lg:max-h-[calc(90vh-120px)]'
                   )}>
                     {selectedPostForModal.mediaMimeType?.startsWith('image/') ? (
-                      <Image src={selectedPostForModal.mediaUrl} alt={selectedPostForModal.caption || 'Post media'} layout="fill" objectFit="contain" data-ai-hint="modal image content"/>
+                      <Image src={selectedPostForModal.mediaUrl} alt={selectedPostForModal.caption || 'Post media'} layout="fill" objectFit="contain" className="object-center" data-ai-hint="modal image content"/>
                     ) : selectedPostForModal.mediaMimeType?.startsWith('video/') ? (
-                      <video src={selectedPostForModal.mediaUrl} controls className="w-full h-full object-contain" data-ai-hint="modal video content"/>
+                      <video src={selectedPostForModal.mediaUrl} controls className="w-full h-full object-contain object-center" data-ai-hint="modal video content"/>
                     ) : (
                       <p className="text-white">Format media tidak didukung.</p>
                     )}
@@ -1267,11 +1262,11 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                                        {isCurrentUserProfile && (
                                         <DropdownMenu>
                                           <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground opacity-50 group-hover:opacity-100 focus:opacity-100 transition-opacity">
+                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground opacity-50 group-hover:opacity-100 focus:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                                               <MoreHorizontal className="h-4 w-4" />
                                             </Button>
                                           </DropdownMenuTrigger>
-                                          <DropdownMenuContent align="end">
+                                          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                                             <DropdownMenuItem onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleOpenEditStoryCaptionDialog(storyPost); }}>
                                               <Edit3 className="mr-2 h-4 w-4" />
                                               <span>Edit Keterangan</span>
@@ -1351,7 +1346,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                         </p>
                     )
                 ) : filteredGridContent.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-1">
                     {filteredGridContent.map(post => (
                       <div 
                         key={post.id} 
