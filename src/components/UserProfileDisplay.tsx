@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, ChangeEvent, useMemo, Dispatch, SetStateAction, useRef, useCallback } from 'react';
@@ -1030,7 +1031,11 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         )}>
           {/* Mobile Gallery View */}
           {isMobile && galleryPosts.length > 0 && selectedPostForModal && (
-             <div className="flex-1 flex flex-col h-full w-full"> {/* Ensure this container takes full modal space */}
+            <>
+              <DialogHeader className="sr-only">
+                <EditDialogTitle>Galeri Postingan Pengguna</EditDialogTitle>
+              </DialogHeader>
+              <div className="flex-1 flex flex-col h-full w-full">
                 <div className="absolute top-0 left-0 right-0 z-20 p-3 flex items-center justify-start bg-gradient-to-b from-black/60 to-transparent">
                     <Button variant="ghost" size="icon" onClick={() => setIsPostDetailModalOpen(false)} className="text-white hover:bg-white/10">
                         <ArrowLeft className="h-6 w-6" />
@@ -1103,10 +1108,11 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                         );
                     })}
                 </div>
-            </div>
+              </div>
+            </>
           )}
 
-          {/* Desktop Single Post View or Mobile Story View */}
+          {/* Desktop Single Post View or Mobile Story View (or when gallery is empty) */}
           {(!isMobile || galleryPosts.length === 0) && selectedPostForModal && modalPostAuthor && (
             <>
               <DialogHeader className="p-3 border-b flex flex-row items-center justify-between sticky top-0 bg-card z-10">
@@ -1189,6 +1195,14 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
               </ScrollArea>
             </>
           )}
+         {!selectedPostForModal && isPostDetailModalOpen && ( /* Fallback for open modal without selected post */
+            <DialogHeader>
+                <EditDialogTitle className="sr-only">Memuat Detail Postingan</EditDialogTitle>
+                <div className="flex items-center justify-center h-full">
+                    <p>Memuat...</p>
+                </div>
+            </DialogHeader>
+         )}
         </DialogContent>
       </Dialog>
 
@@ -1508,4 +1522,5 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
+
 
