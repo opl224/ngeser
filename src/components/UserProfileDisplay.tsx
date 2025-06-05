@@ -5,12 +5,12 @@ import { useState, useEffect, ChangeEvent, useMemo, Dispatch, SetStateAction, us
 import type { User, Post, Comment as CommentType, Notification, Conversation } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter as CustomStoryCardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from './PostCard';
 import useLocalStorageState from '@/hooks/useLocalStorageState';
 import { initialUsers, initialPosts, initialNotifications, getCurrentUserId, initialConversations } from '@/lib/data';
-import { Edit3, ImageIcon as ImageIconLucide, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, LayoutGrid, Video, BadgeCheck, ListChecks, Heart, UserPlus, UserCheck as UserCheckIcon, Settings as SettingsIcon, Moon, Sun, Laptop, ShieldQuestion, LogOut, Trash2, GalleryVerticalEnd, PlayCircle, Send as SendIcon, X } from 'lucide-react';
+import { Edit3, ImageIcon as ImageIconLucide, Save, Bookmark, MessageSquare, ShieldCheck, ShieldOff, Lock, LayoutGrid, Video, BadgeCheck, ListChecks, Heart, UserPlus, UserCheck as UserCheckIcon, Settings as SettingsIcon, Moon, Sun, Laptop, ShieldQuestion, LogOut, Trash2, GalleryVerticalEnd, PlayCircle, Send as SendIcon, X, MoreHorizontal, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
@@ -110,6 +110,13 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
 
   const [activeMainTab, setActiveMainTab] = useState<'posts' | 'followers' | 'following' | 'activity'>('posts');
   const [activeActivitySubTab, setActiveActivitySubTab] = useState<'saved_nested' | 'liked_nested' | 'commented_nested'>('saved_nested');
+
+  // State for custom story card actions
+  const [showDeleteStoryConfirmDialog, setShowDeleteStoryConfirmDialog] = useState(false);
+  const [storyToDeleteId, setStoryToDeleteId] = useState<string | null>(null);
+  const [showEditStoryCaptionDialog, setShowEditStoryCaptionDialog] = useState(false);
+  const [storyToEditCaption, setStoryToEditCaption] = useState<Post | null>(null);
+  const [currentEditingStoryCaption, setCurrentEditingStoryCaption] = useState("");
 
 
   useEffect(() => {
@@ -490,7 +497,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       }
 
       window.dispatchEvent(new CustomEvent('authChange'));
-      localStorage.removeItem('currentSessionUserId'); // Corrected key
+      localStorage.removeItem('currentUserId'); 
     }
     toast({
       title: "Berhasil Keluar",
@@ -506,7 +513,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     setConversations([]);
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('authChange'));
-      localStorage.removeItem('currentSessionUserId'); // Corrected key
+      localStorage.removeItem('currentUserId'); 
       localStorage.setItem('posts', '[]');
       localStorage.setItem('users', '[]');
       localStorage.setItem('notifications', '[]');
@@ -519,6 +526,37 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     });
     setShowDeleteDataConfirm(false);
     router.push('/login');
+  };
+
+  // Handlers for custom story card actions
+  const handleOpenDeleteStoryDialog = (storyId: string) => {
+    setStoryToDeleteId(storyId);
+    setShowDeleteStoryConfirmDialog(true);
+  };
+
+  const handleConfirmDeleteStory = () => {
+    if (storyToDeleteId) {
+      handleDeletePostOnProfile(storyToDeleteId);
+      toast({ title: "Cerita Dihapus", description: "Cerita telah berhasil dihapus.", variant: "destructive" });
+    }
+    setShowDeleteStoryConfirmDialog(false);
+    setStoryToDeleteId(null);
+  };
+
+  const handleOpenEditStoryCaptionDialog = (storyPost: Post) => {
+    setStoryToEditCaption(storyPost);
+    setCurrentEditingStoryCaption(storyPost.caption);
+    setShowEditStoryCaptionDialog(true);
+  };
+
+  const handleSaveStoryCaption = () => {
+    if (storyToEditCaption) {
+      handleUpdatePostCaptionOnProfile(storyToEditCaption.id, currentEditingStoryCaption);
+      toast({ title: "Keterangan Cerita Diperbarui" });
+    }
+    setShowEditStoryCaptionDialog(false);
+    setStoryToEditCaption(null);
+    setCurrentEditingStoryCaption("");
   };
   
   if (!profileUser) {
@@ -886,6 +924,48 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog open={showDeleteStoryConfirmDialog} onOpenChange={setShowDeleteStoryConfirmDialog}>
+        <AlertDialogContent>
+          <ADHeader>
+            <ADTitle className="font-headline">Hapus Cerita Ini?</ADTitle>
+            <AlertDialogDesc>
+              Tindakan ini tidak dapat dibatalkan. Cerita ini akan dihapus secara permanen.
+            </AlertDialogDesc>
+          </ADHeader>
+          <ADFooter>
+            <AlertDialogCancel onClick={() => setShowDeleteStoryConfirmDialog(false)}>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDeleteStory} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Ya, Hapus Cerita
+            </AlertDialogAction>
+          </ADFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={showEditStoryCaptionDialog} onOpenChange={setShowEditStoryCaptionDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <EditDialogTitle className="font-headline">Edit Keterangan Cerita</EditDialogTitle>
+            <DialogDescription>
+              Buat perubahan pada keterangan cerita Anda. Klik simpan jika sudah selesai.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <Textarea
+              id="edit-story-caption"
+              value={currentEditingStoryCaption}
+              onChange={(e) => setCurrentEditingStoryCaption(e.target.value)}
+              className="min-h-[100px]"
+              rows={3}
+              placeholder="Tulis keterangan untuk cerita Anda..."
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditStoryCaptionDialog(false)}>Batal</Button>
+            <Button onClick={handleSaveStoryCaption}>Simpan Perubahan</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       <div className="mt-8 w-full sm:max-w-2xl sm:mx-auto">
         {canViewProfileContent ? (
@@ -923,28 +1003,47 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                             {activeStoriesForProfileUser.map(storyPost => {
                                 const storyAuthor = allUsers.find(u => u.id === storyPost.userId);
                                 if (!storyAuthor) return null;
+                                const totalCommentsAndReplies = storyPost.comments.length + storyPost.comments.reduce((acc, curr) => acc + (curr.replies?.length || 0), 0);
+                                const isStoryLikedByCurrentUser = currentSessionUserId ? storyPost.likes.includes(currentSessionUserId) : false;
 
                                 return (
-                                  <Link
-                                    href={`/post/${storyPost.id}`}
-                                    key={storyPost.id}
-                                    className="block group rounded-lg md:hover:shadow-lg transition-shadow duration-200 max-w-xs mx-auto"
-                                  >
-                                    <Card className="overflow-hidden shadow-md bg-card/80">
-                                      <CardHeader className="flex flex-row items-center justify-between p-3 space-y-0">
-                                        <div className="flex items-center gap-2">
-                                          <Avatar className="h-8 w-8">
-                                            <AvatarImage src={storyAuthor.avatarUrl} alt={storyAuthor.username} data-ai-hint="user avatar small"/>
-                                            <AvatarFallback>{storyAuthor.username.substring(0,1).toUpperCase()}</AvatarFallback>
-                                          </Avatar>
-                                          <div>
-                                            <p className="text-xs font-semibold font-headline group-hover:text-primary">{storyAuthor.username}</p>
-                                            <p className="text-xs text-muted-foreground">{formatTimestamp(storyPost.timestamp)}</p>
-                                          </div>
+                                  <Card key={storyPost.id} className="overflow-hidden shadow-md bg-card/80 max-w-xs mx-auto">
+                                    <CardHeader className="flex flex-row items-center justify-between p-3 space-y-0">
+                                      <Link href={`/post/${storyPost.id}`} className="flex items-center gap-2 group">
+                                        <Avatar className="h-8 w-8">
+                                          <AvatarImage src={storyAuthor.avatarUrl} alt={storyAuthor.username} data-ai-hint="user avatar small"/>
+                                          <AvatarFallback>{storyAuthor.username.substring(0,1).toUpperCase()}</AvatarFallback>
+                                        </Avatar>
+                                        <div>
+                                          <p className="text-xs font-semibold font-headline group-hover:text-primary">{storyAuthor.username}</p>
+                                          <p className="text-xs text-muted-foreground">{formatTimestamp(storyPost.timestamp)}</p>
                                         </div>
-                                        <GalleryVerticalEnd className="h-4 w-4 text-muted-foreground" />
-                                      </CardHeader>
-                                      {/* Media Preview Section */}
+                                      </Link>
+                                      {isCurrentUserProfile && (
+                                        <DropdownMenu>
+                                          <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
+                                              <MoreHorizontal className="h-4 w-4" />
+                                            </Button>
+                                          </DropdownMenuTrigger>
+                                          <DropdownMenuContent align="end">
+                                            <DropdownMenuItem onClick={() => handleOpenEditStoryCaptionDialog(storyPost)}>
+                                              <Edit3 className="mr-2 h-4 w-4" />
+                                              <span>Edit Keterangan</span>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem
+                                              onClick={() => handleOpenDeleteStoryDialog(storyPost.id)}
+                                              className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                                            >
+                                              <Trash2 className="mr-2 h-4 w-4" />
+                                              <span>Hapus Cerita</span>
+                                            </DropdownMenuItem>
+                                          </DropdownMenuContent>
+                                        </DropdownMenu>
+                                      )}
+                                    </CardHeader>
+                                    <Link href={`/post/${storyPost.id}`} className="block group">
                                       <div className="relative w-full aspect-[9/16] bg-muted/20 rounded-md overflow-hidden my-2 max-h-64">
                                         {storyPost.mediaMimeType?.startsWith('image/') ? (
                                           <Image
@@ -971,13 +1070,34 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                                           <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">Media tidak didukung</div>
                                         )}
                                       </div>
-                                      {storyPost.caption && (
-                                        <CardContent className="p-3 pt-1">
-                                          <p className="text-xs text-muted-foreground line-clamp-2">{storyPost.caption}</p>
-                                        </CardContent>
-                                      )}
-                                    </Card>
-                                  </Link>
+                                    </Link>
+                                    {storyPost.caption && (
+                                      <CardContent className="p-3 pt-0 pb-2">
+                                        <p className="text-xs text-muted-foreground line-clamp-2">{storyPost.caption}</p>
+                                      </CardContent>
+                                    )}
+                                    <CustomStoryCardFooter className="px-3 pb-3 pt-1 flex items-center gap-3 text-xs text-muted-foreground">
+                                      <button
+                                        onClick={() => handleLikePost(storyPost.id)}
+                                        className={cn(
+                                          "flex items-center gap-1 hover:text-destructive",
+                                          isStoryLikedByCurrentUser && "text-destructive"
+                                        )}
+                                        disabled={!currentSessionUserId}
+                                      >
+                                        <Heart className={cn("h-3.5 w-3.5", isStoryLikedByCurrentUser && "fill-destructive")} />
+                                        <span>{storyPost.likes.length}</span>
+                                      </button>
+                                      <Link href={`/post/${storyPost.id}#comments`} className="flex items-center gap-1 hover:text-primary">
+                                        <MessageSquare className="h-3.5 w-3.5" />
+                                        <span>{totalCommentsAndReplies}</span>
+                                      </Link>
+                                      <div className="flex items-center gap-1">
+                                        <Eye className="h-3.5 w-3.5" />
+                                        <span>{storyPost.viewCount || 0}</span>
+                                      </div>
+                                    </CustomStoryCardFooter>
+                                  </Card>
                                 );
                             })}
                         </div>
@@ -1004,7 +1124,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                             }
                         </div>
                         <div className="absolute top-1 right-1 p-0.5 bg-black/40 rounded-sm">
-                            
+                            {post.type === 'story' && <GalleryVerticalEnd className="h-3.5 w-3.5 text-white" />}
                             {post.type === 'photo' && <ImageIconLucide className="h-3.5 w-3.5 text-white" />}
                             {post.type === 'reel' && <Video className="h-3.5 w-3.5 text-white" />}
                         </div>
@@ -1154,4 +1274,3 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
-
