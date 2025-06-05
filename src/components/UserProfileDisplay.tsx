@@ -157,11 +157,11 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     return userPostsAndStories
       .filter(p => p.type === 'story' && new Date(p.timestamp) > twentyFourHoursAgo)
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()); // Ensure sorted for display
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()); 
   }, [userPostsAndStories, profileUser]);
 
 
-  const filteredGridContent = useMemo(() => { // Used for 'photo' and 'reel' grid
+  const filteredGridContent = useMemo(() => { 
     if (!userPostsAndStories) return [];
     if (postFilterType === 'photo' || postFilterType === 'reel') {
         return userPostsAndStories.filter(post => post.type === postFilterType);
@@ -732,7 +732,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
       <Dialog open={isEditProfileModalOpen} onOpenChange={setIsEditProfileModalOpen}>
         <DialogContent className={cn(
             "sm:max-w-[420px]",
-            "h-full max-h-[calc(100dvh-4rem)] w-[calc(100%-2rem)] flex flex-col overflow-hidden" // Added h-full & overflow-hidden
+            "h-full max-h-[calc(100dvh-4rem)] w-[calc(100%-2rem)] flex flex-col overflow-hidden" 
             )}>
           <DialogHeader>
             <EditDialogTitle className="font-headline text-2xl flex items-center gap-2">
@@ -742,7 +742,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                Perbarui informasi profil Anda. Email dan Nama Pengguna tidak dapat diubah.
             </DialogDescription>
           </DialogHeader>
-          <ScrollArea className="flex-grow min-h-0 -mx-6 px-6"> {/* Added min-h-0 */}
+          <ScrollArea className="flex-grow min-h-0 -mx-6 px-6"> 
             <div className="grid gap-6 py-4 pr-2">
               <div className="space-y-2">
                 <Label htmlFor="profile-email" className="font-medium">Email</Label>
@@ -921,21 +921,22 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                     activeStoriesForProfileUser.length > 0 ? (
                         <div className="space-y-4">
                             {activeStoriesForProfileUser.map(post => (
-                                <PostCard
-                                    key={post.id}
-                                    post={post}
-                                    onLikePost={handleLikePost}
-                                    onAddComment={handleAddComment}
-                                    onUpdatePostCaption={handleUpdatePostCaptionOnProfile}
-                                    onDeletePost={handleDeletePostOnProfile}
-                                    onToggleSavePost={handleToggleSavePost}
-                                    isSavedByCurrentUser={(currentSessionUser?.savedPosts || []).includes(post.id)}
-                                />
+                                <div key={post.id} className="max-w-md mx-auto">
+                                    <PostCard
+                                        post={post}
+                                        onLikePost={handleLikePost}
+                                        onAddComment={handleAddComment}
+                                        onUpdatePostCaption={handleUpdatePostCaptionOnProfile}
+                                        onDeletePost={handleDeletePostOnProfile}
+                                        onToggleSavePost={handleToggleSavePost}
+                                        isSavedByCurrentUser={(currentSessionUser?.savedPosts || []).includes(post.id)}
+                                    />
+                                </div>
                             ))}
                         </div>
                     ) : (
                         <p className="text-center text-muted-foreground py-8 font-body">
-                        Pengguna ini belum memiliki cerita aktif.
+                        Pengguna ini belum memiliki cerita aktif (dalam 24 jam terakhir).
                         </p>
                     )
                 ) : filteredGridContent.length > 0 ? (
@@ -956,7 +957,7 @@ export function UserProfileDisplay({ userId }: UserProfileDisplayProps) {
                             }
                         </div>
                         <div className="absolute top-1 right-1 p-0.5 bg-black/40 rounded-sm">
-                            {/* This icon display is for the grid, story type icon for PostCard is handled within PostCard */}
+                            
                             {post.type === 'photo' && <ImageIconLucide className="h-3.5 w-3.5 text-white" />}
                             {post.type === 'reel' && <Video className="h-3.5 w-3.5 text-white" />}
                         </div>
@@ -1106,3 +1107,4 @@ function UserList({ userIds, allUsers, listTitle }: UserListProps) {
     </Card>
   );
 }
+
