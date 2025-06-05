@@ -145,9 +145,10 @@ export default function FeedPage() {
       setCurrentStoryIndex(newIndex);
       setStoryModalContent(prev => {
         if (!prev) return null;
+        const nextStoryData = posts.find(p => p.id === currentUserStories[newIndex].id) || currentUserStories[newIndex];
         return {
           ...prev,
-          post: currentUserStories[newIndex],
+          post: nextStoryData,
         };
       });
       setStoryProgress(0);
@@ -158,7 +159,7 @@ export default function FeedPage() {
     } else if (direction === 'prev' && newIndex < 0) {
       // At the beginning, do nothing
     }
-  }, [currentUserStories, currentStoryIndex, storyModalContent]);
+  }, [currentUserStories, currentStoryIndex, storyModalContent, posts]);
 
   useEffect(() => {
     const id = getCurrentUserId();
@@ -403,7 +404,8 @@ export default function FeedPage() {
     if (userAllStories.length > 0) {
       setCurrentUserStories(userAllStories);
       setCurrentStoryIndex(0);
-      setStoryModalContent({ user: userWithStoryData, post: userAllStories[0], storyCount: userAllStories.length });
+      const initialStoryData = posts.find(p => p.id === userAllStories[0].id) || userAllStories[0];
+      setStoryModalContent({ user: userWithStoryData, post: initialStoryData, storyCount: userAllStories.length });
       setIsStoryModalOpen(true);
       setStoryProgress(0);
       setStoryCommentInputVisible(false);
@@ -445,8 +447,8 @@ export default function FeedPage() {
 
   const handlePostStoryComment = () => {
     if (!storyCommentText.trim() || !storyModalContent || !currentUserId) return;
-
-    handleAddComment(storyModalContent.post.id, storyCommentText.trim());
+    const currentPostInModal = posts.find(p => p.id === storyModalContent.post.id) || storyModalContent.post;
+    handleAddComment(currentPostInModal.id, storyCommentText.trim());
 
     setStoryCommentText('');
     setStoryCommentInputVisible(false);
@@ -528,114 +530,123 @@ export default function FeedPage() {
           )}
         >
           {storyModalContent && currentUserStories.length > 0 && (
-            <div
-              className="relative w-full h-full"
-              onTouchStart={handleTouchStartStory}
-              onTouchMove={handleTouchMoveStory}
-              onTouchEnd={handleTouchEndStory}
-            >
-              <DialogHeader className="absolute top-0 left-0 right-0 px-3 pt-4 pb-3 z-20 bg-gradient-to-b from-black/60 to-transparent">
-                 <DialogTitle className="sr-only">
-                  Cerita oleh {storyModalContent.user.username}
-                </DialogTitle>
+            (() => {
+              // Always get the latest post data from the 'posts' state for rendering
+              const currentPostInModal = posts.find(p => p.id === storyModalContent.post.id) || storyModalContent.post;
+              const userForStory = allUsers.find(u => u.id === currentPostInModal.userId) || storyModalContent.user;
 
-                {currentUserStories.length > 0 && (
-                  <div className="flex space-x-1 mb-2 h-1 w-full">
-                    {currentUserStories.map((_, index) => (
-                      <div key={index} className="flex-1 bg-white/30 rounded-full overflow-hidden">
-                        {index === currentStoryIndex && storyModalContent.post.mediaMimeType?.startsWith('image/') && (
-                           <div className="h-full bg-white rounded-full" style={{ width: `${storyProgress}%` }}></div>
-                        )}
-                        {index === currentStoryIndex && storyModalContent.post.mediaMimeType?.startsWith('video/') && (
-                           <div className="h-full bg-white rounded-full w-full"></div>
-                        )}
-                        {index < currentStoryIndex && (
-                           <div className="h-full bg-white rounded-full w-full opacity-80"></div>
-                        )}
+              return (
+                <div
+                  className="relative w-full h-full"
+                  onTouchStart={handleTouchStartStory}
+                  onTouchMove={handleTouchMoveStory}
+                  onTouchEnd={handleTouchEndStory}
+                >
+                  <DialogHeader className="absolute top-0 left-0 right-0 px-3 pt-4 pb-3 z-20 bg-gradient-to-b from-black/60 to-transparent">
+                    <DialogTitle className="sr-only">
+                      Cerita oleh {userForStory.username}
+                    </DialogTitle>
+
+                    {currentUserStories.length > 0 && (
+                      <div className="flex space-x-1 mb-2 h-1 w-full">
+                        {currentUserStories.map((story, index) => (
+                          <div key={story.id} className="flex-1 bg-white/30 rounded-full overflow-hidden">
+                            {index === currentStoryIndex && currentPostInModal.mediaMimeType?.startsWith('image/') && (
+                              <div className="h-full bg-white rounded-full" style={{ width: `${storyProgress}%` }}></div>
+                            )}
+                            {index === currentStoryIndex && currentPostInModal.mediaMimeType?.startsWith('video/') && (
+                              // For video, progress might be handled by video element's events or a simpler full bar
+                              <div className="h-full bg-white rounded-full w-full"></div>
+                            )}
+                            {index < currentStoryIndex && (
+                              <div className="h-full bg-white rounded-full w-full opacity-80"></div>
+                            )}
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <Avatar className="h-7 w-7 border-2 border-white">
-                    <AvatarImage src={storyModalContent.user.avatarUrl} alt={storyModalContent.user.username} />
-                    <AvatarFallback className="bg-black/50 text-white">{storyModalContent.user.username.substring(0,1).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  <span className="font-semibold text-xs">{storyModalContent.user.username}</span>
-                  <span className="text-xs text-gray-300 ml-1">
-                    {formatTimestamp(storyModalContent.post.timestamp)}
-                  </span>
-                </div>
-              </DialogHeader>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-7 w-7 border-2 border-white">
+                        <AvatarImage src={userForStory.avatarUrl} alt={userForStory.username} />
+                        <AvatarFallback className="bg-black/50 text-white">{userForStory.username.substring(0,1).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <span className="font-semibold text-xs">{userForStory.username}</span>
+                      <span className="text-xs text-gray-300 ml-1">
+                        {formatTimestamp(currentPostInModal.timestamp)}
+                      </span>
+                    </div>
+                  </DialogHeader>
 
-              <div className="w-full h-full flex items-center justify-center relative">
-                <div
-                  className="absolute left-0 top-0 h-full w-1/3 z-10 cursor-pointer"
-                  onClick={() => navigateStory('prev')}
-                  role="button"
-                  aria-label="Cerita Sebelumnya"
-                />
-                <div
-                  className="absolute right-0 top-0 h-full w-1/3 z-10 cursor-pointer"
-                  onClick={() => navigateStory('next')}
-                  role="button"
-                  aria-label="Cerita Berikutnya"
-                />
-
-                {storyModalContent.post.mediaMimeType?.startsWith('image/') ? (
-                  <Image
-                    key={storyModalContent.post.id}
-                    src={storyModalContent.post.mediaUrl}
-                    alt={storyModalContent.post.caption || 'Story image'}
-                    layout="fill"
-                    objectFit="contain"
-                    className="rounded-md"
-                    data-ai-hint="story content image"
-                  />
-                ) : storyModalContent.post.mediaMimeType?.startsWith('video/') ? (
-                  <video
-                    key={storyModalContent.post.id}
-                    ref={videoRef}
-                    src={storyModalContent.post.mediaUrl}
-                    playsInline
-                    className="w-full h-full object-contain"
-                    data-ai-hint="story content video"
-                    onEnded={() => navigateStory('next')}
-                    onClick={handleVideoClick}
-                  />
-                ) : (
-                  <p className="text-center">Format media tidak didukung.</p>
-                )}
-
-                {/* Like Button for Story */}
-                {currentUserId && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation(); // Prevent story navigation
-                      handleLikePost(storyModalContent.post.id);
-                    }}
-                    className="absolute bottom-16 right-4 z-30 flex flex-col items-center text-white p-2 rounded-full bg-black/40 hover:bg-black/60 transition-colors active:scale-95"
-                    aria-label="Sukai cerita"
-                  >
-                    <Heart
-                      className={cn(
-                        "h-6 w-6 transition-colors duration-150 ease-in-out",
-                        storyModalContent.post.likes.includes(currentUserId) && "fill-red-500 text-red-500"
-                      )}
+                  <div className="w-full h-full flex items-center justify-center relative">
+                    <div
+                      className="absolute left-0 top-0 h-full w-1/3 z-10 cursor-pointer"
+                      onClick={() => navigateStory('prev')}
+                      role="button"
+                      aria-label="Cerita Sebelumnya"
                     />
-                    <span className="text-xs font-medium mt-1">
-                      {storyModalContent.post.likes.length > 0 ? storyModalContent.post.likes.length : ''}
-                    </span>
-                  </button>
-                )}
-              </div>
+                    <div
+                      className="absolute right-0 top-0 h-full w-1/3 z-10 cursor-pointer"
+                      onClick={() => navigateStory('next')}
+                      role="button"
+                      aria-label="Cerita Berikutnya"
+                    />
 
-              {storyModalContent.post.caption && !storyCommentInputVisible && (
-                <div className="absolute bottom-0 left-0 right-0 p-3 z-20 bg-gradient-to-t from-black/60 to-transparent">
-                  <p className="text-xs text-white text-center">{storyModalContent.post.caption}</p>
+                    {currentPostInModal.mediaMimeType?.startsWith('image/') ? (
+                      <Image
+                        key={currentPostInModal.id}
+                        src={currentPostInModal.mediaUrl}
+                        alt={currentPostInModal.caption || 'Story image'}
+                        layout="fill"
+                        objectFit="contain"
+                        className="rounded-md"
+                        data-ai-hint="story content image"
+                      />
+                    ) : currentPostInModal.mediaMimeType?.startsWith('video/') ? (
+                      <video
+                        key={currentPostInModal.id}
+                        ref={videoRef}
+                        src={currentPostInModal.mediaUrl}
+                        playsInline
+                        className="w-full h-full object-contain"
+                        data-ai-hint="story content video"
+                        onEnded={() => navigateStory('next')}
+                        onClick={handleVideoClick}
+                      />
+                    ) : (
+                      <p className="text-center">Format media tidak didukung.</p>
+                    )}
+
+                    {/* Like Button for Story */}
+                    {currentUserId && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent story navigation
+                          handleLikePost(currentPostInModal.id);
+                        }}
+                        className="absolute bottom-16 right-4 z-30 flex flex-col items-center text-white p-2 rounded-full bg-black/40 hover:bg-black/60 transition-colors active:scale-95"
+                        aria-label="Sukai cerita"
+                      >
+                        <Heart
+                          className={cn(
+                            "h-6 w-6 transition-colors duration-150 ease-in-out",
+                            currentPostInModal.likes.includes(currentUserId) && "fill-red-500 text-red-500"
+                          )}
+                        />
+                        <span className="text-xs font-medium mt-1">
+                          {currentPostInModal.likes.length > 0 ? currentPostInModal.likes.length : ''}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+
+                  {currentPostInModal.caption && !storyCommentInputVisible && (
+                    <div className="absolute bottom-0 left-0 right-0 p-3 z-20 bg-gradient-to-t from-black/60 to-transparent">
+                      <p className="text-xs text-white text-center">{currentPostInModal.caption}</p>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              )
+            })()
           )}
           {isStoryModalOpen && storyModalContent && storyCommentInputVisible && currentSessionUser && (
             <div className="absolute bottom-0 left-0 right-0 p-3 bg-background/80 backdrop-blur-sm z-30 flex items-start gap-2 sm:hidden">
@@ -660,3 +671,4 @@ export default function FeedPage() {
     </div>
   );
 }
+
